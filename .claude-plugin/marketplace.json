@@ -1,0 +1,18 @@
+{
+  "name": "marketplace",
+  "metadata": {
+    "description": "Keisuke Hayashi's personal Claude Code plugin marketplace for custom toolsets and development integrations",
+    "version": "0.1.0"
+  },
+  "owner": {
+    "name": "Keisuke Hayashi",
+    "email": "hi@kkhys.me"
+  },
+  "plugins": [
+    {
+      "name": "kkhys",
+      "source": "./kkhys",
+      "description": "Base toolset for personal development workflow and utilities"
+    }
+  ]
+}
