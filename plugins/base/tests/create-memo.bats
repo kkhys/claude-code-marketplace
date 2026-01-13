@@ -7,13 +7,13 @@ setup() {
 
   export ORIGINAL_HOME="${HOME}"
   export HOME="${BATS_TEST_TMPDIR}"
-  mkdir -p "${HOME}/project/private-content/memo"
+  mkdir -p "${HOME}/projects/private-content/memo"
 }
 
 teardown() {
   export HOME="${ORIGINAL_HOME}"
   rm -rf "${BATS_TEST_TMPDIR}/memo"
-  rm -rf "${BATS_TEST_TMPDIR}/project"
+  rm -rf "${BATS_TEST_TMPDIR}/projects"
 }
 
 @test "fails when no arguments provided" {
@@ -26,7 +26,7 @@ teardown() {
   run bash "${SCRIPT_PATH}" "Test memo content"
   [ "$status" -eq 0 ]
 
-  local memo_count=$(find "${HOME}/project/private-content/memo" -mindepth 1 -maxdepth 1 -type d | wc -l)
+  local memo_count=$(find "${HOME}/projects/private-content/memo" -mindepth 1 -maxdepth 1 -type d | wc -l)
   [ "$memo_count" -eq 1 ]
 }
 
@@ -34,7 +34,7 @@ teardown() {
   run bash "${SCRIPT_PATH}" "Test memo"
   [ "$status" -eq 0 ]
 
-  local dir_name=$(find "${HOME}/project/private-content/memo" -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+  local dir_name=$(find "${HOME}/projects/private-content/memo" -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
   [[ "$dir_name" =~ ^[0-9]{8}_[0-9]{6}$ ]]
 }
 
@@ -42,7 +42,7 @@ teardown() {
   run bash "${SCRIPT_PATH}" "Test memo"
   [ "$status" -eq 0 ]
 
-  local memo_dir=$(find "${HOME}/project/private-content/memo" -mindepth 1 -maxdepth 1 -type d)
+  local memo_dir=$(find "${HOME}/projects/private-content/memo" -mindepth 1 -maxdepth 1 -type d)
   [ -f "${memo_dir}/index.md" ]
 }
 
@@ -50,7 +50,7 @@ teardown() {
   run bash "${SCRIPT_PATH}" "Test memo"
   [ "$status" -eq 0 ]
 
-  local memo_file=$(find "${HOME}/project/private-content/memo" -name "index.md")
+  local memo_file=$(find "${HOME}/projects/private-content/memo" -name "index.md")
   grep -q "^id: " "${memo_file}"
 }
 
@@ -58,7 +58,7 @@ teardown() {
   run bash "${SCRIPT_PATH}" "Test memo"
   [ "$status" -eq 0 ]
 
-  local memo_file=$(find "${HOME}/project/private-content/memo" -name "index.md")
+  local memo_file=$(find "${HOME}/projects/private-content/memo" -name "index.md")
   grep -q "^createdAt: " "${memo_file}"
 }
 
@@ -66,7 +66,7 @@ teardown() {
   run bash "${SCRIPT_PATH}" "Test memo"
   [ "$status" -eq 0 ]
 
-  local memo_file=$(find "${HOME}/project/private-content/memo" -name "index.md")
+  local memo_file=$(find "${HOME}/projects/private-content/memo" -name "index.md")
   local ulid=$(grep "^id: " "${memo_file}" | cut -d' ' -f2)
   [ "${#ulid}" -eq 26 ]
 }
@@ -75,7 +75,7 @@ teardown() {
   run bash "${SCRIPT_PATH}" "Test memo"
   [ "$status" -eq 0 ]
 
-  local memo_file=$(find "${HOME}/project/private-content/memo" -name "index.md")
+  local memo_file=$(find "${HOME}/projects/private-content/memo" -name "index.md")
   local ulid=$(grep "^id: " "${memo_file}" | cut -d' ' -f2)
   # Charset matches script: 0-9, a-h, j-k, m-n, p-z (excludes i, l, o for readability)
   [[ "$ulid" =~ ^[0-9a-hj-km-np-z]{26}$ ]]
@@ -85,7 +85,7 @@ teardown() {
   run bash "${SCRIPT_PATH}" "This is a test memo"
   [ "$status" -eq 0 ]
 
-  local memo_file=$(find "${HOME}/project/private-content/memo" -name "index.md")
+  local memo_file=$(find "${HOME}/projects/private-content/memo" -name "index.md")
   grep -q "This is a test memo" "${memo_file}"
 }
 
@@ -97,7 +97,7 @@ Line 3"
   run bash "${SCRIPT_PATH}" "$content"
   [ "$status" -eq 0 ]
 
-  local memo_file=$(find "${HOME}/project/private-content/memo" -name "index.md")
+  local memo_file=$(find "${HOME}/projects/private-content/memo" -name "index.md")
   grep -q "Line 1" "${memo_file}"
   grep -q "Line 2" "${memo_file}"
   grep -q "Line 3" "${memo_file}"
@@ -107,7 +107,7 @@ Line 3"
   run bash "${SCRIPT_PATH}" "Content with special chars: !@#$%^&*()"
   [ "$status" -eq 0 ]
 
-  local memo_file=$(find "${HOME}/project/private-content/memo" -name "index.md")
+  local memo_file=$(find "${HOME}/projects/private-content/memo" -name "index.md")
 
   grep -qF "Content with special chars: !@#$%^&*()" "${memo_file}"
 }
@@ -116,7 +116,7 @@ Line 3"
   run bash "${SCRIPT_PATH}" "日本語のテストメモです。"
   [ "$status" -eq 0 ]
 
-  local memo_file=$(find "${HOME}/project/private-content/memo" -name "index.md")
+  local memo_file=$(find "${HOME}/projects/private-content/memo" -name "index.md")
   grep -q "日本語のテストメモです。" "${memo_file}"
 }
 
@@ -124,7 +124,7 @@ Line 3"
   run bash "${SCRIPT_PATH}" "Check this: https://example.com/path?query=value"
   [ "$status" -eq 0 ]
 
-  local memo_file=$(find "${HOME}/project/private-content/memo" -name "index.md")
+  local memo_file=$(find "${HOME}/projects/private-content/memo" -name "index.md")
   grep -q "https://example.com/path?query=value" "${memo_file}"
 }
 
@@ -143,7 +143,7 @@ Line 3"
   run bash "${SCRIPT_PATH}" "Test"
   [ "$status" -eq 0 ]
 
-  local memo_file=$(find "${HOME}/project/private-content/memo" -name "index.md")
+  local memo_file=$(find "${HOME}/projects/private-content/memo" -name "index.md")
   local created_at=$(grep "^createdAt: " "${memo_file}" | cut -d' ' -f2-)
   [[ "$created_at" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}:[0-9]{2}$ ]]
 }
@@ -152,7 +152,7 @@ Line 3"
   run bash "${SCRIPT_PATH}" "Test content"
   [ "$status" -eq 0 ]
 
-  local memo_file=$(find "${HOME}/project/private-content/memo" -name "index.md")
+  local memo_file=$(find "${HOME}/projects/private-content/memo" -name "index.md")
 
   local first_line=$(head -n 1 "${memo_file}")
   [ "$first_line" = "---" ]
