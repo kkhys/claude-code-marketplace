@@ -4,8 +4,8 @@ on:
   push: &trigger_config
     branches: [main]
     paths:
-      - 'kkhys/scripts/**/*.sh'
-      - 'kkhys/hooks/**/*.sh'
+      - 'plugins/base/scripts/**/*.sh'
+      - 'plugins/base/hooks/**/*.sh'
       - '.github/workflows/lint.yml'
   pull_request: *trigger_config
   workflow_dispatch:
@@ -22,7 +22,7 @@ jobs:
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@00b27aa7cb85167568cb48a3838b75f4265f2bca # master (2024-06-20)
         with:
-          scandir: './kkhys/scripts ./kkhys/hooks'
+          scandir: './plugins/base/scripts ./plugins/base/hooks'
           severity: warning
           format: gcc
 

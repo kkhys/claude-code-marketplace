@@ -4,8 +4,8 @@ on:
   push: &trigger_config
     branches: [main]
     paths:
-      - 'kkhys/scripts/**'
-      - 'kkhys/tests/**'
+      - 'plugins/base/scripts/**'
+      - 'plugins/base/tests/**'
       - '.github/workflows/test.yml'
   pull_request: *trigger_config
   workflow_dispatch:
@@ -50,10 +50,10 @@ jobs:
           bats --version
 
       - name: Make scripts executable
-        run: chmod +x kkhys/scripts/*.sh
+        run: chmod +x plugins/base/scripts/*.sh
 
       - name: Run tests
-        run: bats kkhys/tests/create-memo.bats
+        run: bats plugins/base/tests/create-memo.bats
 
       - name: Test summary
         if: always()
