@@ -1,5 +1,5 @@
 ---
-description: Create a timestamped memo with ULID in ~/project/private-content/memo/
+description: Create a timestamped memo with ULID in ~/projects/private-content/memo/
 argument-hint: <memo content>
 allowed-tools: Bash(bash:*)
 model: claude-haiku-4-5
@@ -24,7 +24,7 @@ bash plugins/base/scripts/create-memo.sh "$ARGUMENTS"
 
 The script will:
 - Generate a ULID-like identifier
-- Create a timestamped directory in `~/project/private-content/memo/YYYYMMDD_HHMMSS/`
+- Create a timestamped directory in `~/projects/private-content/memo/YYYYMMDD_HHMMSS/`
 - Write `index.md` with frontmatter (id, createdAt) and content
 
 ## Example
@@ -36,7 +36,7 @@ Execute: `bash plugins/base/scripts/create-memo.sh "Astroで開発をする際�
 Output:
 ```
 Memo created successfully
-  Directory: ~/project/private-content/memo/20260111_223042/
+  Directory: ~/projects/private-content/memo/20260111_223042/
   File: index.md
   ID: 01kengh578ah895bt7284sm3ns
   Created: 2026-01-11 22:30:42
