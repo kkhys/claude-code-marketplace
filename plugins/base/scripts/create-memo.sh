@@ -56,6 +56,10 @@ create_memo() {
 
   mkdir -p "${memo_dir}"
 
+  # Remove leading newlines from content
+  content="${content#"${content%%[![:space:]]*}"}"
+  content="${content#$'\n'}"
+
   {
     cat <<EOF
 ---
