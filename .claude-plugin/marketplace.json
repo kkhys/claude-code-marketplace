@@ -1,5 +1,5 @@
 {
-  "name": "marketplace",
+  "name": "my-marketplace",
   "metadata": {
     "description": "Keisuke Hayashi's personal Claude Code plugin marketplace for custom toolsets and development integrations",
     "version": "0.1.0"
@@ -10,8 +10,8 @@
   },
   "plugins": [
     {
-      "name": "kkhys",
-      "source": "./kkhys",
+      "name": "base",
+      "source": "./plugins/base",
       "description": "Base toolset for personal development workflow and utilities"
     }
   ]
