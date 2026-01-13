@@ -19,7 +19,7 @@ $ARGUMENTS
 Execute the shell script with the memo content:
 
 ```bash
-bash "$PLUGIN_DIR/scripts/create-memo.sh" "$ARGUMENTS"
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/create-memo.sh" "$ARGUMENTS"
 ```
 
 The script will:
@@ -31,7 +31,7 @@ The script will:
 
 Input: `/memo Astroで開発をする際はAstro Docs MCPを使うのがおすすめ。`
 
-Execute: `bash "$PLUGIN_DIR/scripts/create-memo.sh" "Astroで開発をする際はAstro Docs MCPを使うのがおすすめ。"`
+Execute: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/create-memo.sh" "Astroで開発をする際はAstro Docs MCPを使うのがおすすめ。"`
 
 Output:
 ```
