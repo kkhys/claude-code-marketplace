@@ -20,6 +20,10 @@
             "command": "afplay /System/Library/Sounds/Glass.aiff"
           }
         ]
+      },
+      {
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-worktrees.sh"
       }
     ]
   }
