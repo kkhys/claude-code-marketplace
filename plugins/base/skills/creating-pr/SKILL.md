@@ -84,7 +84,24 @@ Generate a concise bullet-point list of main changes:
 - Add password hashing with bcrypt
 ```
 
-### 6. Create Draft PR
+### 6. Push Branch to Remote
+
+Before creating the PR, ensure the current branch is pushed to the remote repository:
+
+```bash
+# Check if branch has remote tracking
+git rev-parse --abbrev-ref @{upstream} 2>/dev/null
+
+# If no upstream or unpushed commits, push the branch
+git push -u origin $(git branch --show-current)
+```
+
+**Important:**
+- Always push before creating PR to avoid "must first push" errors
+- Use `-u` flag to set up tracking relationship
+- This step is idempotent - safe to run even if already pushed
+
+### 7. Create Draft PR
 
 Use `gh` command to create the draft PR:
 
