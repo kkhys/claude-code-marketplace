@@ -1,5 +1,5 @@
 ---
-name: conventional-commits
+name: formatting-commit
 description: Enforce Conventional Commits format for git commits. Use when creating commits.
 ---
 
