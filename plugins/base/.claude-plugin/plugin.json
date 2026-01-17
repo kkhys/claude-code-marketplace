@@ -1,7 +1,7 @@
 {
   "name": "base",
   "description": "Personal development workflow utilities for efficient knowledge management and automation",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "author": {
     "name": "Keisuke Hayashi",
     "email": "hi@kkhys.me"

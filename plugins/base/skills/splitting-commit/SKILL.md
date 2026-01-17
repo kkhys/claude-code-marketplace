@@ -1,5 +1,5 @@
 ---
-name: split-commit
+name: splitting-commit
 description: Split large changes into logical commits by semantic meaning. Use when handling large features or refactors that should be split into focused commits.
 ---
 
