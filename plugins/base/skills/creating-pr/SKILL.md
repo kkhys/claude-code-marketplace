@@ -3,7 +3,7 @@ name: creating-pr
 description: Create GitHub pull requests with standardized title format and draft status. Use when the user requests to create a PR (e.g., "PRを作成して", "create a PR", "make a pull request"). This skill uses gh command to create PRs with specific title format '[base-branch] type: description' and generates concise bullet-point descriptions from git changes.
 ---
 
-# PR Creator
+# Creating PR
 
 ## Overview
 
