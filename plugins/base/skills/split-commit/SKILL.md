@@ -22,33 +22,12 @@ Split large changes into logical commits organized by semantic meaning. This ens
 3. **Interactive Selection**
    - For each semantic group, use `git add <files>` to stage relevant files
    - Review staged changes with `git diff --cached`
-   - Create commit using Conventional Commits format
+   - **Invoke `formatting-commit` skill** to create properly formatted commit
    - Repeat for each semantic group
 
-4. **Commit Format**
-   ```
-   <type>[optional scope]: <description>
-
-   [optional body explaining the change]
-
-   [optional footer(s)]
-   ```
-
-   Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`
-
-5. **Commit Command**
-   Use heredoc format for multi-line commit messages:
-   ```bash
-   git commit -m "$(cat <<'EOF'
-   feat(auth): add OAuth2 login flow
-
-   Implement OAuth2 authentication provider integration
-   with support for multiple providers (Google, GitHub).
-
-   Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
-   EOF
-   )"
-   ```
+4. **Commit Creation**
+   For each semantic group, use the `formatting-commit` skill to ensure Conventional Commits compliance.
+   The skill provides detailed guidance on commit format, types, and best practices.
 
 ## Best Practices
 
