@@ -16,7 +16,7 @@ When creating commits:
 3. Select appropriate type and optional scope
 4. Draft message: `<type>[scope]: <description>` (imperative, lowercase, no period, ~50 chars)
 5. Add body if complex (explain why, not what)
-6. Add `!` or `BREAKING CHANGE:` footer for breaking changes
+6. Add exclamation mark after scope or `BREAKING CHANGE:` footer for breaking changes
 7. Add footers: `Closes #123`, `Refs: #456`, etc.
 8. Commit using heredoc format
 
@@ -32,7 +32,7 @@ When creating commits:
 
 Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`
 
-Breaking changes: Append `!` (e.g., `feat(api)!:`) or add `BREAKING CHANGE:` footer.
+Breaking changes: Append exclamation mark after the scope (example: feat(api)!: description) or add `BREAKING CHANGE:` footer.
 
 ## Examples
 
