@@ -38,7 +38,7 @@ mcp__serena__onboarding()  # If not performed
 
 #### Get Symbol Overview
 
-```python
+```
 mcp__serena__get_symbols_overview(
   relative_path="src/file.ts",
   depth=0  # 0=top-level only, 1=includes direct children
@@ -47,7 +47,7 @@ mcp__serena__get_symbols_overview(
 
 #### Find Symbols
 
-```python
+```
 # Search by name path pattern
 mcp__serena__find_symbol(
   name_path_pattern="ClassName/methodName",  # Relative path
@@ -62,7 +62,7 @@ mcp__serena__find_symbol(
 
 #### Analyze Dependencies
 
-```python
+```
 mcp__serena__find_referencing_symbols(
   name_path="functionName",
   relative_path="src/file.ts"  # File specification required
@@ -71,7 +71,7 @@ mcp__serena__find_referencing_symbols(
 
 #### Pattern Search
 
-```python
+```
 mcp__serena__search_for_pattern(
   substring_pattern="TODO|FIXME",           # Regex pattern
   relative_path="src/",                     # Search scope
@@ -87,7 +87,7 @@ mcp__serena__search_for_pattern(
 
 #### Replace Symbol Body (Recommended)
 
-```python
+```
 mcp__serena__replace_symbol_body(
   name_path="methodName",
   relative_path="src/file.ts",
@@ -97,7 +97,7 @@ mcp__serena__replace_symbol_body(
 
 #### Replace Content (Flexible)
 
-```python
+```
 mcp__serena__replace_content(
   relative_path="src/file.ts",
   needle="beginning.*?end",  # Regex recommended
@@ -109,7 +109,7 @@ mcp__serena__replace_content(
 
 #### Insert Before/After Symbol
 
-```python
+```
 # Add import statements
 mcp__serena__insert_before_symbol(
   name_path="firstSymbol",
@@ -127,7 +127,7 @@ mcp__serena__insert_after_symbol(
 
 #### Rename Symbol
 
-```python
+```
 mcp__serena__rename_symbol(
   name_path="oldName",
   relative_path="src/file.ts",
@@ -137,7 +137,7 @@ mcp__serena__rename_symbol(
 
 ### 4. File Operations
 
-```python
+```
 # List directory
 mcp__serena__list_dir(relative_path="src/", recursive=True)
 
@@ -160,7 +160,7 @@ mcp__serena__create_text_file(
 
 ### 5. Project Knowledge Management (Memory)
 
-```python
+```
 # List memories
 mcp__serena__list_memories()
 
@@ -187,7 +187,7 @@ mcp__serena__delete_memory(memory_file_name="outdated.md")
 
 ### 6. Thinking Tools
 
-```python
+```
 # Call after gathering information
 mcp__serena__think_about_collected_information()
 
@@ -200,7 +200,7 @@ mcp__serena__think_about_whether_you_are_done()
 
 ### 7. Other Operations
 
-```python
+```
 # Execute shell command
 mcp__serena__execute_shell_command(
   command="npm run build",
