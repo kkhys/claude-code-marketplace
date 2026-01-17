@@ -1,5 +1,6 @@
 ---
 description: Create Claude Code skills with best practices and guidelines
+argument-hint: <skill description or purpose>
 model: claude-opus-4-5
 ---
 

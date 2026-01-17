@@ -1,5 +1,6 @@
 ---
 description: Create custom slash commands with frontmatter, arguments, and bash execution
+argument-hint: <command description or purpose>
 model: claude-opus-4-5
 ---
 
