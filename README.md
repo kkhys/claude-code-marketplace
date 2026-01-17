@@ -159,13 +159,6 @@ To make this marketplace automatically available for your team, add it to your p
 }
 ```
 
-## Related Resources
-
-- [Claude Code Official Documentation](https://code.claude.com/docs)
-- [Plugin Creation Guide](https://code.claude.com/docs/plugins)
-- [Marketplace Distribution Guide](https://code.claude.com/docs/distribute-plugins)
-- [Plugin Reference](https://code.claude.com/docs/plugins-reference)
-
 ## License
 
 This marketplace and its included plugins are intended for personal use.
