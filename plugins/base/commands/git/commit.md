@@ -1,5 +1,4 @@
 ---
-name: commit
 description: Create git commit with Conventional Commits format
 model: claude-haiku-4-5
 ---
