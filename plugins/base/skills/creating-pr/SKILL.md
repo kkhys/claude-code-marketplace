@@ -94,7 +94,8 @@ gh pr create \
   --body "- Add JWT authentication middleware
 - Implement user login and logout endpoints
 - Add password hashing with bcrypt" \
-  --draft
+  --draft \
+  --assignee kkhys
 ```
 
 **Important:**
@@ -110,7 +111,8 @@ gh pr create \
 - Add password hashing with bcrypt
 EOF
 )" \
-  --draft
+  --draft \
+  --assignee kkhys
 ```
 
 ## Common Scenarios
