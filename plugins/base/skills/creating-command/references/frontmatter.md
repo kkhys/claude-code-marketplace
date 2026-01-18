@@ -162,7 +162,7 @@ description: Create git commit
 allowed-tools: Bash(git:*)
 ---
 
-Status: !`git status`
+Status: !\`git status\`
 Create commit for staged changes.
 ```
 
@@ -183,7 +183,7 @@ hooks:
 ---
 
 Version: $1
-Branch: !`git branch --show-current`
+Branch: !\`git branch --show-current\`
 
 Deploy version $1 to staging.
 ```

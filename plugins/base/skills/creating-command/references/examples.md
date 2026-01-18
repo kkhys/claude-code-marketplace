@@ -86,9 +86,9 @@ description: Create conventional commit
 allowed-tools: Bash(git:*)
 ---
 
-**Status**: !`git status --short`
-**Staged**: !`git diff --cached`
-**Recent commits**: !`git log --oneline -5`
+**Status**: !\`git status --short\`
+**Staged**: !\`git diff --cached\`
+**Recent commits**: !\`git log --oneline -5\`
 
 Create Conventional Commits format message based on staged changes.
 ```
@@ -100,9 +100,9 @@ description: Show project status
 allowed-tools: Bash(git:*), Bash(npm:*)
 ---
 
-**Git**: !`git status --short`
-**Branch**: !`git branch --show-current`
-**Tests**: !`npm test -- --listTests`
+**Git**: !\`git status --short\`
+**Branch**: !\`git branch --show-current\`
+**Tests**: !\`npm test -- --listTests\`
 
 Analyze and suggest next steps.
 ```
@@ -114,8 +114,8 @@ description: Verify build and tests
 allowed-tools: Bash(pnpm:*)
 ---
 
-**Build**: !`pnpm build`
-**Tests**: !`pnpm test`
+**Build**: !\`pnpm build\`
+**Tests**: !\`pnpm test\`
 
 Report results and suggest fixes for failures.
 ```
@@ -163,9 +163,9 @@ description: Create commit with full context
 allowed-tools: Bash(git:*)
 ---
 
-**Changes**: !`git diff HEAD`
-**Status**: !`git status`
-**Branch**: !`git branch --show-current`
+**Changes**: !\`git diff HEAD\`
+**Status**: !\`git status\`
+**Branch**: !\`git branch --show-current\`
 
 Create meaningful commit message in Conventional Commits format.
 ```
@@ -177,8 +177,8 @@ description: Review changes before creating PR
 allowed-tools: Bash(git:*)
 ---
 
-**Commits**: !`git log origin/main..HEAD --oneline`
-**Diff**: !`git diff origin/main...HEAD`
+**Commits**: !\`git log origin/main..HEAD --oneline\`
+**Diff**: !\`git diff origin/main...HEAD\`
 
 Analyze changes and suggest:
 - PR title
@@ -213,7 +213,7 @@ description: Analyze test coverage
 allowed-tools: Bash(npm:*)
 ---
 
-**Coverage**: !`npm test -- --coverage --silent`
+**Coverage**: !\`npm test -- --coverage --silent\`
 
 Identify:
 - Uncovered critical paths
@@ -237,9 +237,9 @@ hooks:
           once: true
 ---
 
-**Branch**: !`git branch --show-current`
-**Build**: !`npm run build`
-**Tests**: !`npm test`
+**Branch**: !\`git branch --show-current\`
+**Build**: !\`npm run build\`
+**Tests**: !\`npm test\`
 
 Deploy after all checks pass.
 ```
@@ -277,7 +277,7 @@ description: Git status summary
 allowed-tools: Bash(git:*)
 ---
 
-Status: !`git status`
+Status: !\`git status\`
 ```
 
 ## Tips
