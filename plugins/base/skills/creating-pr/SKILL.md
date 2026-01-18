@@ -117,6 +117,7 @@ gh pr create \
 
 **Important:**
 - Always use `--draft` flag to create draft PR
+- Always use `--assignee kkhys` flag to assign PR to kkhys (REQUIRED)
 - Use heredoc for multi-line body if needed:
 
 ```bash
