@@ -63,8 +63,8 @@ Example:
 ---
 allowed-tools: Bash(git:*)
 ---
-Status: !\`git status\`
-Recent: !\`git log --oneline -5\`
+Status: `!` + `git status`
+Recent: `!` + `git log --oneline -5`
 ```
 
 ### 4. File References
@@ -116,7 +116,7 @@ Create tests, update docs, and refactor code
 ---
 allowed-tools: Bash(git:*)
 ---
-Current changes: !\`git diff HEAD\`
+Current changes: `!` + `git diff HEAD`
 Create commit message based on changes above
 ```
 
@@ -166,8 +166,8 @@ See [examples.md](references/examples.md) for detailed examples.
 description: Create conventional commit
 allowed-tools: Bash(git:*)
 ---
-Changes: !\`git diff --cached\`
-Status: !\`git status --short\`
+Changes: `!` + `git diff --cached`
+Status: `!` + `git status --short`
 
 Create Conventional Commits format message
 ```
@@ -217,7 +217,7 @@ Use for:
 |---------|--------|---------|
 | All args | `$ARGUMENTS` | `Fix #$ARGUMENTS` |
 | Positional | `$1`, `$2` | `Review PR #$1` |
-| Bash | ``!\`cmd\` `` | ``!\`git status\` `` |
+| Bash | `!` + `` `cmd` `` | `!` + `` `git status` `` |
 | File ref | `@path` | `@src/main.ts` |
 
 ## Resources
