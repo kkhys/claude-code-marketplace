@@ -1,11 +1,11 @@
 ---
-name: suggesting-branch-name
-description: Analyzes git changes and suggests branch names following naming conventions. Use when creating new branches from current changes or when asking for branch name suggestions.
+name: creating-branch-name
+description: Analyzes git changes and creates a new branch with an appropriate name following naming conventions. Use when creating new branches from current changes.
 ---
 
-# Branch Name Suggestion
+# Branch Creation with Auto-naming
 
-Analyze git changes (commits and uncommitted changes) to suggest appropriate branch names.
+Analyze git changes (commits and uncommitted changes) to determine appropriate branch name, then create the branch.
 
 ## Naming Convention
 
@@ -86,12 +86,18 @@ Based on changes:
 3. Keep it **short but clear** (2-4 words ideal)
 4. Use **kebab-case**
 
-### Step 4: Suggest Branch Name
+### Step 4: Create Branch
 
-Present suggestion in this format:
+Once you've determined the appropriate branch name:
+
+```bash
+git checkout -b <type>/<description>
+```
+
+Present the result in this format:
 
 ```
-Suggested branch name: <type>/<description>
+Created branch: <type>/<description>
 
 Reason: <brief explanation of why this name fits the changes>
 ```
@@ -138,4 +144,4 @@ If changes are ambiguous, ask user:
 2. Is this a new feature or modification?
 3. Are there any specific keywords to include?
 
-Then suggest 2-3 options with explanations.
+Then suggest 2-3 options with explanations and create the branch with user's choice.

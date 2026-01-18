@@ -4,7 +4,7 @@ allowed-tools: Bash(git:*)
 model: claude-haiku-4-5
 ---
 
-**IMPORTANT**: Invoke the `suggesting-branch-name` skill before proceeding.
+**IMPORTANT**: Invoke the `creating-branch-name` skill before proceeding.
 
 # Create Branch
 
