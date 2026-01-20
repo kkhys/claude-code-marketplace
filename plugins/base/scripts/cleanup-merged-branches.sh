@@ -86,20 +86,6 @@ done
 echo "========================================" >&2
 echo "" >&2
 
-# Check if running in interactive mode
-if [[ -t 0 ]]; then
-  # Interactive mode: wait for user confirmation
-  echo "[Hook] Press Enter to delete these branches or Ctrl+C to skip..." >&2
-  read -r
-else
-  # Non-interactive mode: wait with timeout
-  echo "[Hook] Waiting 10 seconds for confirmation (press Enter to continue, Ctrl+C to skip)..." >&2
-  if ! read -r -t 10; then
-    echo "[Info] Timeout - skipping branch cleanup" >&2
-    exit 0
-  fi
-fi
-
 # Delete branches
 echo "" >&2
 echo "[Info] Deleting merged branches..." >&2
