@@ -28,8 +28,7 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-merged-branches.sh"
           }
-        ],
-        "description": "Play sound, cleanup worktrees, and review merged branches on session stop"
+        ]
       }
     ]
   }
