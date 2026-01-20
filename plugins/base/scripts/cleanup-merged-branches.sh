@@ -40,8 +40,11 @@ else
   exit 0
 fi
 
-# Get merged branches
-mapfile -t merged_branches < <(git branch --merged "${base_branch}" | sed 's/^[* ]*//' || true)
+# Get merged branches (bash 3.2+ compatible)
+merged_branches=()
+while IFS= read -r branch; do
+  [[ -n "${branch}" ]] && merged_branches+=("${branch}")
+done < <(git branch --merged "${base_branch}" | sed 's/^[* ]*//' || true)
 
 # Filter out protected branches and current branch
 branches_to_delete=()
@@ -82,10 +85,20 @@ for branch in "${branches_to_delete[@]}"; do
 done
 echo "========================================" >&2
 echo "" >&2
-echo "[Hook] Press Enter to delete these branches or Ctrl+C to skip..." >&2
 
-# Wait for user confirmation
-read -r
+# Check if running in interactive mode
+if [[ -t 0 ]]; then
+  # Interactive mode: wait for user confirmation
+  echo "[Hook] Press Enter to delete these branches or Ctrl+C to skip..." >&2
+  read -r
+else
+  # Non-interactive mode: wait with timeout
+  echo "[Hook] Waiting 10 seconds for confirmation (press Enter to continue, Ctrl+C to skip)..." >&2
+  if ! read -r -t 10; then
+    echo "[Info] Timeout - skipping branch cleanup" >&2
+    exit 0
+  fi
+fi
 
 # Delete branches
 echo "" >&2
