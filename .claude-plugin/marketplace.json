@@ -13,6 +13,11 @@
       "name": "base",
       "source": "./plugins/base",
       "description": "Base toolset for personal development workflow and utilities"
+    },
+    {
+      "name": "writing",
+      "source": "./plugins/writing",
+      "description": "Specialized writing agents for reviewing, editing, and enhancing blog posts, articles, and essays"
     }
   ]
 }
