@@ -8,6 +8,10 @@
       "type": "http",
       "url": "https://mcp.docs.astro.build/mcp"
     },
+    "vercel": {
+      "type": "http",
+      "url": "https://mcp.vercel.com"
+    },
     "next-devtools": {
       "command": "npx",
       "args": ["-y", "next-devtools-mcp@latest"]
