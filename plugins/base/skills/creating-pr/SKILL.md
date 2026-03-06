@@ -38,7 +38,45 @@ git diff origin/main...HEAD
 
 Replace `origin/main` with the actual base branch (e.g., `origin/master`, `origin/develop`).
 
-### 3. Analyze Changes and Determine Type
+### 3. Check for PR Template
+
+Before generating a description, check if the project has a PR template. If found, **always use it as the PR body structure**.
+
+```bash
+# Search for PR template (check all standard locations, case-insensitive)
+find . -maxdepth 1 -iname "pull_request_template.md" -o \
+  -path "./.github" -prune -false | head -1
+find ./.github -maxdepth 1 -iname "pull_request_template.md" 2>/dev/null | head -1
+find ./docs -maxdepth 1 -iname "pull_request_template.md" 2>/dev/null | head -1
+
+# Also check for multiple templates directory
+ls .github/PULL_REQUEST_TEMPLATE/ 2>/dev/null
+ls PULL_REQUEST_TEMPLATE/ 2>/dev/null
+ls docs/PULL_REQUEST_TEMPLATE/ 2>/dev/null
+```
+
+**Template search order (first match wins):**
+1. `pull_request_template.md` (root, case-insensitive)
+2. `.github/pull_request_template.md` (case-insensitive)
+3. `docs/pull_request_template.md` (case-insensitive)
+4. `.github/PULL_REQUEST_TEMPLATE/` (multiple templates directory)
+5. `PULL_REQUEST_TEMPLATE/` (root)
+6. `docs/PULL_REQUEST_TEMPLATE/`
+
+**If a template is found:**
+- Read the template content
+- Fill in each section based on the actual changes (commits, diff)
+- Remove any placeholder or instructional comments (e.g., `<!-- ... -->`)
+- Keep the template's heading structure and sections intact
+- Skip to step 7 (Push Branch to Remote) — type/title/description are already determined from the template and changes
+
+**If multiple templates exist in a directory:**
+- List available templates and ask the user which one to use
+
+**If no template is found:**
+- Proceed to step 6 (Create PR Description) to generate a bullet-point list
+
+### 4. Analyze Changes and Determine Type
 
 Analyze the changes and determine the appropriate Conventional Commits type:
 
@@ -46,7 +84,7 @@ Analyze the changes and determine the appropriate Conventional Commits type:
 - Consider the primary purpose of the changes
 - Follow the priority order: feat > fix > perf > refactor > test > docs > chore
 
-### 4. Create PR Title
+### 5. Create PR Title
 
 Format: `[base-branch] type: description`
 
@@ -60,7 +98,7 @@ Format: `[base-branch] type: description`
 - `[main] fix: resolve null pointer in login handler`
 - `[develop] refactor: extract validation logic`
 
-### 5. Create PR Description
+### 6. Create PR Description
 
 Generate a concise bullet-point list of main changes:
 
@@ -84,7 +122,7 @@ Generate a concise bullet-point list of main changes:
 - Add password hashing with bcrypt
 ```
 
-### 6. Push Branch to Remote
+### 7. Push Branch to Remote
 
 Before creating the PR, ensure the current branch is pushed to the remote repository:
 
@@ -101,7 +139,7 @@ git push -u origin $(git branch --show-current)
 - Use `-u` flag to set up tracking relationship
 - This step is idempotent - safe to run even if already pushed
 
-### 7. Create Draft PR
+### 8. Create Draft PR
 
 Use `gh` command to create the draft PR:
 
