@@ -7,7 +7,7 @@ disable-model-invocation: true
 **IMPORTANT**: Execute the following skills in sequence:
 
 1. Invoke the `creating-branch-name` skill to create a new branch
-2. Invoke the `split-commit` skill to split changes into logical commits
+2. Invoke the `splitting-commit` skill to split changes into logical commits
 3. Invoke the `creating-pr` skill to create a GitHub pull request
 
 # Publish Workflow
