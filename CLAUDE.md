@@ -47,7 +47,7 @@ plugins/
 
 1. **Progressive Disclosure**: Main file (SKILL.md) contains essentials, reference files contain details
 2. **Brevity Over Completeness**: Only document what Claude doesn't already know
-3. **Skill-Based Workflow**: Commands invoke skills for complex logic
+3. **Skill-Based Workflow**: Skills are directly discoverable by Claude; commands are only needed for multi-step workflows or script execution
 4. **Conventional Commits**: All commits follow `<type>[scope]: <description>` format
 5. **Standardized PRs**: Format `[base-branch] type: description` with bullet-point body
 
@@ -105,25 +105,13 @@ shellcheck plugins/base/hooks/*.sh
 ### Git Workflow
 
 ```bash
-# Create conventional commit (uses formatting-commit skill)
-/commit
-
-# Split large changes into logical commits (uses splitting-commit skill)
-/commit-split
-
-# Create PR with standardized format (uses creating-pr skill)
-/create-pr
+# Complete git workflow - branch creation, commit split, PR creation
+/publish
 ```
 
+Note: Individual git operations (commit, commit-split, create-branch, create-pr) are available as skills that Claude can invoke directly without slash commands.
+
 ## Development Workflow
-
-### Adding New Commands
-
-1. Create `.md` file in `plugins/{plugin}/commands/`
-2. Add YAML frontmatter with `description` and optional `argument-hint`, `allowed-tools`, `model`
-3. Write command body using `$ARGUMENTS`, `!`bash``, `@file` syntax
-4. For complex logic, create a skill and invoke it from the command
-5. Validate: `/plugin validate .`
 
 ### Adding New Skills
 
@@ -131,7 +119,16 @@ shellcheck plugins/base/hooks/*.sh
 2. Create `SKILL.md` with frontmatter (`name`, `description`)
 3. Keep main content under 500 lines, move details to `references/*.md` (1 level only)
 4. Test with different models (Haiku, Sonnet, Opus)
-5. Invoke skill from commands using `**IMPORTANT**: Invoke the \`skill-name\` skill before proceeding.`
+5. Skills are directly discoverable by Claude — no wrapper command needed
+
+### Adding New Commands
+
+Only create commands when a skill alone is insufficient (script execution, multi-skill orchestration, argument processing):
+
+1. Create `.md` file in `plugins/{plugin}/commands/`
+2. Add YAML frontmatter with `description` and optional `argument-hint`, `allowed-tools`, `model`
+3. Write command body using `$ARGUMENTS`, `!`bash``, `@file` syntax
+4. Validate: `/plugin validate .`
 
 ### Adding New Scripts
 
@@ -149,12 +146,23 @@ The `base` plugin (`plugins/base/`) is the primary plugin containing core workfl
 
 **Commands**:
 - `/memo` - Timestamped memo with ULID in `~/projects/private-content/memo/`
-- `/create-command` - Create slash commands (invokes `creating-command` skill)
-- `/create-skill` - Create skills (invokes `creating-skill` skill)
-- `/create-subagent` - Create subagents (invokes `creating-subagent` skill)
-- `/commit` - Conventional Commits format (invokes `formatting-commit` skill)
-- `/commit-split` - Split commits (invokes `splitting-commit` skill)
-- `/create-pr` - GitHub PR creation (invokes `creating-pr` skill)
+- `/create-worktree` - Create git worktree for parallel development (invokes `creating-git-worktree` skill)
+- `/publish` - Complete git workflow: branch creation → commit split → PR creation
+
+**Skills** (invoked directly by Claude without slash commands):
+- `creating-command` - Create slash commands
+- `creating-skill` - Create skills
+- `creating-subagent` - Create subagents
+- `creating-codepen-demo` - Create CodePen demos
+- `creating-rules` - Create Claude Code rules
+- `adding-hooks` - Add and configure hooks
+- `creating-task-summary` - Create weekly task summaries
+- `formatting-commit` - Conventional Commits format
+- `splitting-commit` - Split commits by semantic meaning
+- `creating-branch-name` - Create branch with appropriate naming
+- `creating-pr` - GitHub PR creation
+- `creating-git-worktree` - Create git worktree
+- `using-serena` - Codebase analysis with Serena
 
 **MCP Servers**:
 - `context7` - Documentation search
@@ -186,21 +194,12 @@ Both run on:
 
 ## Important Patterns
 
-### Command → Skill Invocation
+### Skills as Primary Interface
 
-Commands serve as user-facing entry points that immediately invoke skills for complex logic:
-
-```markdown
----
-description: Create git commit with Conventional Commits format
----
-
-**IMPORTANT**: Invoke the `formatting-commit` skill before proceeding.
-
-# Commit
-
-Create a git commit following Conventional Commits specification.
-```
+Skills are directly discoverable and invocable by Claude without needing wrapper commands. Only create commands when:
+- The command executes a script directly (e.g., `/memo`)
+- The command orchestrates multiple skills in sequence (e.g., `/publish`)
+- The command requires argument processing beyond what skills provide
 
 ### Skill Description Format
 
