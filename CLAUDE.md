@@ -37,7 +37,7 @@ plugins/
 - Keep body under 500 lines (Claude already knows general practices)
 
 **Hooks** (`hooks/hooks.json`): Event-driven automation
-- Events: `PreToolUse`, `PostToolUse`, `Notification`, `Stop`
+- Events: `PreToolUse`, `PostToolUse`, `Notification`, `Stop`, `WorktreeCreate`
 - Actions: Execute shell commands on events
 
 **Agents** (`agents/*.md`): Custom subagent definitions
