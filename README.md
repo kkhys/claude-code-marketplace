@@ -159,6 +159,21 @@ To make this marketplace automatically available for your team, add it to your p
 }
 ```
 
+## Note on claude-plugins-official
+
+For features available in [claude-plugins-official](https://github.com/anthropics/claude-plugins-official) (e.g. MCP servers), prefer the official plugins. Currently installed official plugins:
+
+- `slack@claude-plugins-official`
+- `ralph-loop@claude-plugins-official`
+- `code-review@claude-plugins-official`
+- `code-simplifier@claude-plugins-official`
+- `security-guidance@claude-plugins-official`
+- `pr-review-toolkit@claude-plugins-official`
+- `frontend-design@claude-plugins-official`
+- `claude-md-management@claude-plugins-official`
+
+See [settings.json](https://github.com/kkhys/dotfiles/blob/main/.config/claude/settings.json) for the full list of installed plugins.
+
 ## License
 
 This marketplace and its included plugins are intended for personal use.
