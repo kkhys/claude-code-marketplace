@@ -5,12 +5,15 @@ description: Best practices for creating custom slash commands with frontmatter,
 
 # Custom Slash Command Best Practices
 
+> **Note**: Custom commands have been merged into skills. A file at `.claude/commands/deploy.md` and a skill at `.claude/skills/deploy/SKILL.md` both create `/deploy` and work the same way. Skills are recommended for new creations since they support additional features like supporting files, `context: fork`, and `agent` delegation. Your existing `.claude/commands/` files keep working.
+
 ## Quick Start
 
 **First, ask the user**:
 - Where to create the command file?
   - `.claude/commands/` (project-scoped, shared via git)
   - `~/.claude/commands/` (user-scoped, personal across all projects)
+  - **Recommended**: `.claude/skills/<name>/SKILL.md` (same frontmatter, more features)
 
 Then create a `.md` file:
 ```markdown
@@ -46,13 +49,17 @@ model: claude-sonnet-4-5-20250929
 Fix issue #$ARGUMENTS following coding standards
 ```
 
-**Positional**: `$1`, `$2`, etc.
+**Positional**: `$1`, `$2` (shorthand for `$ARGUMENTS[0]`, `$ARGUMENTS[1]`)
 ```markdown
 ---
 argument-hint: [pr-number] [priority]
 ---
 Review PR #$1 with priority $2
 ```
+
+If `$ARGUMENTS` is not present in the content, arguments are appended as `ARGUMENTS: <value>`.
+
+**Environment variables**: `${CLAUDE_SESSION_ID}` (current session ID), `${CLAUDE_SKILL_DIR}` (skill/command directory path)
 
 ### 3. Bash Execution
 
@@ -218,9 +225,11 @@ Use for:
 | Feature | Syntax | Example |
 |---------|--------|---------|
 | All args | `$ARGUMENTS` | `Fix #$ARGUMENTS` |
-| Positional | `$1`, `$2` | `Review PR #$1` |
+| Positional | `$1`, `$2` or `$ARGUMENTS[N]` | `Review PR #$1` |
 | Bash | `!backtick cmd backtick` | `!backtick git status backtick` |
 | File ref | `@path` | `@src/main.ts` |
+| Session ID | `${CLAUDE_SESSION_ID}` | `logs/${CLAUDE_SESSION_ID}.log` |
+| Skill dir | `${CLAUDE_SKILL_DIR}` | `bash "${CLAUDE_SKILL_DIR}/scripts/run.sh"` |
 
 ## Resources
 
