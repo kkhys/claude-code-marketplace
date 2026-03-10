@@ -56,6 +56,8 @@ Test your skill with all models you plan to use (Haiku, Sonnet, Opus).
 
 ### YAML Front Matter
 
+All fields are optional. Only `description` is recommended so Claude knows when to use the skill.
+
 ```yaml
 ---
 name: example-skill        # lowercase, numbers, hyphens only (max 64 chars)
@@ -63,15 +65,28 @@ description: Specific description  # max 1024 chars, written in third person
 ---
 ```
 
+| Field | Required | Description |
+|---|---|---|
+| `name` | No | Display name. If omitted, uses the directory name. Lowercase letters, numbers, and hyphens only (max 64 chars). |
+| `description` | Recommended | What the skill does and when to use it. Claude uses this to decide when to apply the skill. If omitted, uses the first paragraph of markdown content. |
+| `argument-hint` | No | Hint shown during autocomplete to indicate expected arguments. Example: `[issue-number]` or `[filename] [format]`. |
+| `disable-model-invocation` | No | Set to `true` to prevent Claude from automatically loading this skill. Use for workflows you want to trigger manually with `/name`. Default: `false`. |
+| `user-invocable` | No | Set to `false` to hide from the `/` menu. Use for background knowledge users shouldn't invoke directly. Default: `true`. |
+| `allowed-tools` | No | Tools Claude can use without asking permission when this skill is active. |
+| `model` | No | Model to use when this skill is active. |
+| `context` | No | Set to `fork` to run in a forked subagent context. |
+| `agent` | No | Which subagent type to use when `context: fork` is set. |
+| `hooks` | No | Hooks scoped to this skill's lifecycle. |
+
 **Naming Conventions** (gerund form recommended):
-- ✓ `processing-pdfs`, `analyzing-spreadsheets`, `managing-databases`
-- ✗ `helper`, `utils`, `anthropic-helper`
+- Good: `processing-pdfs`, `analyzing-spreadsheets`, `managing-databases`
+- Bad: `helper`, `utils`, `anthropic-helper`
 
 ### Writing Effective Descriptions
 
 **Always write in third person**:
-- ✓ "Processes Excel files and generates reports"
-- ✗ "I can help you process Excel files"
+- Good: "Processes Excel files and generates reports"
+- Bad: "I can help you process Excel files"
 
 **Be specific and include key terms**:
 ```yaml
@@ -262,8 +277,9 @@ Use "plan-validate-execute" pattern for complex tasks:
 ## Technical Notes
 
 ### YAML Front Matter Requirements
-- `name`: Max 64 chars, lowercase/numbers/hyphens only, no XML tags
-- `description`: Max 1024 chars, non-empty, no XML tags
+- `name`: Max 64 chars, lowercase/numbers/hyphens only
+- `description`: Max 1024 chars, recommended but not required
+- See the full field reference in the "YAML Front Matter" section above
 
 ### MCP Tool References
 Use fully qualified tool names: `ServerName:tool_name`
@@ -294,7 +310,7 @@ pdf-skill/
     └── fill_form.py
 ```
 
-### Good SKILL.md
+### Good SKILL.md (minimal)
 
 ```markdown
 ---
@@ -311,6 +327,21 @@ Extract text with pdfplumber:
 ## Advanced Features
 **Form Filling**: See [FORMS.md](FORMS.md)
 **API Reference**: See [reference.md](reference.md)
+```
+
+### Good SKILL.md (with subagent context)
+
+```markdown
+---
+name: reading-unresolved-pr-comments
+description: Fetches unresolved review comments from a GitHub PR and creates a fix plan. Use when reviewing PR feedback or resolving PR discussions.
+model: opus
+context: fork
+agent: general-purpose
+---
+
+# Read Unresolved PR Comments
+[Workflow instructions]
 ```
 
 ## Analogy: Think of Claude as a Robot Exploring Paths
