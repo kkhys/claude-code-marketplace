@@ -1,6 +1,7 @@
 ---
 name: creating-task-summary
 description: Creates a weekly summary of PRs authored by the current user. Use when creating weekly reports, work reviews, or task summaries.
+context: fork
 ---
 
 # Task Summary Creation
