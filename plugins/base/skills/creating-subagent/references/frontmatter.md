@@ -58,10 +58,25 @@ Specifies which tools the subagent can use. If omitted, inherits all tools from 
 - `Grep` - Search file contents
 - `Glob` - Find files by pattern
 - `Bash` - Execute shell commands
-- `Task` - Spawn subagents (not available to subagents)
+- `Agent` - Spawn subagents (only for main thread agents, not subagents)
 - `WebFetch` - Fetch web content
 - `WebSearch` - Search the web
 - `AskUserQuestion` - Ask clarifying questions
+
+**Note**: `Task(...)` references still work as aliases for `Agent(...)`.
+
+**Restricting subagent spawning** (only for agents running as main thread with `claude --agent`):
+
+```yaml
+# Allow spawning only specific subagent types
+tools: Agent(worker, researcher), Read, Bash
+
+# Allow spawning any subagent
+tools: Agent, Read, Bash
+
+# Omitting Agent entirely prevents spawning any subagents
+tools: Read, Grep, Glob
+```
 
 ```yaml
 # Allow specific tools
@@ -93,10 +108,10 @@ The AI model for this subagent.
 
 | Value | Description |
 |-------|-------------|
-| `sonnet` | Default. Balanced speed and capability |
+| `sonnet` | Balanced speed and capability |
 | `haiku` | Fast, low-latency. Good for exploration |
 | `opus` | Most capable. Complex reasoning |
-| `inherit` | Same model as main conversation |
+| `inherit` | Same model as main conversation (default) |
 
 ```yaml
 # Fast exploration
@@ -152,9 +167,25 @@ skills:
   - code-style-guide
 ```
 
+### mcpServers
+
+MCP servers available to this subagent. Each entry is either a server name referencing an already-configured server or an inline definition.
+
+```yaml
+# Reference existing server
+mcpServers:
+  - slack
+
+# Inline definition
+mcpServers:
+  my-server:
+    type: http
+    url: https://example.com/mcp
+```
+
 ### hooks
 
-Lifecycle hooks scoped to this subagent. See [hooks.md](hooks.md) for details.
+Lifecycle hooks scoped to this subagent. Hook commands receive input via stdin as JSON. See [hooks.md](hooks.md) for details.
 
 ```yaml
 hooks:
@@ -174,6 +205,46 @@ hooks:
           command: "./scripts/cleanup.sh"
 ```
 
+### maxTurns
+
+Maximum number of agentic turns before the subagent stops.
+
+```yaml
+maxTurns: 50
+```
+
+### memory
+
+Persistent memory scope for cross-session learning. Enables Read/Write/Edit tools automatically.
+
+| Scope | Location | Use when |
+|-------|----------|----------|
+| `user` | `~/.claude/agent-memory/<name>/` | Knowledge across all projects (recommended default) |
+| `project` | `.claude/agent-memory/<name>/` | Project-specific, shareable via git |
+| `local` | `.claude/agent-memory-local/<name>/` | Project-specific, not in version control |
+
+```yaml
+memory: user
+```
+
+When enabled, `MEMORY.md` (first 200 lines) is injected into the subagent's context.
+
+### background
+
+Set to `true` to always run this subagent as a background task.
+
+```yaml
+background: true
+```
+
+### isolation
+
+Set to `worktree` to run in a temporary git worktree (isolated copy of the repository). Auto-cleaned if no changes are made.
+
+```yaml
+isolation: worktree
+```
+
 ## Complete Example
 
 ```yaml
@@ -184,6 +255,8 @@ tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit
 model: sonnet
 permissionMode: default
+maxTurns: 30
+memory: project
 skills:
   - security-checklist
 hooks:
