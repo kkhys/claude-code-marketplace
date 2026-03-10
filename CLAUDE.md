@@ -21,6 +21,7 @@ plugins/
     skills/                # Reusable knowledge (SKILL.md + references)
     hooks/                 # Event hooks (hooks.json)
     scripts/               # Shell scripts for automation
+    agents/                # Custom subagent definitions (.md files)
     .mcp.json             # MCP server configuration
 ```
 
@@ -31,13 +32,17 @@ plugins/
 - Body supports: `$ARGUMENTS`, `$1`, `$2` (arguments), `!`cmd`` (bash execution), `@path` (file refs)
 
 **Skills** (`skills/*/SKILL.md`): Knowledge bundles for specialized tasks
-- Frontmatter: `name`, `description` (how Claude discovers and invokes)
+- Frontmatter: `name`, `description` (recommended), `argument-hint`, `disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `context`, `agent`, `hooks` (all optional)
 - References: 1-level deep only (`references/*.md`)
 - Keep body under 500 lines (Claude already knows general practices)
 
 **Hooks** (`hooks/hooks.json`): Event-driven automation
 - Events: `PreToolUse`, `PostToolUse`, `Notification`, `Stop`
 - Actions: Execute shell commands on events
+
+**Agents** (`agents/*.md`): Custom subagent definitions
+- Frontmatter: `name`, `description`, `model`
+- Specialized agents for specific task domains
 
 **MCP Servers** (`.mcp.json`): External tool integrations
 - HTTP servers: `type: "http"`, `url`
@@ -61,24 +66,6 @@ claude plugin validate .
 
 # Within Claude Code
 /plugin validate .
-```
-
-### Testing
-
-```bash
-# Run all tests with bats-core
-bats plugins/base/tests/create-memo.bats
-
-# Run single test
-bats plugins/base/tests/create-memo.bats -f "test name pattern"
-
-# Install bats-core (macOS)
-brew install bats-core
-
-# Install bats-core (Linux)
-git clone https://github.com/bats-core/bats-core.git
-cd bats-core
-./install.sh ~/.local
 ```
 
 ### Linting
@@ -106,7 +93,7 @@ shellcheck plugins/base/hooks/*.sh
 
 ```bash
 # Complete git workflow - branch creation, commit split, PR creation
-/publish
+/publish-pr
 ```
 
 Note: Individual git operations (commit, commit-split, create-branch, create-pr) are available as skills that Claude can invoke directly without slash commands.
@@ -137,8 +124,7 @@ Only create commands when a skill alone is insufficient (script execution, multi
 3. Set strict mode: `set -euo pipefail`
 4. Quote all variables: `"${var}"`
 5. Use `readonly` for constants
-6. Add bats tests in `plugins/{plugin}/tests/`
-7. Make executable: `chmod +x script.sh`
+6. Make executable: `chmod +x script.sh`
 
 ### Modifying Base Plugin
 
@@ -147,7 +133,7 @@ The `base` plugin (`plugins/base/`) is the primary plugin containing core workfl
 **Commands**:
 - `/memo` - Timestamped memo with ULID in `~/projects/private-content/memo/`
 - `/create-worktree` - Create git worktree for parallel development (invokes `creating-git-worktree` skill)
-- `/publish` - Complete git workflow: branch creation → commit split → PR creation
+- `/publish-pr` - Complete git workflow: branch creation → commit split → PR creation
 
 **Skills** (invoked directly by Claude without slash commands):
 - `creating-command` - Create slash commands
@@ -163,34 +149,27 @@ The `base` plugin (`plugins/base/`) is the primary plugin containing core workfl
 - `creating-pr` - GitHub PR creation
 - `creating-git-worktree` - Create git worktree
 - `using-serena` - Codebase analysis with Serena
+- `reading-unresolved-pr-comments` - Fetch unresolved PR review comments and create fix plan
+
+**Agents**:
+- `general-purpose-assistant` - Fallback agent for broad inquiries and cross-domain tasks
 
 **MCP Servers**:
 - `context7` - Documentation search
-- `astro-docs`, `next-devtools`, `shadcn`, `playwright` - Framework-specific tools
+- `astro-docs`, `vercel`, `next-devtools`, `shadcn`, `playwright` - Framework-specific tools
 - `serena` - Codebase analysis
 
 When modifying, maintain consistency with existing patterns and update version in `.claude-plugin/plugin.json`.
 
-## CI/CD
+### Writing Plugin
 
-### Workflows
+The `writing` plugin (`plugins/writing/`) provides specialized writing agents:
 
-- **Lint** (`.github/workflows/lint.yml`): ShellCheck on `plugins/base/scripts/**/*.sh` and `plugins/base/hooks/**/*.sh`
-- **Test** (`.github/workflows/test.yml`): Bats tests on Ubuntu and macOS
-
-Both run on:
-- Push to `main`
-- Pull requests
-- Manual dispatch
-
-### Test Files
-
-`plugins/base/tests/create-memo.bats` tests the memo creation script:
-- Validates ULID generation (26 chars, base32-like charset)
-- Verifies frontmatter format (`id`, `createdAt`)
-- Checks directory naming (`YYYYMMDD_HHMMSS`)
-- Tests multi-line content, special characters, Japanese text, URLs
-- Ensures no emoji in output
+**Agents**:
+- `content-reviewer` - Review content quality
+- `language-editor` - Edit language and grammar
+- `readability-enhancer` - Improve readability
+- `technical-writer` - Technical writing assistance
 
 ## Important Patterns
 
@@ -198,7 +177,7 @@ Both run on:
 
 Skills are directly discoverable and invocable by Claude without needing wrapper commands. Only create commands when:
 - The command executes a script directly (e.g., `/memo`)
-- The command orchestrates multiple skills in sequence (e.g., `/publish`)
+- The command orchestrates multiple skills in sequence (e.g., `/publish-pr`)
 - The command requires argument processing beyond what skills provide
 
 ### Skill Description Format
