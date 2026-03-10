@@ -37,7 +37,7 @@ plugins/
 - Keep body under 500 lines (Claude already knows general practices)
 
 **Hooks** (`hooks/hooks.json`): Event-driven automation
-- Events: `PreToolUse`, `PostToolUse`, `Notification`, `Stop`
+- Events: `PreToolUse`, `PostToolUse`, `Notification`, `Stop`, `WorktreeCreate`
 - Actions: Execute shell commands on events
 
 **Agents** (`agents/*.md`): Custom subagent definitions
@@ -132,7 +132,6 @@ The `base` plugin (`plugins/base/`) is the primary plugin containing core workfl
 
 **Commands**:
 - `/memo` - Timestamped memo with ULID in `~/projects/private-content/memo/`
-- `/create-worktree` - Create git worktree for parallel development (invokes `creating-git-worktree` skill)
 - `/publish-pr` - Complete git workflow: branch creation → commit split → PR creation
 
 **Skills** (invoked directly by Claude without slash commands):
@@ -147,7 +146,6 @@ The `base` plugin (`plugins/base/`) is the primary plugin containing core workfl
 - `splitting-commit` - Split commits by semantic meaning
 - `creating-branch-name` - Create branch with appropriate naming
 - `creating-pr` - GitHub PR creation
-- `creating-git-worktree` - Create git worktree
 - `using-serena` - Codebase analysis with Serena
 - `reading-unresolved-pr-comments` - Fetch unresolved PR review comments and create fix plan
 - `resolving-pr-comments` - Bulk-resolve all unresolved review threads on current PR
