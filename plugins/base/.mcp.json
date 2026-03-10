@@ -33,6 +33,14 @@
         "serena",
         "start-mcp-server"
       ]
+    },
+    "analytics-mcp": {
+      "command": "pipx",
+      "args": ["run", "analytics-mcp"],
+      "env": {
+        "GOOGLE_APPLICATION_CREDENTIALS": "/Users/keisuke.hayashi/.config/gcloud/application_default_credentials.json",
+        "GOOGLE_PROJECT_ID": "just-advice-489808-d2"
+      }
     }
   }
 }
