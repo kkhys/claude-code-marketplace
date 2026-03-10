@@ -2,7 +2,6 @@
 description: Create a timestamped memo with ULID in ~/projects/private-content/memo/
 argument-hint: <memo content>
 allowed-tools: Bash(bash:*)
-model: claude-haiku-4-5
 disable-model-invocation: true
 ---
 

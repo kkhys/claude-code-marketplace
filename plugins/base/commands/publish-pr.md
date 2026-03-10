@@ -1,7 +1,7 @@
 ---
 description: Complete git workflow - create branch, split commits, and create PR
 allowed-tools: Bash(git:*), Bash(gh:*)
-model: claude-haiku-4-5
+disable-model-invocation: true
 ---
 
 **IMPORTANT**: Execute the following skills in sequence:
