@@ -2,7 +2,7 @@
   "name": "my-marketplace",
   "metadata": {
     "description": "Keisuke Hayashi's personal Claude Code plugin marketplace for custom toolsets and development integrations",
-    "version": "0.1.0"
+    "version": "0.0.1"
   },
   "owner": {
     "name": "Keisuke Hayashi",
