@@ -150,6 +150,7 @@ The `base` plugin (`plugins/base/`) is the primary plugin containing core workfl
 - `creating-git-worktree` - Create git worktree
 - `using-serena` - Codebase analysis with Serena
 - `reading-unresolved-pr-comments` - Fetch unresolved PR review comments and create fix plan
+- `orchestrating-agent-team` - Orchestrate agent teams for parallel implementation
 
 **Agents**:
 - `general-purpose-assistant` - Fallback agent for broad inquiries and cross-domain tasks
