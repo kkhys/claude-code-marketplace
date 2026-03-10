@@ -1,24 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OWNER_REPO="$(gh repo view --json nameWithOwner --jq '.nameWithOwner')"
-OWNER="$(echo "$OWNER_REPO" | cut -d'/' -f1)"
-REPO="$(echo "$OWNER_REPO" | cut -d'/' -f2)"
-PR_NUMBER="$(gh pr view --json number --jq '.number')"
+readonly OWNER_REPO="$(gh repo view --json nameWithOwner --jq '.nameWithOwner')"
+readonly OWNER="${OWNER_REPO%%/*}"
+readonly REPO="${OWNER_REPO##*/}"
+readonly PR_NUMBER="$(gh pr view --json number --jq '.number')"
 
-fetch_all_review_threads() {
-  local cursor=""
-  local has_next_page=true
-  local temp_dir
-  temp_dir=$(mktemp -d)
-  local page_num=0
-
-  while [ "$has_next_page" = "true" ]; do
-    if [ -z "$cursor" ]; then
-      gh api graphql -f query="
+gh api graphql -f query='
 query {
-  repository(owner: \"${OWNER}\", name: \"${REPO}\") {
-    pullRequest(number: ${PR_NUMBER}) {
+  repository(owner: "'"${OWNER}"'", name: "'"${REPO}"'") {
+    pullRequest(number: '"${PR_NUMBER}"') {
       number
       title
       url
@@ -36,10 +27,6 @@ query {
         }
       }
       reviewThreads(first: 100) {
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
         edges {
           node {
             id
@@ -62,100 +49,30 @@ query {
       }
     }
   }
-}" > "${temp_dir}/page_${page_num}.json"
-    else
-      gh api graphql -f query="
-query(\$cursor: String) {
-  repository(owner: \"${OWNER}\", name: \"${REPO}\") {
-    pullRequest(number: ${PR_NUMBER}) {
-      number
-      title
-      url
-      state
-      author {
-        login
-      }
-      reviewRequests(first: 100) {
-        nodes {
-          requestedReviewer {
-            ... on User {
-              login
-            }
-          }
-        }
-      }
-      reviewThreads(first: 100, after: \$cursor) {
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-        edges {
-          node {
-            id
-            isResolved
-            isOutdated
-            path
-            line
-            comments(last: 100) {
-              nodes {
-                author {
-                  login
-                }
-                body
-                url
-                createdAt
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}" -f cursor="$cursor" > "${temp_dir}/page_${page_num}.json"
-    fi
-
-    has_next_page=$(jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage' "${temp_dir}/page_${page_num}.json")
-    cursor=$(jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.endCursor' "${temp_dir}/page_${page_num}.json")
-
-    if [ "$cursor" = "null" ]; then
-      cursor=""
-    fi
-
-    page_num=$((page_num + 1))
-  done
-
-  jq -s '
-    .[0].data.repository.pullRequest as $first_pr |
+}' | jq '{
+  pr_number: .data.repository.pullRequest.number,
+  title: .data.repository.pullRequest.title,
+  url: .data.repository.pullRequest.url,
+  state: .data.repository.pullRequest.state,
+  author: .data.repository.pullRequest.author.login,
+  requested_reviewers: [.data.repository.pullRequest.reviewRequests.nodes[].requestedReviewer.login],
+  unresolved_threads: [
+    .data.repository.pullRequest.reviewThreads.edges[] |
+    select(.node.isResolved == false) |
     {
-      pr_number: $first_pr.number,
-      title: $first_pr.title,
-      url: $first_pr.url,
-      state: $first_pr.state,
-      author: $first_pr.author.login,
-      requested_reviewers: [$first_pr.reviewRequests.nodes[].requestedReviewer.login],
-      unresolved_threads: [
-        .[].data.repository.pullRequest.reviewThreads.edges[] |
-        select(.node.isResolved == false) |
+      thread_id: .node.id,
+      path: .node.path,
+      line: .node.line,
+      is_outdated: .node.isOutdated,
+      comments: [
+        .node.comments.nodes[] |
         {
-          thread_id: .node.id,
-          path: .node.path,
-          line: .node.line,
-          is_outdated: .node.isOutdated,
-          comments: [
-            .node.comments.nodes[] |
-            {
-              author: .author.login,
-              body: .body,
-              url: .url,
-              created_at: .createdAt
-            }
-          ]
+          author: .author.login,
+          body: .body,
+          url: .url,
+          created_at: .createdAt
         }
       ]
     }
-  ' "${temp_dir}"/page_*.json
-
-  rm -rf "$temp_dir"
-}
-
-fetch_all_review_threads
+  ]
+}'
