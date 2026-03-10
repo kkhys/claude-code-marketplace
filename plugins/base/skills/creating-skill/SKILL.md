@@ -52,6 +52,23 @@ Do not modify the command.
 
 Test your skill with all models you plan to use (Haiku, Sonnet, Opus).
 
+## Skill Locations and Priority
+
+Where you store a skill determines who can use it:
+
+| Location | Path | Applies to |
+|---|---|---|
+| Enterprise | Managed settings | All users in org |
+| Personal | `~/.claude/skills/<skill-name>/SKILL.md` | All your projects |
+| Project | `.claude/skills/<skill-name>/SKILL.md` | This project only |
+| Plugin | `<plugin>/skills/<skill-name>/SKILL.md` | Where plugin is enabled |
+
+Priority: enterprise > personal > project. Plugin skills use `plugin-name:skill-name` namespace (no conflicts).
+
+**Nested directory discovery**: When editing files in subdirectories, Claude also looks for skills in `packages/frontend/.claude/skills/` etc. Supports monorepo setups.
+
+**Note**: `.claude/commands/` files still work and support the same frontmatter. Skills are recommended since they support additional features like supporting files.
+
 ## Skill Structure
 
 ### YAML Front Matter
@@ -75,8 +92,19 @@ description: Specific description  # max 1024 chars, written in third person
 | `allowed-tools` | No | Tools Claude can use without asking permission when this skill is active. |
 | `model` | No | Model to use when this skill is active. |
 | `context` | No | Set to `fork` to run in a forked subagent context. |
-| `agent` | No | Which subagent type to use when `context: fork` is set. |
+| `agent` | No | Which subagent type to use when `context: fork` is set. Built-in: `Explore`, `Plan`, `general-purpose`, or custom subagent from `.claude/agents/`. |
 | `hooks` | No | Hooks scoped to this skill's lifecycle. |
+
+### Invocation Control
+
+| Frontmatter | You can invoke | Claude can invoke | When loaded into context |
+|---|---|---|---|
+| (default) | Yes | Yes | Description always in context, full skill loads when invoked |
+| `disable-model-invocation: true` | Yes | No | Description not in context, full skill loads when you invoke |
+| `user-invocable: false` | No | Yes | Description always in context, full skill loads when invoked |
+
+Use `disable-model-invocation: true` for workflows with side effects (deploy, commit, send messages).
+Use `user-invocable: false` for background knowledge that isn't actionable as a command.
 
 **Naming Conventions** (gerund form recommended):
 - Good: `processing-pdfs`, `analyzing-spreadsheets`, `managing-databases`
@@ -92,6 +120,48 @@ description: Specific description  # max 1024 chars, written in third person
 ```yaml
 description: Extracts text and tables from PDF files and fills forms. Use when mentioning PDF files, forms, or document extraction.
 ```
+
+### Available String Substitutions
+
+| Variable | Description |
+|---|---|
+| `$ARGUMENTS` | All arguments passed when invoking the skill. If not present in content, arguments are appended as `ARGUMENTS: <value>`. |
+| `$ARGUMENTS[N]` | Access a specific argument by 0-based index. `$ARGUMENTS[0]` for the first argument. |
+| `$N` | Shorthand for `$ARGUMENTS[N]`. `$0` for first, `$1` for second. |
+| `${CLAUDE_SESSION_ID}` | Current session ID. Useful for logging or session-specific files. |
+| `${CLAUDE_SKILL_DIR}` | Directory containing the skill's `SKILL.md`. Use to reference bundled scripts/files. |
+
+Example:
+```yaml
+---
+name: migrate-component
+description: Migrate a component from one framework to another
+---
+Migrate the $0 component from $1 to $2.
+Preserve all existing behavior and tests.
+```
+
+### Dynamic Context Injection
+
+The `` !`command` `` syntax runs shell commands **before** the skill content is sent to Claude. Output replaces the placeholder.
+
+```yaml
+---
+name: pr-summary
+description: Summarize changes in a pull request
+context: fork
+agent: Explore
+---
+## Pull request context
+- PR diff: !`gh pr diff`
+- PR comments: !`gh pr view --comments`
+- Changed files: !`gh pr diff --name-only`
+
+## Your task
+Summarize this pull request...
+```
+
+This is preprocessing, not something Claude executes. Claude only sees the final result.
 
 ## Progressive Disclosure Patterns
 
@@ -331,6 +401,13 @@ Extract text with pdfplumber:
 
 ### Good SKILL.md (with subagent context)
 
+`context: fork` runs the skill in isolation. The skill content becomes the prompt that drives the subagent (no access to conversation history). Only use with explicit task instructions, not guidelines-only content.
+
+| Approach | System prompt | Task | Also loads |
+|---|---|---|---|
+| Skill with `context: fork` | From agent type | SKILL.md content | CLAUDE.md |
+| Subagent with `skills` field | Subagent's markdown body | Claude's delegation message | Preloaded skills + CLAUDE.md |
+
 ```markdown
 ---
 name: reading-unresolved-pr-comments
@@ -344,7 +421,16 @@ agent: general-purpose
 [Workflow instructions]
 ```
 
-## Analogy: Think of Claude as a Robot Exploring Paths
+## Troubleshooting
 
-- **Narrow bridge** (low freedom): Provide precise instructions
-- **Open field** (high freedom): Indicate general direction
+**Skill not triggering**:
+1. Check the description includes keywords users would naturally say
+2. Verify the skill appears in `What skills are available?`
+3. Invoke it directly with `/skill-name` to confirm it works
+
+**Skill triggers too often**:
+1. Make the description more specific
+2. Add `disable-model-invocation: true` for manual-only invocation
+
+**Claude doesn't see all skills**:
+Skill descriptions are loaded at 2% of context window (fallback: 16,000 chars). Override with `SLASH_COMMAND_TOOL_CHAR_BUDGET` env var. Run `/context` to check for excluded skills.
