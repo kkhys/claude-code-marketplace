@@ -1,6 +1,7 @@
 ---
 name: creating-codepen-demo
 description: Creates CodePen 2.0 demos with copy-paste ready code. Use when creating interactive demos, code examples, or browser API demonstrations for CodePen.
+context: fork
 ---
 
 # Creating CodePen Demos
