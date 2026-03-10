@@ -7,10 +7,13 @@ description: Guides creation of custom subagents with YAML frontmatter, system p
 
 ## Quick Start
 
-**First, ask the user**:
+**Recommended**: Use `/agents` command for interactive creation (guided setup or Claude generation).
+
+**Manual creation** - ask the user:
 - Where to create the subagent file?
   - `.claude/agents/` (project-scoped, shared via git)
   - `~/.claude/agents/` (user-scoped, personal across all projects)
+- CLI-defined (session-only): `claude --agents '{...}'` with JSON config
 
 Then create a `.md` file:
 ```markdown
@@ -33,12 +36,17 @@ specific, actionable feedback on quality, security, and best practices.
 |-------|----------|-------------|
 | `name` | Yes | Unique identifier (lowercase, hyphens) |
 | `description` | Yes | When Claude delegates to this subagent |
-| `tools` | No | Allowed tools (inherits all if omitted) |
+| `tools` | No | Allowed tools (inherits all if omitted). Use `Agent(type)` to restrict subagent spawning |
 | `disallowedTools` | No | Tools to deny |
-| `model` | No | `sonnet`, `opus`, `haiku`, or `inherit` |
+| `model` | No | `sonnet`, `opus`, `haiku`, or `inherit` (default: `inherit`) |
 | `permissionMode` | No | `default`, `acceptEdits`, `dontAsk`, `bypassPermissions`, `plan` |
+| `maxTurns` | No | Maximum agentic turns before subagent stops |
 | `skills` | No | Skills to inject at startup |
+| `mcpServers` | No | MCP servers available to this subagent |
 | `hooks` | No | Lifecycle hooks for this subagent |
+| `memory` | No | Persistent memory scope: `user`, `project`, or `local` |
+| `background` | No | `true` to always run as background task |
+| `isolation` | No | `worktree` to run in isolated git worktree |
 
 See [frontmatter.md](references/frontmatter.md) for complete reference.
 
@@ -197,9 +205,32 @@ Key practices:
 - Provide data-driven recommendations
 ```
 
+## Advanced: Persistent Memory
+
+Enable cross-session learning with the `memory` field:
+
+```yaml
+---
+name: code-reviewer
+description: Reviews code for quality and best practices
+memory: user
+---
+
+You are a code reviewer. Update your agent memory with patterns,
+conventions, and recurring issues you discover.
+```
+
+| Scope | Location | Use when |
+|-------|----------|----------|
+| `user` | `~/.claude/agent-memory/<name>/` | Knowledge applies across all projects |
+| `project` | `.claude/agent-memory/<name>/` | Project-specific, shareable via git |
+| `local` | `.claude/agent-memory-local/<name>/` | Project-specific, not in version control |
+
+When enabled, Read/Write/Edit tools are automatically added, and `MEMORY.md` (first 200 lines) is injected into context.
+
 ## Advanced: Hooks
 
-Define lifecycle hooks within the subagent:
+Define lifecycle hooks within the subagent (input is passed via stdin as JSON):
 
 ```yaml
 ---
@@ -210,7 +241,7 @@ hooks:
     - matcher: "Bash"
       hooks:
         - type: command
-          command: "./scripts/validate-command.sh $TOOL_INPUT"
+          command: "./scripts/validate-command.sh"
   PostToolUse:
     - matcher: "Edit|Write"
       hooks:
@@ -228,8 +259,12 @@ See [hooks.md](references/hooks.md) for details.
 | Name | lowercase, hyphens | `code-reviewer` |
 | Tools (allow) | `tools: A, B, C` | `tools: Read, Grep` |
 | Tools (deny) | `disallowedTools: X` | `disallowedTools: Write, Edit` |
+| Restrict spawning | `tools: Agent(type)` | `tools: Agent(worker, researcher)` |
 | Model | `model: alias` | `model: haiku` |
 | Permission | `permissionMode: mode` | `permissionMode: plan` |
+| Memory | `memory: scope` | `memory: user` |
+| Background | `background: true` | Always run in background |
+| Isolation | `isolation: worktree` | Run in git worktree |
 
 ## Resources
 
