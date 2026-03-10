@@ -1,6 +1,6 @@
 # Frontmatter Reference
 
-YAML metadata for slash command configuration.
+YAML metadata for slash command and skill configuration. Commands and skills share the same frontmatter fields.
 
 ## Basic Structure
 
@@ -81,23 +81,57 @@ allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git status:*)
 
 ### `model`
 
-Specific model for this command.
+Specific model for this command/skill.
 
 ```yaml
 # Balanced (default)
-model: claude-sonnet-4-5-20250929
+model: claude-sonnet-4-6
 
 # Most capable
-model: claude-opus-4-5-20251101
+model: claude-opus-4-6
 
 # Fastest, economical
-model: claude-3-5-haiku-20241022
+model: claude-haiku-4-5-20251001
 ```
 
 **When to specify**:
 - Haiku: Simple, quick tasks
 - Opus: Complex reasoning
 - Sonnet: Balanced (default)
+
+### `user-invocable`
+
+Control visibility in the `/` menu.
+
+```yaml
+user-invocable: false
+```
+
+**Use for**:
+- Background knowledge users shouldn't invoke directly
+- Context that Claude should apply automatically when relevant
+
+When `false`, the skill is hidden from the `/` menu but Claude can still load it automatically.
+
+### `context`
+
+Run the command/skill in a forked subagent context.
+
+```yaml
+context: fork
+```
+
+The skill content becomes the prompt that drives the subagent. The subagent runs in isolation without access to conversation history. Only use with explicit task instructions, not guidelines-only content.
+
+### `agent`
+
+Which subagent type to use when `context: fork` is set.
+
+```yaml
+agent: Explore
+```
+
+Options: `Explore`, `Plan`, `general-purpose` (default), or any custom subagent from `.claude/agents/`.
 
 ### `disable-model-invocation`
 
@@ -172,7 +206,7 @@ Create commit for staged changes.
 description: Deploy to staging
 argument-hint: [version]
 allowed-tools: Bash(git:*), Bash(npm:*)
-model: claude-sonnet-4-5-20250929
+model: claude-sonnet-4-6
 hooks:
   PreToolUse:
     - matcher: "Bash"
@@ -253,6 +287,9 @@ Create: $1
 | `description` | Command description | `Create git commit` |
 | `argument-hint` | Argument guidance | `[pr-number] [priority]` |
 | `allowed-tools` | Tool permissions | `Bash(git:*), Read` |
-| `model` | Specific model | `claude-3-5-haiku-20241022` |
+| `model` | Specific model | `claude-haiku-4-5-20251001` |
+| `user-invocable` | Hide from `/` menu | `false` |
+| `context` | Run in subagent | `fork` |
+| `agent` | Subagent type | `Explore` |
 | `disable-model-invocation` | Prevent auto-call | `true` |
 | `hooks` | Script execution | See examples above |

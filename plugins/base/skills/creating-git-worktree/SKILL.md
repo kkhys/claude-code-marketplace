@@ -12,12 +12,12 @@ Automate worktree creation with environment setup for parallel development workf
 Execute the script with your branch name:
 
 ```bash
-bash skills/creating-git-worktree/scripts/create-worktree.sh <branch-name>
+bash "${CLAUDE_SKILL_DIR}/scripts/create-worktree.sh" <branch-name>
 ```
 
 **Example**:
 ```bash
-bash skills/creating-git-worktree/scripts/create-worktree.sh feature/user-auth
+bash "${CLAUDE_SKILL_DIR}/scripts/create-worktree.sh" feature/user-auth
 # Creates: .git-worktrees/feature-user-auth
 ```
 

@@ -15,7 +15,7 @@ Fetch unresolved review comments from the current PR and create an actionable fi
 Run the script to retrieve all unresolved review threads via GitHub GraphQL API:
 
 ```bash
-bash "$SKILL_DIR/scripts/read-unresolved-pr-comments.sh"
+bash "${CLAUDE_SKILL_DIR}/scripts/read-unresolved-pr-comments.sh"
 ```
 
 The script outputs JSON with:
