@@ -151,6 +151,7 @@ The `base` plugin (`plugins/base/`) is the primary plugin containing core workfl
 - `resolving-pr-comments` - Bulk-resolve all unresolved review threads on current PR
 - `fixing-review-comments` - Address unresolved review comments on the current branch
 - `orchestrating-agent-team` - Orchestrate agent teams for parallel implementation
+- `using-cmux-browser` - Browser automation via cmux browser CLI
 
 **Agents**:
 - `general-purpose-assistant` - Fallback agent for broad inquiries and cross-domain tasks
