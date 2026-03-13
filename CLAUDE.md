@@ -135,22 +135,33 @@ The `base` plugin (`plugins/base/`) is the primary plugin containing core workfl
 - `/publish-pr` - Complete git workflow: branch creation → commit split → PR creation
 
 **Skills** (invoked directly by Claude without slash commands):
+
+Scaffolding:
 - `creating-command` - Create slash commands
 - `creating-skill` - Create skills
 - `creating-subagent` - Create subagents
-- `creating-codepen-demo` - Create CodePen demos
 - `creating-rules` - Create Claude Code rules
+- `creating-codepen-demo` - Create CodePen demos
 - `adding-hooks` - Add and configure hooks
-- `creating-task-summary` - Create weekly task summaries
+
+Git workflow:
 - `formatting-commit` - Conventional Commits format
 - `splitting-commit` - Split commits by semantic meaning
 - `creating-branch-name` - Create branch with appropriate naming
 - `creating-pr` - GitHub PR creation
-- `using-serena` - Codebase analysis with Serena
+
+PR review:
 - `reading-unresolved-pr-comments` - Fetch unresolved PR review comments and create fix plan
 - `resolving-pr-comments` - Bulk-resolve all unresolved review threads on current PR
 - `fixing-review-comments` - Address unresolved review comments on the current branch
+
+Task / Knowledge:
+- `creating-task-summary` - Create weekly task summaries
+- `uploading-knowledge-gist` - Upload session knowledge to secret GitHub Gist
 - `orchestrating-agent-team` - Orchestrate agent teams for parallel implementation
+
+External tools:
+- `using-serena` - Codebase analysis with Serena
 - `using-cmux-browser` - Browser automation via cmux browser CLI
 
 **Agents**:
