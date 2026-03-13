@@ -72,7 +72,7 @@ When the fix is a concrete, small change to a specific line, append a ` ```sugge
 `TECM-**` is shell glob notation, not a regex. Use `TECM-\d+` instead.
 
 ```suggestion
-Extract `TECM-\d+` pattern from the branch name. If not found, ask:
+const match = branchName.match(/TECM-[0-9]+/);
 ```
 ````
 
