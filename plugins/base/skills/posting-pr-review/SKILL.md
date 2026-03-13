@@ -34,28 +34,52 @@ Every comment MUST start with a severity tag on the first line:
 
 ## Comment Writing Rules
 
-- Start every comment with the severity tag: `[severity] message`
+- Put the severity tag alone on the first line: `[severity]`
+- Follow with the message body starting on the next line
 - Use concise, direct language (1-3 sentences max)
 - For `[praise]` and items needing no action, explicitly state no action is needed
 - Write in the same language as the codebase comments (default: English)
 - Include a brief rationale when the issue isn't self-evident
-- For `[suggestion]`, show a code example when helpful
+- For code fixes, use a GitHub suggestion block (see below)
 
 Examples:
 ```
-[critical] Unbounded query without LIMIT can cause OOM on large tables.
+[critical]
+Unbounded query without LIMIT can cause OOM on large tables.
 
-[warning] This catch block swallows the error silently. Consider logging or re-throwing.
+[warning]
+This catch block swallows the error silently. Consider logging or re-throwing.
 
-[suggestion] Extract this into a helper — same pattern appears in 3 places.
-const formatDate = (d: Date) => d.toISOString().split('T')[0];
+[suggestion]
+Extract this into a helper — same pattern appears in 3 places.
 
-[nit] Prefer `const` over `let` since this is never reassigned.
+[nit]
+Prefer `const` over `let` since this is never reassigned.
 
-[question] Is this fallback intentional? The default value differs from the type's zero value.
+[question]
+Is this fallback intentional? The default value differs from the type's zero value.
 
-[praise] Clean separation of concerns here. No action needed.
+[praise]
+Clean separation of concerns here. No action needed.
 ```
+
+## GitHub Suggestion Blocks
+
+When the fix is a concrete, small change to a specific line, append a ` ```suggestion ` block after the message. The PR author can apply it directly with one click.
+
+````
+[warning]
+`TECM-**` is shell glob notation, not a regex. Use `TECM-\d+` instead.
+
+```suggestion
+const match = branchName.match(/TECM-[0-9]+/);
+```
+````
+
+Rules:
+- The suggestion block replaces exactly the line(s) the comment is attached to
+- For multi-line suggestions, use `start_line` + `line` to define the range
+- Only use suggestion blocks when the replacement is unambiguous — avoid for structural rewrites
 
 ## Workflow
 
