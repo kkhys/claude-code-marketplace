@@ -154,6 +154,7 @@ PR review:
 - `reading-unresolved-pr-comments` - Fetch unresolved PR review comments and create fix plan
 - `resolving-pr-comments` - Bulk-resolve all unresolved review threads on current PR
 - `fixing-review-comments` - Address unresolved review comments on the current branch
+- `posting-pr-review` - Post review comments to a GitHub PR as a PENDING review
 
 Task / Knowledge:
 - `creating-task-summary` - Create weekly task summaries
