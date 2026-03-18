@@ -1,147 +1,52 @@
 ---
 name: creating-branch-name
-description: Analyzes git changes and creates a new branch with an appropriate name following naming conventions. Use when creating new branches from current changes.
+description: Create a git branch with an appropriate name derived from current changes. Use when the user asks to create a branch, name a branch, make a branch for current work, or wants to move changes to a new branch. Also use when changes exist on main/master that should be moved to a feature branch before committing.
 ---
 
-# Branch Creation with Auto-naming
+# Branch Naming
 
-Analyze git changes (commits and uncommitted changes) to determine appropriate branch name, then create the branch.
+Analyze the current git state — uncommitted changes, staged files, and recent commits — to generate a branch name that communicates the intent of the work at a glance.
 
-## Naming Convention
+## Why naming matters
 
-### Format
+A branch name is a communication tool. When a teammate sees `feature/add-oauth-login` in a PR list, they immediately know what it's about without opening it. The name should answer "what kind of change is this?" (the type prefix) and "what does it do?" (the description).
 
-```
-<type>/<description>
-```
+## Convention
 
-### Types
+Format: `<type>/<description>`
 
-| Type | Usage |
-|------|-------|
-| `feature/` | New feature |
-| `fix/` | Bug fix |
-| `refactor/` | Refactoring |
-| `docs/` | Documentation |
-| `style/` | Code style / design |
-| `chore/` | Miscellaneous / config |
+Types:
+- `feature/` — New capability or user-facing behavior
+- `fix/` — Correcting broken behavior
+- `refactor/` — Restructuring without changing behavior
+- `docs/` — Documentation only
+- `style/` — Visual or formatting changes (CSS, code style)
+- `chore/` — Tooling, config, dependencies, CI
 
-### Description Rules
+Description: English, kebab-case, 2-4 words that capture the main intent. Prefer starting with a verb (add, update, remove, implement, extract) when it reads naturally — but for `fix/` branches, describing the problem (e.g., `pagination-off-by-one`) is often clearer than repeating the verb.
 
-- English, concise
-- Start with verb (`add-`, `update-`, `remove-`, `fix-`)
-- Kebab-case (hyphen-separated)
-- Prioritize clarity over brevity
+**Example 1:**
+Changes: New login form component + auth API integration
+Branch: `feature/add-login-authentication`
 
-### Examples
+**Example 2:**
+Changes: Fix off-by-one error in pagination
+Branch: `fix/pagination-off-by-one`
 
-```
-feature/add-contact-form
-fix/spelling-error-in-footer
-refactor/user-controller
-docs/update-readme
-chore/update-dependencies
-```
+**Example 3:**
+Changes: Move utility functions into shared module
+Branch: `refactor/extract-shared-utils`
 
-## Workflow
+**Example 4:**
+Changes: Update ESLint config + reorder imports + add README section
+Branch: `chore/update-eslint-and-cleanup` (mixed changes — name for the dominant intent)
 
-### Step 1: Analyze Changes
+## Process
 
-Run these commands to understand changes:
+1. Read the git state (`git status`, `git diff --stat`, `git log` as needed) to understand what changed
+2. Identify the dominant intent — if changes span multiple concerns, name for the primary one
+3. Pick the type that best fits, generate a clear description
+4. If the intent is ambiguous, propose 2-3 candidates with brief reasoning and let the user choose
+5. Create the branch with `git checkout -b <name>`
 
-```bash
-# Check current branch
-git branch --show-current
-
-# View uncommitted changes
-git status --short
-
-# View diff of uncommitted changes
-git diff --stat
-
-# View staged changes
-git diff --cached --stat
-
-# View recent commits (if on a feature branch)
-git log --oneline -10
-```
-
-### Step 2: Determine Type
-
-Based on changes:
-
-| Changes | Type |
-|---------|------|
-| New files, new functionality | `feature/` |
-| Bug corrections | `fix/` |
-| Code restructuring without behavior change | `refactor/` |
-| README, comments, docs | `docs/` |
-| Formatting, CSS | `style/` |
-| Config, dependencies, tooling | `chore/` |
-
-### Step 3: Generate Description
-
-1. Identify the **main purpose** of changes
-2. Start with a **verb**: add, update, remove, fix, implement, refactor
-3. Keep it **short but clear** (2-4 words ideal)
-4. Use **kebab-case**
-
-### Step 4: Create Branch
-
-Once you've determined the appropriate branch name:
-
-```bash
-git checkout -b <type>/<description>
-```
-
-Present the result in this format:
-
-```
-Created branch: <type>/<description>
-
-Reason: <brief explanation of why this name fits the changes>
-```
-
-## Anti-patterns
-
-Avoid these names:
-
-```
-# Too vague
-test
-fix1
-branch2
-update
-changes
-
-# Missing type prefix
-add-login
-user-feature
-
-# Wrong case
-feature/Add_Login
-feature/addLogin
-```
-
-## Decision Tree
-
-```
-Changes include new functionality?
-├─ Yes → feature/
-└─ No
-    ├─ Fixing a bug? → fix/
-    ├─ Only docs/README? → docs/
-    ├─ Only formatting/style? → style/
-    ├─ Restructuring code? → refactor/
-    └─ Config/tooling? → chore/
-```
-
-## Interactive Mode
-
-If changes are ambiguous, ask user:
-
-1. What is the main purpose of these changes?
-2. Is this a new feature or modification?
-3. Are there any specific keywords to include?
-
-Then suggest 2-3 options with explanations and create the branch with user's choice.
+After creation, briefly state the branch name and the reasoning behind it.
