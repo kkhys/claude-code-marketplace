@@ -1,86 +1,140 @@
 # cmux Browser Workflow Patterns
 
-## Navigate, Wait, Inspect
+## Login Flow
+
+Most web apps require authentication before anything useful happens. The standard approach:
 
 ```bash
-cmux browser open https://example.com/login
-cmux browser surface:2 wait --load-state complete --timeout-ms 15000
-cmux browser surface:2 snapshot --interactive --compact
-cmux browser surface:2 get title
+cmux browser open https://app.example.com/login
+cmux browser identify  # → surface:3
+cmux browser surface:3 wait --load-state complete --timeout-ms 15000
+cmux browser surface:3 snapshot --interactive --compact
+
+# Fill credentials using refs from snapshot
+cmux browser surface:3 fill "e1" "user@example.com"
+cmux browser surface:3 fill "e2" "$PASSWORD"
+cmux browser surface:3 click "e3" --snapshot-after
+cmux browser surface:3 wait --url-contains "/dashboard" --timeout-ms 10000
 ```
 
-## Fill a Form and Verify Success
+If you need to repeat the login across sessions, save the authenticated state:
 
 ```bash
-cmux browser surface:2 fill "#email" --text "ops@example.com"
-cmux browser surface:2 fill "#password" --text "$PASSWORD"
-cmux browser surface:2 click "button[type='submit']" --snapshot-after
-cmux browser surface:2 wait --text "Welcome"
-cmux browser surface:2 is visible "#dashboard"
+cmux browser surface:3 state save /tmp/session.json
+
+# Later — restore without re-logging in
+cmux browser surface:3 state load /tmp/session.json
+cmux browser surface:3 reload --snapshot-after
 ```
 
-## Capture Debug Artifacts on Failure
+Alternatively, inject session cookies directly to bypass the login page entirely:
 
 ```bash
-cmux browser surface:2 console list
-cmux browser surface:2 errors list
-cmux browser surface:2 screenshot --out /tmp/failure.png
-cmux browser surface:2 snapshot --interactive --compact
+cmux browser surface:3 cookies set session_id "abc123" --domain app.example.com --path /
+cmux browser surface:3 reload --snapshot-after
 ```
 
-## Persist and Restore Browser Session
+## Form Submission with Verification
+
+Fill, submit, and confirm the server accepted the input:
 
 ```bash
-cmux browser surface:2 state save /tmp/session.json
-# ...later...
-cmux browser surface:2 state load /tmp/session.json
-cmux browser surface:2 reload
+cmux browser surface:3 fill "#name" "Jane Smith"
+cmux browser surface:3 fill "#email" "jane@example.com"
+cmux browser surface:3 select "#plan" "enterprise"
+cmux browser surface:3 check "#agree-terms"
+cmux browser surface:3 click "button[type='submit']" --snapshot-after
+cmux browser surface:3 wait --text "Thank you" --timeout-ms 10000
 ```
 
-## Work Inside an Iframe
+If submission fails, check for validation errors:
 
 ```bash
-cmux browser surface:2 frame "iframe[name='checkout']"
-cmux browser surface:2 fill "#card-number" --text "4111111111111111"
-cmux browser surface:2 click "#pay-now"
-cmux browser surface:2 frame main
+cmux browser surface:3 get text ".error-message"
+cmux browser surface:3 snapshot --interactive --compact  # See current state
+```
+
+## Scraping Dynamic Data
+
+For SPAs that render data after initial load, wait for the content to appear before reading it:
+
+```bash
+cmux browser open https://example.com/dashboard
+cmux browser surface:3 wait --selector ".data-table" --timeout-ms 10000
+
+# Read structured data
+cmux browser surface:3 get count ".data-row"
+cmux browser surface:3 get text ".data-table"
+cmux browser surface:3 get html ".data-table"
+
+# Or extract via JS for complex data
+cmux browser surface:3 eval "JSON.stringify([...document.querySelectorAll('.data-row')].map(r => r.textContent))"
+```
+
+## Iframe Interaction
+
+Some UIs embed content in iframes (payment forms, third-party widgets). Switch frame context before interacting:
+
+```bash
+cmux browser surface:3 frame "iframe[name='payment']"
+cmux browser surface:3 snapshot --interactive --compact  # See iframe contents
+cmux browser surface:3 fill "e10" "4111111111111111"
+cmux browser surface:3 click "e12"
+cmux browser surface:3 frame main  # Return to top-level document
 ```
 
 ## Multi-Tab Workflow
 
+Work with multiple pages simultaneously:
+
 ```bash
-cmux browser open-split https://app.example.com
-cmux browser surface:2 tab list
-cmux browser surface:2 tab new https://docs.example.com
-cmux browser surface:2 tab switch 1
+cmux browser surface:3 tab new https://docs.example.com
+cmux browser surface:3 tab list                      # See all tabs
+cmux browser surface:3 tab switch 1                  # Switch to second tab
+cmux browser surface:3 get text "h1"                 # Read from docs
+cmux browser surface:3 tab switch 0                  # Back to first tab
 ```
 
-## Bypass Login by Injecting Session Cookie
+## Debugging a Failing Interaction
+
+When a click or fill doesn't work as expected:
 
 ```bash
-cmux browser surface:2 cookies set session_id "abc123" --domain example.com --path /
-cmux browser surface:2 reload --snapshot-after
+# 1. Check what's actually on the page
+cmux browser surface:3 snapshot --interactive --compact
+
+# 2. Verify the element state
+cmux browser surface:3 is visible "#submit-btn"
+cmux browser surface:3 is enabled "#submit-btn"
+
+# 3. Check for JS errors or console clues
+cmux browser surface:3 errors list
+cmux browser surface:3 console list
+
+# 4. Take a visual screenshot for context
+cmux browser surface:3 screenshot --out /tmp/debug.png
+
+# 5. Check the URL — maybe a redirect happened
+cmux browser surface:3 get url
 ```
 
-## Wait for Dynamic Content
+## Waiting for SPA Readiness
+
+Single-page apps often need a JS-level readiness check beyond load-state:
 
 ```bash
-cmux browser surface:2 wait --function "window.__appReady === true" --timeout-ms 10000
-cmux browser surface:2 wait --selector "#dynamic-content" --timeout-ms 5000
+# Wait for app framework to initialize
+cmux browser surface:3 wait --function "window.__appReady === true" --timeout-ms 15000
+
+# Or wait for a specific element that only renders after data loads
+cmux browser surface:3 wait --selector "[data-loaded='true']" --timeout-ms 10000
 ```
 
-## Scrape Dynamic Data
+## File Download
+
+Trigger a download and wait for it to complete:
 
 ```bash
-cmux browser open https://example.com/data
-cmux browser surface:2 wait --selector ".data-table" --timeout-ms 10000
-cmux browser surface:2 get html ".data-table"
-cmux browser surface:2 get count ".data-row"
-```
-
-## Handle Download
-
-```bash
-cmux browser surface:2 click "a#export-csv"
-cmux browser surface:2 download --path /tmp/export.csv --timeout-ms 30000
+cmux browser surface:3 click "#export-csv"
+cmux browser surface:3 download --path /tmp/export.csv --timeout-ms 30000
 ```
