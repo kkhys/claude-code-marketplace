@@ -1,101 +1,87 @@
 ---
 name: fixing-review-comments
-description: Addresses unresolved review comments on the current branch. Use when the user wants to fix review feedback, address PR review points, or resolve review comments.
+description: >-
+  Addresses unresolved review comments on the current branch by orchestrating
+  the full fix cycle: reading feedback, implementing changes, verifying,
+  committing, and replying to reviewers. Use this skill whenever the user
+  wants to fix PR review feedback, address reviewer comments, handle review
+  points, or respond to code review. Also trigger on phrases like
+  "レビューコメント直して", "fix the review comments", "address the feedback",
+  "review 対応して", "レビュー指摘を修正", or any request to implement changes
+  requested by PR reviewers. This is the primary skill for closing the PR
+  review feedback loop.
 ---
 
 # Fix Review Comments
 
-Address all unresolved review comments on the current branch by reading feedback, implementing fixes, and resolving threads.
+Close the PR review feedback loop: read what reviewers asked for, implement the changes, verify nothing broke, and let them know what was done.
 
-## Workflow
+## Phase 1: Understand the Feedback
 
-### Step 1: Read Unresolved Review Comments
+Invoke the `reading-unresolved-pr-comments` skill. It fetches all unresolved threads via GraphQL and produces a structured fix plan.
 
-Invoke the `reading-unresolved-pr-comments` skill to fetch all unresolved review threads and generate a fix plan.
+Before jumping into code, review the plan carefully:
 
-Review the plan output to understand:
-- Each review comment's intent and requested change
-- File paths and line numbers involved
-- Dependencies between fixes
-- Which fixes can be parallelized
+- What is each reviewer actually asking for? A comment like "rename this variable" often means "this name is misleading because it implies X when the value is Y." Catching the deeper intent avoids a second round of review.
+- Are any threads marked `is_outdated`? The referenced lines may have shifted or been rewritten. Verify the current code state before planning a fix for these.
+- Which fixes touch the same file or function? Group them so coordinated changes stay consistent.
+- Which fixes are truly independent? Those can run in parallel later.
 
-### Step 2: Implement Fixes
+## Phase 2: Implement Fixes
 
-Execute each fix task using `base:general-purpose-assistant` subagents:
+Launch subagents for each fix task. The fix plan from Phase 1 determines execution strategy:
 
-- **One subagent per fix task** - each task gets its own subagent invocation
-- **Parallel execution** - launch independent tasks simultaneously (tasks with no file overlap or dependency)
-- **Sequential execution** - tasks that depend on each other or modify the same file must run in order
-- Provide each subagent with clear context: the review comment, file path, line number, and required change
+- Independent fixes (different files, no shared state) → launch in parallel
+- Related fixes (same file, overlapping logic) → run sequentially to prevent conflicts
+- Each subagent needs: the review comment, file path, line range, and the specific change to make
 
-### Step 3: Verify Changes
+When a reviewer suggests an approach but leaves room for alternatives, make the call that best serves the codebase. Note the reasoning — it will go into the thread reply in Phase 4.
 
-After all fixes are implemented, use a `base:general-purpose-assistant` subagent to run tests and lint:
+## Phase 3: Verify and Commit
 
-```
-Run the project's test suite and linter to verify all changes pass.
-```
+Run the project's test suite and linter. Pushing broken code to a PR wastes the reviewer's time and erodes trust in the review process — catching failures at this stage is essential.
 
-- If any test or lint check fails, use additional `base:general-purpose-assistant` subagents to fix the issues
-- Repeat until all checks pass
+- If any check fails, fix the issues before proceeding
+- Once all checks pass, invoke the `formatting-commit` skill to commit all fixes together
+- Push with `git push --force-with-lease` (the branch has existing history, so a regular push will be rejected)
 
-### Step 4: Commit and Push
+All fixes go in a single commit. Splitting them across multiple commits creates noise in the review thread and makes it harder for the reviewer to see the full picture of what changed.
 
-Invoke the `formatting-commit` skill to commit changes with an appropriate Conventional Commits message.
+## Phase 4: Close the Loop
 
-Then push the changes:
+Reviewers need to know their feedback was heard. A generic "修正しました" tells them nothing — they'd have to dig through the diff to verify each point. Specific replies save everyone's time.
 
-```bash
-git push --force-with-lease
-```
+For each unresolved thread, compose a reply that includes:
+1. What was changed (specific enough that the reviewer can confirm without reading the diff)
+2. A link to the commit for verification
 
-### Step 5: Reply to Review Comments
-
-For each unresolved review thread, post a reply in Japanese that includes:
-- A brief description of what was fixed
-- The commit URL that addresses the feedback
-
-Get the latest commit URL:
+Get the commit URL:
 
 ```bash
-gh api repos/{owner}/{repo}/commits/$(git rev-parse HEAD) --jq '.html_url'
+COMMIT_URL="$(gh api "repos/$(gh repo view --json nameWithOwner -q '.nameWithOwner')/commits/$(git rev-parse HEAD)" --jq '.html_url')"
 ```
 
-Then reply to each thread using the thread ID from Step 1:
+Build a JSON payload and post all replies at once:
 
 ```bash
-gh api graphql -f query='
-  mutation ($threadId: ID!, $body: String!) {
-    addPullRequestReviewThreadReply(
-      input: { pullRequestReviewThreadId: $threadId, body: $body }
-    ) {
-      comment { id }
+bash "${CLAUDE_SKILL_DIR}/scripts/reply-to-review-threads.sh" /path/to/replies.json
+```
+
+Payload format:
+
+```json
+{
+  "replies": [
+    {
+      "thread_id": "<thread ID from Phase 1>",
+      "body": "<COMMIT_URL> で修正しました。[具体的な修正内容]"
     }
-  }' \
-  -f threadId="<THREAD_ID>" \
-  -f body="$REPLY_BODY"
+  ]
+}
 ```
 
-Reply format example: `<COMMIT_URL> で修正しました。[具体的な修正内容の説明]`
+Write replies in Japanese. Be concise but specific — one sentence per reply that describes the actual change made.
 
-### Step 6: Resolve Review Comments
+### Thread Resolution
 
-Before resolving any review threads, confirm with the user whether they want threads to be resolved now (and which ones, if not all).
-If and only if the user explicitly requests it, invoke the `resolving-pr-comments` skill to resolve the specified review threads on the PR.
-
-### Step 7: Update PR Description
-
-Update the PR description to reflect the latest state of the implementation:
-
-```bash
-gh pr view --json number -q '.number'
-```
-
-Use the PR number to update the description with a summary of all changes made, including the review comment fixes.
-
-## Important Rules
-
-- **Complete all fixes** before committing - do not commit partial work
-- **Run verification** (Step 3) before committing - never push broken code
-- **Force-with-lease** for push - the branch likely has existing commits
-- **Do not skip steps** - each step is essential for a clean review cycle
+Do not auto-resolve threads. Resolution is the reviewer's prerogative — they decide when the fix is satisfactory. If the user explicitly asks to resolve threads, invoke the `resolving-pr-comments` skill.
