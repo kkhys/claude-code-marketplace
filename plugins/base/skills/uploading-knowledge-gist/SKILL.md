@@ -1,109 +1,43 @@
 ---
 name: uploading-knowledge-gist
-description: Upload session knowledge to GitHub Gist as a draft (secret). Use when saving learnings, discoveries, or technical notes from the current session to a Gist.
-disable-model-invocation: true
+description: >-
+  Save session knowledge to a secret GitHub Gist with built-in security scanning and content curation. This skill MUST be consulted before creating any knowledge Gist — it contains critical rules for filtering sensitive data (credentials, internal URLs, connection strings) that could leak via semi-public Gist URLs, and guidelines for structuring content so it's scannable and useful months later. Use whenever the user wants to save, record, capture, or preserve learnings, discoveries, findings, insights, or knowledge from the current session — whether to a Gist explicitly or to "somewhere searchable". Also proactively suggest saving at the end of productive sessions. Trigger phrases include "gist に保存", "ナレッジを保存", "知見を残す", "学んだことを保存", "save to gist", "capture findings", "save session knowledge", "どこかにまとめて", "後で見返せるように", or any request to persist technical learnings beyond the current conversation.
 allowed-tools: Bash(gh:*), Read
 ---
 
 # Upload Session Knowledge to Gist
 
-Save knowledge gained during the current session as a secret (draft) GitHub Gist.
+Save knowledge from the current session as a secret GitHub Gist — searchable, linkable, and available for future reference.
 
-## Security Rules (MUST follow)
+## What makes a good knowledge Gist
 
-Before creating a gist, scan content and REJECT if it contains:
+The goal is to help future-you (or a teammate) who hits the same problem or needs the same context. Good candidates:
 
-- API keys, tokens, secrets, passwords, credentials
-- Personal information (email, phone, address, real names of non-public figures)
-- Internal URLs, IP addresses, hostnames
-- `.env` file contents or environment variables with values
-- Database connection strings
-- Private repository paths or proprietary code
+- Bug root causes and the investigation path that found them
+- Architecture decisions and the trade-offs considered
+- External service quirks or undocumented behavior
+- Commands or code patterns that took real effort to figure out
+- Configuration that was non-obvious or surprising
 
-If any sensitive content is detected, warn the user and ask them to review before proceeding.
+Skip what already lives elsewhere — raw diffs belong in git, conversations are ephemeral, temporary debug output has no long-term value.
 
-## Workflow
+## Content safety
 
-### Step 1: Gather Knowledge
+Secret Gists are unlisted but accessible to anyone with the URL — treat them as semi-public. Before uploading, scan for anything that shouldn't be on the internet: credentials, tokens, API keys, internal hostnames, PII, `.env` values, database connection strings. If found, flag it and ask the user to review before proceeding. This matters because even deleted Gists can persist in caches or forks.
 
-Summarize the session's key learnings. Focus on:
+## Creating the Gist
 
-- Technical discoveries (bugs found, root causes, workarounds)
-- Architecture decisions and rationale
-- Useful commands or code patterns
-- Configuration insights
-- Troubleshooting steps that worked
+1. Distill the session's learnings into concise Markdown. Adapt the structure to fit the content — a single discovery might need just a paragraph with a heading, while a debugging saga benefits from Context → Investigation → Root Cause → Fix flow. Include the date for temporal context.
 
-Exclude:
-- Raw code diffs (already in git)
-- Conversation meta-commentary
-- Temporary debugging output
+2. Create a secret Gist via heredoc:
+   ```bash
+   gh gist create --desc "Knowledge: <topic> (<YYYY-MM-DD>)" --filename "knowledge-<topic>.md" - <<'GIST_EOF'
+   <content>
+   GIST_EOF
+   ```
 
-### Step 2: Format Content
+3. Report the Gist URL and a one-line summary of what was saved.
 
-Create a Markdown file with this structure:
+## Writing style
 
-```markdown
-# Session Knowledge: <topic>
-
-Date: YYYY-MM-DD
-
-## Context
-
-Brief description of what was being worked on.
-
-## Key Learnings
-
-### <Learning 1 Title>
-
-<Description>
-
-### <Learning 2 Title>
-
-<Description>
-
-## Commands / Snippets
-
-(If applicable)
-
-## References
-
-- Links to relevant docs, issues, PRs
-```
-
-### Step 3: Write to Temp File
-
-```bash
-tmpfile=$(mktemp /tmp/knowledge-XXXXXX.md)
-cat > "$tmpfile" << 'CONTENT'
-<formatted content>
-CONTENT
-echo "$tmpfile"
-```
-
-### Step 4: Create Secret Gist
-
-```bash
-gh gist create "$tmpfile" --desc "Session Knowledge: <topic> (YYYY-MM-DD)"
-```
-
-`gh gist create` without `--public` creates a secret gist by default.
-
-### Step 5: Clean Up
-
-```bash
-rm "$tmpfile"
-```
-
-### Step 6: Report
-
-Show the user:
-- Gist URL
-- Brief summary of what was saved
-
-## Notes
-
-- Always create secret gists (never use `--public`)
-- Use descriptive filenames: `knowledge-<topic>.md`
-- Keep gist content self-contained and useful for future reference
-- If no meaningful knowledge was gained in the session, inform the user instead of creating an empty gist
+Write for someone scanning in 30 seconds to decide if this Gist solves their problem. Short paragraphs, concrete headings, code blocks for commands. Substance over ceremony — no boilerplate sections if there's nothing to put in them.
