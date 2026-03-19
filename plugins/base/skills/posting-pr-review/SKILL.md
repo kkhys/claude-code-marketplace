@@ -1,126 +1,84 @@
 ---
 name: posting-pr-review
-description: Post review comments to a GitHub PR as a PENDING review. Use after completing code review (pr-review-toolkit:review-pr or similar) to submit structured feedback with severity indicators.
-allowed-tools: Bash(gh:*), Bash(git:*), Bash(jq:*), Bash(cat:*), Bash(mktemp:*), Bash(rm:*), Read
+description: Post review comments to a GitHub PR as a PENDING review using a dedicated workflow script (post-pr-review.sh) and severity tag system. Use after completing code review (pr-review-toolkit:review-pr, code-reviewer, silent-failure-hunter, or any review agent) to submit structured feedback. This skill provides the post-pr-review.sh script for correct PENDING review creation, 6-level severity tags ([critical]/[warning]/[suggestion]/[nit]/[question]/[praise]), diff line validation, and Japanese reporting. Always use this skill when posting, submitting, or sending review comments to a PR — do not attempt to call the GitHub review API directly without this skill's workflow.
+allowed-tools: Bash(gh:*), Bash(git:*), Bash(jq:*), Bash(cat:*), Bash(mktemp:*), Bash(rm:*), Bash(bash:*), Read
 ---
 
-# Post PR Review Comments
+# Post PR Review as PENDING
 
-Post structured review comments to a GitHub PR as a PENDING review. The user will manually submit the review after confirming on GitHub.
+Post structured review comments to a GitHub PR as a PENDING review. The review is always created in PENDING state — never APPROVE or REQUEST_CHANGES. This is because submitting immediately would notify the PR author before the user has reviewed and edited the comments on GitHub.
 
 ## Prerequisites
 
 This skill requires review results from the current session. Acceptable sources:
-- `pr-review-toolkit:review-pr` agent output
-- `pr-review-toolkit:code-reviewer` agent output
-- `pr-review-toolkit:silent-failure-hunter` agent output
-- Any structured code review findings with file paths and line numbers
+- `pr-review-toolkit:review-pr` or similar review agent output
+- Review findings manually provided by the user
 
 If no review data exists in the current session, prompt the user:
-> セッション内にレビュー結果が見つかりません。先に `pr-review-toolkit:review-pr` などでレビューを実行するか、レビュー内容を提供してください。
+> セッション内にレビュー結果が見つかりません。先にレビューを実行するか、レビュー内容を提供してください。
 
-## Severity Indicators
+## Severity Tags
 
-Every comment MUST start with a severity tag on the first line:
+Every comment must start with a severity tag on its own line. This gives the PR author a quick way to scan the comment list and know what action is needed.
 
-| Tag | Meaning | Action Required |
-|---|---|---|
-| `[critical]` | Bugs, security issues, data loss risks | Must fix before merge |
-| `[warning]` | Logic errors, performance issues, missing edge cases | Should fix |
-| `[suggestion]` | Better approaches, readability improvements | Consider fixing |
-| `[nit]` | Style, naming, minor preferences | Optional |
-| `[question]` | Unclear intent, needs clarification | Reply needed |
-| `[praise]` | Good pattern, clever solution | No action needed |
+| Tag | Meaning |
+|---|---|
+| `[critical]` | Bugs, security, data loss — must fix before merge |
+| `[warning]` | Logic errors, performance, edge cases — should fix |
+| `[suggestion]` | Better approaches, readability — consider |
+| `[nit]` | Style, naming — optional |
+| `[question]` | Unclear intent — reply needed |
+| `[praise]` | Good pattern — no action needed |
 
-## Comment Writing Rules
+Format: tag alone on the first line, body starting on the next line (1-3 sentences).
 
-- Put the severity tag alone on the first line: `[severity]`
-- Follow with the message body starting on the next line
-- Use concise, direct language (1-3 sentences max)
-- For `[praise]` and items needing no action, explicitly state no action is needed
-- Write in the same language as the codebase comments (default: English)
-- Include a brief rationale when the issue isn't self-evident
-- For code fixes, use a GitHub suggestion block (see below)
-
-Examples:
 ```
-[critical]
-Unbounded query without LIMIT can cause OOM on large tables.
-
 [warning]
 This catch block swallows the error silently. Consider logging or re-throwing.
-
-[suggestion]
-Extract this into a helper — same pattern appears in 3 places.
-
-[nit]
-Prefer `const` over `let` since this is never reassigned.
-
-[question]
-Is this fallback intentional? The default value differs from the type's zero value.
-
-[praise]
-Clean separation of concerns here. No action needed.
 ```
 
-## GitHub Suggestion Blocks
+## Suggestion Blocks
 
-When the fix is a concrete, small change to a specific line, append a ` ```suggestion ` block after the message. The PR author can apply it directly with one click.
+When the fix is a concrete, small change, use a GitHub suggestion block. The PR author can apply it with one click, which significantly speeds up the review cycle.
 
 ````
 [warning]
-`TECM-**` is shell glob notation, not a regex. Use `TECM-\d+` instead.
+`TECM-**` is shell glob notation, not a regex.
 
 ```suggestion
 const match = branchName.match(/TECM-[0-9]+/);
 ```
 ````
 
-Rules:
 - The suggestion block replaces exactly the line(s) the comment is attached to
 - For multi-line suggestions, use `start_line` + `line` to define the range
-- Only use suggestion blocks when the replacement is unambiguous — avoid for structural rewrites
+- Only use when the replacement is unambiguous — avoid for structural rewrites
 
 ## Workflow
 
-### Step 1: Collect Review Findings
+### 1. Collect and Validate Findings
 
-Gather all review findings from the session. For each finding, extract:
-- **File path** (relative to repo root)
-- **Line number** (specific line in the file, must be within the PR diff)
-- **Severity** (map to one of the 6 severity tags)
-- **Comment body** (concise description)
+Extract from each finding:
+- File path (relative to repo root)
+- Line number
+- Severity tag
+- Comment body (including suggestion blocks where applicable)
 
-If a finding references a line NOT in the PR diff, handle it as follows:
-- Find the nearest changed line in the same file and attach the comment there, noting the actual line
-- If the file has no changes in the diff, collect it as a general PR comment (not inline)
+Verify that each comment's line number falls within the PR diff using `gh pr diff`. The GitHub API rejects comments on lines outside the diff, so this validation is mandatory.
 
-### Step 2: Determine PR Context
+Handling lines outside the diff:
+- Attach to the nearest changed line in the same file, noting the actual line number in the body
+- If the file has no changes in the diff → post as a general PR comment in Step 3
 
-```bash
-gh pr view --json number,url,headRefOid --jq '{number, url, head_oid: .headRefOid}'
-```
+### 2. Post PENDING Review
 
-### Step 3: Verify Lines Are in Diff
-
-Get the diff to verify comment positions:
+Create a payload JSON and pass it to the script:
 
 ```bash
-gh pr diff --name-only
+bash "${CLAUDE_SKILL_DIR}/scripts/post-pr-review.sh" /path/to/payload.json
 ```
 
-For each file with comments, confirm the target lines are within the diff. Use `gh pr diff` to check specific files if needed.
-
-### Step 4: Post PENDING Review
-
-Use the script to create a PENDING review:
-
-```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/post-pr-review.sh" /path/to/review-payload.json
-```
-
-The payload JSON must follow this structure:
-
+Payload:
 ```json
 {
   "body": "Review summary (optional)",
@@ -128,58 +86,42 @@ The payload JSON must follow this structure:
     {
       "path": "src/example.ts",
       "line": 42,
-      "body": "[warning] This catch block swallows errors silently."
+      "body": "[warning]\nThis catch block swallows errors silently."
     },
     {
       "path": "src/utils.ts",
-      "line": 10,
-      "side": "RIGHT",
-      "body": "[suggestion] Consider using a Map for O(1) lookup."
+      "start_line": 10,
+      "line": 15,
+      "body": "[suggestion]\nExtract this into a helper.\n\n```suggestion\nconst result = extractHelper(input);\n```"
     }
   ]
 }
 ```
 
-Field reference:
-- `body`: Overall review summary (optional, can be empty string)
-- `comments[].path`: File path relative to repo root (required)
-- `comments[].line`: Line number in the file (required, must be in diff)
-- `comments[].body`: Comment text starting with severity tag (required)
-- `comments[].side`: `RIGHT` (new code, default) or `LEFT` (deleted code)
-- `comments[].start_line`: First line for multi-line comments (optional)
-- `comments[].start_side`: Side for start_line (optional)
+Fields:
+- `path`: File path relative to repo root (required)
+- `line`: Line number within the diff (required)
+- `body`: Comment starting with severity tag (required)
+- `side`: `RIGHT` (default, new code) or `LEFT` (deleted code)
+- `start_line` / `start_side`: For multi-line comments (optional)
 
-### Step 5: Post General Comments (if any)
+### 3. Post General Comments
 
-For findings that cannot be attached to specific diff lines, post them as part of the review body or as separate PR comments:
+For findings that reference files not in the diff, post as general PR comments:
 
 ```bash
-gh pr comment --body "[severity] General comment about non-diff code..."
+gh pr comment --body "[severity]
+Comment about non-diff code..."
 ```
 
-### Step 6: Report to User
+### 4. Report
 
-After posting, report:
-1. Number of inline comments posted by severity
-2. Number of general comments (if any)
-3. The PR URL where the user can review and submit
+After posting, report severity counts and the PR URL in Japanese:
 
-Example output:
 > PENDING レビューを投稿しました。
 >
 > - [critical]: 1 件
 > - [warning]: 3 件
 > - [suggestion]: 2 件
-> - [nit]: 1 件
-> - [praise]: 2 件
 >
 > PR で確認して送信してください: https://github.com/owner/repo/pull/123
-
-## Important Rules
-
-- **NEVER submit the review** - Always create as PENDING. The user submits manually.
-- **NEVER use `APPROVE` or `REQUEST_CHANGES` event** - Only PENDING reviews.
-- **Every comment must have a severity tag** - No exceptions.
-- **Verify line numbers** - Comments on lines outside the diff will fail.
-- **Keep comments concise** - Verbose reviews waste reviewer time.
-- **Batch all comments** - Use a single review, not multiple individual comments.

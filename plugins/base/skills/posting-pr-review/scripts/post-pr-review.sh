@@ -4,11 +4,8 @@ set -euo pipefail
 # Post a PENDING review to a GitHub PR.
 # Usage: post-pr-review.sh <payload.json>
 #
-# The payload JSON must contain:
-#   - body (string): Review summary (can be empty)
-#   - comments (array): Inline comments with path, line, body
-#
-# The review is ALWAYS created in PENDING state.
+# Payload: { body: string, comments: [{ path, line, body, side?, start_line?, start_side? }] }
+# Review is always created in PENDING state (event field is intentionally omitted).
 
 readonly PAYLOAD_FILE="${1:?Usage: post-pr-review.sh <payload.json>}"
 
@@ -17,11 +14,12 @@ if [[ ! -f "${PAYLOAD_FILE}" ]]; then
   exit 1
 fi
 
-# Validate JSON
 if ! jq empty "${PAYLOAD_FILE}" 2>/dev/null; then
   echo "Error: Invalid JSON in payload file" >&2
   exit 1
 fi
+
+readonly COMMENT_COUNT="$(jq '.comments | length' "${PAYLOAD_FILE}")"
 
 # Get PR context
 readonly OWNER_REPO="$(gh repo view --json nameWithOwner --jq '.nameWithOwner')"
@@ -32,8 +30,7 @@ readonly PR_NUMBER="$(echo "${PR_JSON}" | jq -r '.number')"
 readonly PR_URL="$(echo "${PR_JSON}" | jq -r '.url')"
 readonly HEAD_OID="$(echo "${PR_JSON}" | jq -r '.headRefOid')"
 
-# Build the API request body
-# event is intentionally omitted to create a PENDING review
+# Build API request body (event omitted = PENDING)
 readonly REQUEST_BODY="$(jq --arg commit_id "${HEAD_OID}" '{
   commit_id: $commit_id,
   body: (.body // ""),
@@ -56,12 +53,9 @@ readonly RESPONSE="$(gh api \
 }
 
 readonly REVIEW_ID="$(echo "${RESPONSE}" | jq -r '.id')"
-readonly COMMENT_COUNT="$(echo "${RESPONSE}" | jq -r '.body' | wc -c)"
 
 echo "PENDING review created successfully."
 echo "  Review ID: ${REVIEW_ID}"
+echo "  Comments: ${COMMENT_COUNT}"
 echo "  PR: ${PR_URL}"
-echo "  Commit: ${HEAD_OID}"
-echo ""
-echo "Review is in PENDING state. Visit the PR to review and submit:"
-echo "  ${PR_URL}"
+echo "  Commit: ${HEAD_OID:0:7}"
