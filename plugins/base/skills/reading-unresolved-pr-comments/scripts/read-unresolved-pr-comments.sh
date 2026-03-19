@@ -6,10 +6,14 @@ readonly OWNER="${OWNER_REPO%%/*}"
 readonly REPO="${OWNER_REPO##*/}"
 readonly PR_NUMBER="$(gh pr view --json number --jq '.number')"
 
-gh api graphql -f query='
-query {
-  repository(owner: "'"${OWNER}"'", name: "'"${REPO}"'") {
-    pullRequest(number: '"${PR_NUMBER}"') {
+gh api graphql \
+  -f owner="${OWNER}" \
+  -f repo="${REPO}" \
+  -F prNumber="${PR_NUMBER}" \
+  -f query='
+query($owner: String!, $repo: String!, $prNumber: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $prNumber) {
       number
       title
       url
@@ -34,6 +38,7 @@ query {
             isOutdated
             path
             line
+            startLine
             comments(last: 100) {
               nodes {
                 author {
@@ -63,6 +68,7 @@ query {
       thread_id: .node.id,
       path: .node.path,
       line: .node.line,
+      start_line: .node.startLine,
       is_outdated: .node.isOutdated,
       comments: [
         .node.comments.nodes[] |

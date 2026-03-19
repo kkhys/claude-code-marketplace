@@ -1,66 +1,45 @@
 ---
 name: reading-unresolved-pr-comments
-description: Fetches unresolved review comments from a GitHub PR and creates a fix plan. Use when reviewing PR feedback, addressing review comments, or resolving PR discussions.
+description: >-
+  Fetch and analyze unresolved PR review comments using a specialized GraphQL script
+  that extracts thread-level data (thread IDs, resolution status, outdated flags, line ranges)
+  not available through basic gh commands. MUST consult this skill whenever the user wants to
+  check review feedback, see what reviewers said, view unresolved threads, understand pending
+  review comments, or prepare to address reviewer requests on a PR. This is the required first
+  step for the fixing-review-comments workflow. Also trigger on "review comments",
+  "レビューコメント", "unresolved threads", "レビュー指摘", "reviewer feedback", "PR feedback",
+  or any request to read, fetch, list, or summarize review discussions on a pull request.
 context: fork
 ---
 
 # Read Unresolved PR Comments
 
-Fetch unresolved review comments from the current PR and create an actionable fix plan.
+Fetch unresolved review comments from the current PR and produce a fix plan that downstream skills can act on.
 
-## Workflow
-
-### 1. Fetch Unresolved Review Comments
-
-Run the script to retrieve all unresolved review threads via GitHub GraphQL API:
+## Fetch Comments
 
 ```bash
 bash "${CLAUDE_SKILL_DIR}/scripts/read-unresolved-pr-comments.sh"
 ```
 
-The script outputs JSON with:
-- PR metadata (number, title, URL, state, author)
-- Requested reviewers
-- All unresolved threads (path, line, comments with author/body/URL)
+Prerequisite: the current branch must have an open PR (`gh pr view` must succeed).
 
-**Prerequisites:** The current directory must be a git repo with an open PR on the current branch.
+The script returns JSON with PR metadata and all unresolved threads. Each thread includes `thread_id`, `path`, `line`, `start_line`, `is_outdated`, and the full comment history.
 
-### 2. Create Fix Plan
+## Create Fix Plan
 
-Analyze the unresolved comments and create a concrete fix plan:
+If no unresolved threads exist, report that to the user and stop.
 
-1. **Analyze each comment**:
-   - Identify the problem or improvement being requested
-   - Understand the reviewer's intent and context
-   - Locate the exact code that needs modification
+Analyze each thread to understand what the reviewer is actually asking for. Often the surface-level comment ("rename this variable") reflects a deeper concern ("this name is misleading because it suggests X when the value is Y"). Capture both the specific ask and the underlying intent.
 
-2. **Create the plan**:
-   - Break down fixes into concrete, parallelizable units
-   - Each unit should be independently actionable
-   - Group related comments that affect the same file/function
-   - Prioritize by dependency order (changes that other fixes depend on first)
+Structure the plan as follows:
 
-3. **Plan format**:
+1. Group comments that affect the same file or function — coordinated changes reduce conflicts and maintain consistency
+2. Order groups by dependency (foundational changes first, dependent changes after)
+3. For each fix item, include the file path, line, reviewer's concern (the "why"), and the concrete action to take
+4. Mark `is_outdated` threads explicitly — the referenced code may have already changed, so verify the current state before planning a fix
+5. Design each fix to be independently actionable, since `fixing-review-comments` may execute them in parallel via subagents
 
-```markdown
-## Fix Plan
+## Scope
 
-### Fix 1: [Brief description]
-- **File**: path/to/file.ts
-- **Line**: 42
-- **Comment**: [Summary of reviewer feedback]
-- **Action**: [Specific change to make]
-
-### Fix 2: [Brief description]
-- **File**: path/to/other-file.ts
-- **Line**: 15
-- **Comment**: [Summary of reviewer feedback]
-- **Action**: [Specific change to make]
-```
-
-## Important Rules
-
-- **Do not auto-resolve comments** - Only the reviewer should resolve their own threads
-- **Do not push changes** - Present the plan for user approval first
-- **Outdated threads**: Include but flag threads marked as `is_outdated: true` - the code may have already changed
-- **Parallel execution**: Design fix units to be independently executable where possible
+This skill only reads and plans. It does not modify code, resolve threads, or push changes. The fix plan is a checkpoint for the user or the calling skill to review before any code is touched.
