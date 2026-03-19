@@ -1,32 +1,31 @@
 ---
 name: orchestrating-agent-team
-description: Orchestrate agent teams for parallel implementation tasks. Use when the user requests agent teams, multi-teammate coordination, or parallel feature development across independent modules.
+description: Orchestrate agent teams for parallel implementation tasks. Use when the user requests agent teams, multi-teammate coordination, or parallel feature development across independent modules. Also use when the user mentions 'spawn teammates', 'create a team', 'work in parallel', 'multi-agent', or describes tasks spanning multiple independent modules (frontend/backend/tests) that could benefit from simultaneous development, concurrent code review, or competing-hypothesis debugging.
 ---
 
-# Agent Team Orchestration Guide
+# Agent Team Orchestration
 
-## Decision: Teams vs Subagents
+Agent teams run multiple Claude Code sessions in parallel on the same codebase. Each teammate operates as an independent process with its own context window, communicating through a shared mailbox and task list. The lead (you) creates the team, assigns work, reviews plans, and integrates results — but does not implement anything directly.
 
-**Use agent teams when**:
-- Teammates need to communicate with each other (share findings, challenge approaches)
-- Work spans multiple independent modules or layers (frontend/backend/tests)
-- Debugging requires competing hypotheses tested in parallel
-- Tasks benefit from collaborative review and synthesis
+## Teams vs Subagents
 
-**Use subagents instead when**:
-- You only need the result, not inter-agent discussion
-- Tasks are sequential or depend heavily on each other
-- Same-file edits are required
-- Token efficiency matters more than collaboration
+The deciding factor is whether workers need to talk to each other.
 
-**Rule of thumb**: If workers don't need to talk to each other, use subagents. If they do, use agent teams.
+| | Agent Teams | Subagents (Agent tool) |
+|---|---|---|
+| Communication | Teammates message each other directly | Report only to the caller |
+| Context | Each has its own context window | Runs inside caller's context |
+| Coordination | Shared task list, peer-to-peer | Caller manages everything |
+| Cost | Higher (independent instances) | Lower (result summaries) |
+| Best for | Collaborative, multi-module work | Independent, result-oriented tasks |
 
-## Setup Check
+Use teams when teammates need to agree on interfaces, challenge each other's approaches, or coordinate across modules. Use subagents when you just need results collected back to you.
 
-Agent teams require the experimental flag. Before creating a team, verify it's enabled:
+## Prerequisites
 
-```
-Check settings.json for:
+Agent teams require an experimental flag. Verify in settings.json before creating a team:
+
+```json
 {
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
@@ -34,191 +33,168 @@ Check settings.json for:
 }
 ```
 
-If not enabled, inform the user and offer to add it to their settings.
+If not enabled, offer to add it to the user's settings before proceeding.
 
-## Team Composition Guidelines
+## How Teams Work
 
-### Size
+### Lifecycle
 
-- **3-5 teammates** for most tasks
-- **5-6 tasks per teammate** keeps everyone productive
-- Three focused teammates outperform five scattered ones
+1. **Create** — TeamCreate spins up the team and defines teammates with roles
+2. **Plan** — Each teammate explores and submits a plan (if plan approval is required)
+3. **Execute** — Teammates implement independently, messaging as needed
+4. **Integrate** — Lead reviews all changes, runs tests, resolves conflicts
+5. **Cleanup** — Shut down teammates and clean up the team
 
-### File Ownership
+### Communication
 
-**Critical**: Two teammates editing the same file causes overwrites. Always assign explicit file ownership:
+- **Direct message**: Send to a specific teammate by name
+- **Broadcast**: Send to all teammates simultaneously
+- **Task list**: Shared view of pending / in-progress / completed tasks
+
+Peer-to-peer messaging is what makes teams fundamentally different from subagents. Teammates can share discoveries, warn about edge cases, or agree on interface contracts without the lead mediating every exchange.
+
+### Display Modes
+
+- **In-process** (default): All teammates in the main terminal. Shift+Down cycles between them. Works in any terminal.
+- **Split panes**: Each teammate in its own pane for simultaneous visibility. Requires tmux or iTerm2.
+
+## Designing Team Work
+
+### File Ownership Is Non-Negotiable
+
+Two teammates editing the same file causes silent overwrites — the second save destroys the first teammate's work with no warning or merge. This is the most common and most costly failure mode.
+
+Every teammate must own distinct files. Declare ownership explicitly in the spawn prompt:
 
 ```
-Teammate A owns: src/auth/, tests/auth/
-Teammate B owns: src/api/, tests/api/
-Teammate C owns: src/ui/, tests/ui/
+Backend dev: owns src/api/auth/, src/services/auth/, tests/api/auth/
+Frontend dev: owns src/components/auth/, src/hooks/auth/
+Test engineer: owns tests/integration/auth/, tests/e2e/auth/
 ```
 
-Never allow overlapping file ownership. If shared files need changes, assign one teammate as the sole editor and have others communicate required changes via messages.
+If a shared file needs changes (config, type definitions, interfaces), assign exactly one teammate as sole editor. Others communicate their required changes via messages.
 
-## Implementation Workflow
+### Team Size
 
-### Phase 1: Plan
+3-5 teammates for most tasks. Three focused teammates consistently outperform five scattered ones because:
 
-1. Analyze the task and identify independent work units
-2. Define team structure with clear roles and file ownership
-3. Create the team with plan approval required:
+- Coordination overhead grows with each addition
+- Token costs scale linearly per teammate
+- Tasks become trivially thin below 3 per teammate
 
-```text
-Create an agent team for [task description]. Spawn [N] teammates:
-- [Role A]: owns [files/modules]. Responsible for [scope].
-- [Role B]: owns [files/modules]. Responsible for [scope].
-- [Role C]: owns [files/modules]. Responsible for [scope].
-Require plan approval before any teammate makes changes.
+Aim for 5-6 tasks per teammate. If each teammate has fewer than 3 substantive tasks, reduce the team size.
+
+### Task Decomposition
+
+Follow the codebase's natural boundaries — modules, layers, packages. Each work unit should be:
+
+- **Independent**: Completable without blocking on others
+- **Testable**: Has clear verification criteria
+- **Scoped**: Fits within one teammate's context
+
+When dependencies exist (e.g., frontend needs backend API contracts), have the upstream teammate message downstream when interfaces stabilize rather than making downstream wait entirely.
+
+## Running a Team Session
+
+### Phase 1: Analyze and Spawn
+
+Identify independent work units, then create the team with explicit roles and file ownership:
+
 ```
+Create an agent team to implement [feature].
+Spawn N teammates:
+- [Role]: owns [files]. Responsible for [scope].
+- [Role]: owns [files]. Responsible for [scope].
+Require plan approval before making changes.
+```
+
+Require plan approval for work that modifies production code. Skip it for read-heavy tasks (reviews, investigations, research) where uncoordinated changes are not a risk.
 
 ### Phase 2: Review Plans
 
-The lead reviews each teammate's plan before approving:
+When a teammate submits a plan, verify:
 
-- Verify no file ownership conflicts
-- Check that the approach aligns with project conventions
-- Reject plans that modify shared files without coordination
-- Reject plans lacking test coverage (if applicable)
+- No file ownership conflicts with other teammates
+- Approach aligns with project conventions (check CLAUDE.md)
+- Test coverage included for new functionality
+- No modifications to shared files without coordination
 
-Give the lead explicit criteria:
+Reject plans that violate these and provide specific feedback on what to fix.
 
-```text
-Only approve plans that:
-- Stay within the teammate's assigned file ownership
-- Include test files for new functionality
-- Follow existing code patterns in the codebase
-```
+### Phase 3: Monitor Execution
 
-### Phase 3: Implement
+The lead's role during execution is coordination, not implementation.
 
-After plan approval, teammates implement independently. Key instructions for the lead:
+- **Do not implement anything yourself.** Delegate all work to teammates.
+- **Wait for all teammates to complete** before moving to integration.
+- If a teammate gets stuck, send guidance via message rather than taking over.
 
-```text
-Wait for all teammates to complete their tasks before proceeding.
-Do not implement tasks yourself - delegate everything to teammates.
-If a teammate gets stuck, provide guidance via message rather than taking over.
-```
+This is the hardest discipline. The natural instinct is to help by coding, but doing so breaks the parallel model and risks file conflicts. A lead who implements is a lead who creates merge conflicts.
 
-### Phase 4: Integrate
+### Phase 4: Integrate and Verify
 
-After all teammates finish:
+1. Review all changes for cross-module consistency
+2. Run the full test suite
+3. If integration issues arise, assign them to one specific teammate — do not fix them yourself
+4. Clean up the team when done
 
-1. Lead reviews all changes for consistency
-2. Run full test suite
-3. Resolve any integration issues (assign to one teammate)
-4. Clean up the team
+Always clean up explicitly — teams consume resources until shut down.
 
-## Prompt Templates
-
-### New Feature Development
-
-```text
-Create an agent team to implement [feature name].
-
-Context: [Brief description of the feature and its requirements]
-
-Spawn 3 teammates:
-- Backend developer: owns src/api/[module]/, src/services/[module]/, tests/api/[module]/
-  Task: Implement API endpoints and business logic
-- Frontend developer: owns src/components/[module]/, src/hooks/[module]/, tests/components/[module]/
-  Task: Build UI components and state management
-- Test engineer: owns tests/integration/[module]/, tests/e2e/[module]/
-  Task: Write integration and e2e tests (wait for backend/frontend APIs to stabilize)
-
-Require plan approval.
-Wait for all teammates before synthesizing results.
-```
-
-### Parallel Refactoring
-
-```text
-Create an agent team to refactor [description].
-
-Spawn [N] teammates, one per module:
-- [Module A] specialist: owns [paths]. Refactor [specific changes].
-- [Module B] specialist: owns [paths]. Refactor [specific changes].
-- [Module C] specialist: owns [paths]. Refactor [specific changes].
-
-Constraints:
-- All changes must be backward-compatible
-- Each teammate must run tests for their module before marking complete
-- Do not modify shared interfaces without messaging all teammates first
-
-Require plan approval.
-```
-
-### Debugging with Competing Hypotheses
-
-```text
-Bug: [Description of the issue with reproduction steps]
-
-Create an agent team to investigate. Spawn 3-4 teammates, each testing a
-different hypothesis:
-- Hypothesis A: [theory]. Investigate [specific areas].
-- Hypothesis B: [theory]. Investigate [specific areas].
-- Hypothesis C: [theory]. Investigate [specific areas].
-
-Have teammates challenge each other's findings. When consensus emerges,
-the teammate with the correct hypothesis implements the fix.
-
-No plan approval needed (read-heavy work).
-```
-
-See [patterns.md](references/patterns.md) for more team composition patterns.
-
-## Common Pitfalls
+## What Goes Wrong
 
 ### Lead implements instead of delegating
 
-The lead sometimes starts coding instead of waiting. Always include:
-```text
-Wait for your teammates to complete their tasks before proceeding.
+The most frequent anti-pattern. The lead starts writing code instead of coordinating. Always include these instructions when spawning:
+
+```
 Do not implement any tasks yourself.
+Wait for all teammates to complete their tasks before proceeding.
+If a teammate gets stuck, send them guidance rather than taking over.
 ```
 
-### File conflicts
+### Silent file overwrites
 
-Two teammates editing the same file silently overwrites changes. Prevention:
-- Declare file ownership explicitly in the spawn prompt
-- Include "Do not modify files outside your assigned scope" in instructions
-- Use plan approval to catch ownership violations before implementation
+Two teammates editing the same file produces no error and no merge — just data loss. The second save silently destroys the first. Prevention:
+
+- Declare file ownership in the spawn prompt
+- Include "Do not modify files outside your assigned scope" per teammate
+- Use plan approval to catch ownership violations before implementation begins
 
 ### Over-sized teams
 
-More teammates = more tokens, more coordination overhead. Start small:
-- 3 teammates for most tasks
-- Add more only if work is genuinely parallelizable
-- Each teammate should have meaningful, independent work
+More teammates does not mean faster results. Signs you have too many:
 
-### Missing cleanup
+- Teammates idle-waiting with nothing substantive to do
+- Tasks are trivial (single-file, single-function changes)
+- Communication overhead exceeds productive work time
 
-Always clean up after the team finishes:
-```text
-Clean up the team
-```
-Shut down all teammates before cleanup. Only the lead should run cleanup.
+### Forgotten cleanup
+
+Teams persist until explicitly cleaned up. Always run cleanup when done, even if something went wrong. Only the lead should run cleanup, and all teammates should be shut down first.
 
 ### Stale task status
 
-Teammates sometimes forget to mark tasks complete. If tasks appear stuck:
-- Check if the work is actually done
-- Tell the lead to nudge the teammate
-- Manually update task status if needed
+Teammates sometimes forget to mark tasks complete. If progress appears stuck, check whether the work is actually done and nudge the teammate or update status manually.
 
-## Quality Gates
+## Quality Gate Hooks
 
-Use hooks to enforce standards when teammates complete work. See [quality-gates.md](references/quality-gates.md) for configuration.
+Hooks automate quality checks when teammates finish work:
 
-Key hooks:
-- `TeammateIdle`: Run checks when a teammate finishes (exit code 2 to send feedback)
-- `TaskCompleted`: Validate task output before marking complete (exit code 2 to block)
+- **TeammateIdle**: Fires when a teammate is about to go idle. Exit code 2 sends feedback and keeps the teammate working. Use for running tests or lint checks before sign-off.
+- **TaskCompleted**: Fires when a task is marked complete. Exit code 2 blocks completion. Use for validating deliverables meet acceptance criteria.
+- **WorktreeCreate**: Fires on worktree creation. Enables per-teammate file isolation, eliminating conflict risk entirely.
+
+Configure in `.claude/settings.json` (project) or `~/.claude/settings.json` (user). Hook scripts receive teammate/task context as JSON on stdin.
 
 ## Limitations
 
-- **Experimental**: Feature may change or break
+- **Experimental**: Feature may change between versions
 - **No session resumption**: `/resume` does not restore in-process teammates
 - **One team per session**: Clean up before starting a new team
-- **No nested teams**: Teammates cannot spawn their own teams
-- **Lead is fixed**: Cannot transfer leadership
-- **Split panes**: Require tmux or iTerm2 (in-process mode works anywhere)
+- **No nested teams**: Teammates cannot create their own teams
+- **Lead is fixed**: Cannot transfer leadership mid-session
+- **Split panes**: Require tmux or iTerm2; in-process mode works anywhere
+
+## Team Patterns
+
+See [patterns.md](references/patterns.md) for team composition patterns covering feature development, code review, debugging, migration, and research spikes.
