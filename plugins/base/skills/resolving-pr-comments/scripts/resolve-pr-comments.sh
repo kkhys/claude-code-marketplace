@@ -6,7 +6,7 @@ readonly OWNER="${OWNER_REPO%%/*}"
 readonly REPO="${OWNER_REPO##*/}"
 readonly PR_NUMBER="$(gh pr view --json number --jq '.number')"
 
-# Fetch all unresolved thread IDs (auto-paginated)
+# Fetch all unresolved thread IDs with pagination
 THREAD_IDS=$(gh api graphql --paginate -f query='
 query($endCursor: String) {
   repository(owner: "'"${OWNER}"'", name: "'"${REPO}"'") {
@@ -19,26 +19,34 @@ query($endCursor: String) {
   }
 }' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .id')
 
-if [ -z "$THREAD_IDS" ]; then
-  echo "No unresolved threads to resolve."
+if [ -z "${THREAD_IDS}" ]; then
+  echo "No unresolved threads found."
   exit 0
 fi
 
-COUNT=$(echo "$THREAD_IDS" | wc -l | tr -d ' ')
+readonly COUNT=$(echo "${THREAD_IDS}" | wc -l | tr -d ' ')
 echo "Found ${COUNT} unresolved thread(s)."
+echo ""
 
-echo "$THREAD_IDS" | while read -r thread_id; do
-  if gh api graphql \
+resolved=0
+failed=0
+
+while read -r thread_id; do
+  if result=$(gh api graphql \
     -f query='mutation($threadId: ID!) {
       resolveReviewThread(input: {threadId: $threadId}) {
         thread { id isResolved }
       }
     }' \
-    -f threadId="$thread_id" > /dev/null 2>&1; then
-    echo "Resolved: $thread_id"
+    -f threadId="${thread_id}" 2>&1); then
+    echo "Resolved: ${thread_id}"
+    resolved=$((resolved + 1))
   else
-    echo "Failed:   $thread_id"
+    echo "Failed:   ${thread_id}"
+    echo "  Error: ${result}"
+    failed=$((failed + 1))
   fi
-done
+done <<< "${THREAD_IDS}"
 
-echo "Done. All unresolved threads have been processed."
+echo ""
+echo "Summary: ${resolved} resolved, ${failed} failed (out of ${COUNT} total)"
