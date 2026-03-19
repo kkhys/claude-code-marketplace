@@ -1,117 +1,96 @@
 ---
 name: formatting-commit
-description: Commits code changes with appropriate git commit strategy. Adopts Squash (default), new commit, or Interactive Rebase based on context, and creates messages following Conventional Commits format. Use when implementation is complete or user requests a commit.
+description: Enforce Conventional Commits format for git commits. Always consult this skill when committing code changes — including "commit", "コミット", "コミットして", "変更を記録", "save changes", "stage and commit", asking whether to use feat or fix, deciding between squash and new commit, or any request to record, amend, or finalize changes in git. Contains mandatory project-specific conventions for type/scope format (plugin name as scope), squash-vs-new-commit strategy selection, and message structure that differ from defaults and cannot be inferred without this skill.
 ---
 
-# High Quality Commit
+# Formatting Commit
 
-## Step 1: Check Branch State
+## Strategy Selection
 
-```bash
-git status
-git log --oneline --graph origin/main..HEAD
-```
+The goal is a clean, reviewable commit history. Two strategies:
 
-## Step 2: Choose Commit Strategy
+### New Commit (default)
 
-### Strategy A: Squash (Default)
+Create a new commit when:
+- It's the first commit on the branch
+- The change is logically independent from existing commits
+- You're building incrementally (model -> API -> UI)
 
-Squash into existing commit when changes relate to same theme and no reason to split.
+A new commit preserves the narrative of how the work evolved. Each commit should be a self-contained, meaningful unit — something a reviewer can understand in isolation.
 
-```bash
-git add -A
-git commit --amend
-```
+### Squash (amend)
 
-### Strategy B: New Commit
+Amend the previous commit when:
+- The change directly extends or fixes the same work (e.g., addressing review feedback)
+- A separate commit would be noise rather than signal (typo fix, forgotten file)
 
-Create new commit when it's the first commit, or changes are independent from existing commits.
+Squashing keeps the history focused on intent rather than process. After amending a pushed commit, use `git push --force-with-lease` — never `--force`.
 
-```bash
-git add -A
-git commit
-```
+If the branch has multiple commits that need reorganizing, use the `splitting-commit` skill instead of manual rebase.
 
-### Strategy C: Interactive Rebase
-
-Reorganize commit history to group small commits, reorder, or clean up WIP commits.
-
-```bash
-git rebase -i origin/main
-```
-
-Operations: `pick` (keep), `squash` (merge), `reword` (edit message), `drop` (remove)
-
-## Strategy Selection Flowchart
+## Commit Message Format
 
 ```
-Does branch have commits?
-  ├─ No → New commit
-  └─ Yes → Same theme as existing commit?
-      ├─ Yes → Squash (git commit --amend)
-      └─ No → Rational to split?
-          ├─ Yes → New commit
-          └─ Want to organize history → Interactive Rebase
-```
-
-## Step 3: Commit Message
-
-### Format (Conventional Commits)
-
-```
-<type>[scope]: <description>
+<type>(<scope>): <description>
 
 [body]
 
 [footer]
 ```
 
-### Types
+### Type
 
-- `feat`: New feature
-- `fix`: Bug fix
-- `refactor`: Code refactoring
-- `perf`: Performance improvement
-- `test`: Add or modify tests
-- `docs`: Documentation changes
-- `style`: Formatting changes
-- `build`: Build-related changes
-- `ci`: CI configuration
-- `chore`: Other changes
+Select by the primary intent of the change:
 
-### Guidelines
+| Type | When to use |
+|------|-------------|
+| `feat` | New user-facing capability |
+| `fix` | Correcting broken behavior |
+| `refactor` | Restructuring without behavior change |
+| `perf` | Performance improvement |
+| `test` | Adding or modifying tests |
+| `docs` | Documentation only |
+| `style` | Code formatting, whitespace |
+| `build` | Build system, dependencies |
+| `ci` | CI/CD configuration |
+| `chore` | Everything else (version bumps, config) |
 
-- **Subject**: Max 50 chars, imperative mood, lowercase start, no period
-- **Body (Optional)**: Explain why (not what), wrap at 72 chars
-- **Footer (Optional)**: `Closes #123`, `BREAKING CHANGE:` or `feat(api)!:`
+When changes span multiple types, pick the dominant one. A feature that includes its tests is `feat`, not `test`.
 
-### Commit with Heredoc
+### Scope
 
-```bash
-git commit -m "$(cat <<'EOF'
-feat(auth): add OAuth2 login flow
+The scope identifies the area of the codebase affected. In this marketplace, use the plugin name:
 
-Implement OAuth2 authentication to support third-party login providers.
-
-Closes #123
-EOF
-)"
+```
+feat(base): add memo command
+fix(writing): correct language-editor agent prompt
+chore(base): bump version to 0.0.19
 ```
 
-## Step 4: Verify After Commit
+Omit scope only when the change is truly cross-cutting (e.g., root-level config).
 
-```bash
-git log -1 --stat
-git status
-```
+### Subject Line
 
-## Important Notes
+- Imperative mood, lowercase, no trailing period
+- Under 50 characters — if it doesn't fit, the commit may be doing too much
+- Describe what the commit does, not how
 
-1. **Never execute on main branch**: Always work on feature branches
-2. **Atomic commits**: Each commit should be independently meaningful
-3. **Consistency**: Follow existing project commit style
-4. **Force push**: Use `git push --force-with-lease` after amend
+Good: `add OAuth2 login flow`
+Bad: `Added the OAuth2 login flow implementation`
 
-## Detailed Guide
+### Body
 
-See [references/examples.md](references/examples.md) for detailed examples and troubleshooting.
+Optional but valuable for non-trivial changes. Explain why the change was needed — the subject already says what. Wrap at 72 characters.
+
+### Footer
+
+- `Closes #123` to auto-close issues
+- `BREAKING CHANGE:` or `!` after type for breaking changes: `feat(api)!: remove legacy endpoint`
+
+## Process
+
+1. Run `git status` and `git log --oneline origin/main..HEAD` to understand the branch state
+2. Decide strategy: new commit or squash
+3. Stage specific files — be deliberate about what goes in
+4. Compose the message and commit
+5. Verify with `git log -1 --stat`
