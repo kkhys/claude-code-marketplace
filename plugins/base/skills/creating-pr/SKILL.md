@@ -1,235 +1,56 @@
 ---
 name: creating-pr
-description: Create GitHub pull requests with standardized title format and draft status. Use when the user requests to create a PR. This skill uses gh command to create PRs with specific title format '[base-branch] type: description' and generates concise bullet-point descriptions from git changes.
+description: Create GitHub pull requests following required project conventions. Always consult this skill when creating a PR, opening a pull request, or submitting changes for review — including "PR作って", "プルリクエスト作成", "create a PR", "make a pull request", "submit for review", "gh pr create", or any request to prepare changes for review on GitHub. Contains mandatory title format [base-branch] type: description, required --draft flag, and --assignee kkhys that differ from defaults and cannot be inferred without this skill.
 context: fork
 ---
 
 # Creating PR
 
-## Overview
+## Title Format
 
-Create GitHub pull requests following a standardized format with proper Conventional Commits types and draft status.
-
-## PR Creation Workflow
-
-### 1. Analyze Current State
-
-Check the current branch and merge target:
-
-```bash
-# Get current branch
-git branch --show-current
-
-# Check remote tracking and base branch
-git status
+```
+[base-branch] type: description
 ```
 
-### 2. Gather Change Information
-
-Collect information about the changes:
-
-```bash
-# Get commit history from base branch
-git log origin/main..HEAD --oneline
-
-# Get detailed diff from base branch
-git diff origin/main...HEAD --stat
-git diff origin/main...HEAD
-```
-
-Replace `origin/main` with the actual base branch (e.g., `origin/master`, `origin/develop`).
-
-### 3. Check for PR Template
-
-Before generating a description, check if the project has a PR template. If found, **always use it as the PR body structure**.
-
-```bash
-# Search for PR template (check all standard locations, case-insensitive)
-find . -maxdepth 1 -iname "pull_request_template.md" -o \
-  -path "./.github" -prune -false | head -1
-find ./.github -maxdepth 1 -iname "pull_request_template.md" 2>/dev/null | head -1
-find ./docs -maxdepth 1 -iname "pull_request_template.md" 2>/dev/null | head -1
-
-# Also check for multiple templates directory
-ls .github/PULL_REQUEST_TEMPLATE/ 2>/dev/null
-ls PULL_REQUEST_TEMPLATE/ 2>/dev/null
-ls docs/PULL_REQUEST_TEMPLATE/ 2>/dev/null
-```
-
-**Template search order (first match wins):**
-1. `pull_request_template.md` (root, case-insensitive)
-2. `.github/pull_request_template.md` (case-insensitive)
-3. `docs/pull_request_template.md` (case-insensitive)
-4. `.github/PULL_REQUEST_TEMPLATE/` (multiple templates directory)
-5. `PULL_REQUEST_TEMPLATE/` (root)
-6. `docs/PULL_REQUEST_TEMPLATE/`
-
-**If a template is found:**
-- Read the template content
-- Fill in each section based on the actual changes (commits, diff)
-- Remove any placeholder or instructional comments (e.g., `<!-- ... -->`)
-- Keep the template's heading structure and sections intact
-- Skip to step 7 (Push Branch to Remote) — type/title/description are already determined from the template and changes
-
-**If multiple templates exist in a directory:**
-- List available templates and ask the user which one to use
-
-**If no template is found:**
-- Proceed to step 6 (Create PR Description) to generate a bullet-point list
-
-### 4. Analyze Changes and Determine Type
-
-Analyze the changes and determine the appropriate Conventional Commits type:
-
-- Read [commit-types.md](references/commit-types.md) for detailed type selection guidelines
-- Consider the primary purpose of the changes
-- Follow the priority order: feat > fix > perf > refactor > test > docs > chore
-
-### 5. Create PR Title
-
-Format: `[base-branch] type: description`
-
-**Components:**
-- `[base-branch]`: The target branch name (e.g., `main`, `master`, `develop`)
-- `type`: Conventional Commits type (feat, fix, chore, docs, refactor, test, perf, style, ci, build)
-- `description`: Concise summary of changes in lowercase
+The base branch name goes in brackets, followed by a Conventional Commits type and a lowercase description. This format makes it immediately clear where the PR targets and what kind of change it is when scanning a PR list.
 
 **Examples:**
 - `[main] feat: add user authentication system`
-- `[main] fix: resolve null pointer in login handler`
-- `[develop] refactor: extract validation logic`
+- `[develop] fix: resolve null pointer in login handler`
+- `[main] refactor: extract validation logic`
 
-### 6. Create PR Description
+## Type Selection
 
-Generate a concise bullet-point list of main changes:
+When changes span multiple types, select by primary purpose:
 
-**Format:**
-```markdown
-- Main change 1
-- Main change 2
-- Main change 3
-```
+feat > fix > perf > refactor > test > docs > style > ci > build > chore
 
-**Guidelines:**
-- Focus on user-facing or significant technical changes
-- Keep each point concise (one line)
-- Limit to 3-5 main points
-- Use imperative mood (e.g., "Add", "Fix", "Update")
+A feature branch that includes bug fixes and tests is still `feat`. A bug fix with some refactoring is still `fix`. Choose the type that captures the main intent.
 
-**Example:**
-```markdown
-- Add JWT authentication middleware
-- Implement user login and logout endpoints
-- Add password hashing with bcrypt
-```
+## PR Template
 
-### 7. Push Branch to Remote
+Before generating a description, check if the repository has a PR template (`.github/pull_request_template.md` or similar standard locations). If found, use it as the body structure and fill in sections based on the actual changes. If multiple templates exist, ask the user which to use.
 
-Before creating the PR, ensure the current branch is pushed to the remote repository:
+## Body
 
-```bash
-# Check if branch has remote tracking
-git rev-parse --abbrev-ref @{upstream} 2>/dev/null
+When no template exists, write a concise bullet-point list (3-5 items) of the main changes in imperative mood ("Add", "Fix", "Update"). Focus on what matters — user-facing changes and significant technical decisions.
 
-# If no upstream or unpushed commits, push the branch
-git push -u origin $(git branch --show-current)
-```
+## Base Branch
 
-**Important:**
-- Always push before creating PR to avoid "must first push" errors
-- Use `-u` flag to set up tracking relationship
-- This step is idempotent - safe to run even if already pushed
+Use `--base <branch>` to explicitly set the merge target. Determine the base branch from:
+1. User's explicit instruction (e.g., "develop にマージ")
+2. The branch the current branch was created from
+3. Default to `main`
 
-### 8. Create Draft PR
+The base branch name also goes into the title brackets: `[develop] fix: ...`
 
-Use `gh` command to create the draft PR:
+## Required Flags
 
-```bash
-gh pr create \
-  --title "[main] feat: add user authentication" \
-  --body "- Add JWT authentication middleware
-- Implement user login and logout endpoints
-- Add password hashing with bcrypt" \
-  --draft \
-  --assignee kkhys
-```
+Always use these flags with `gh pr create`:
 
-**Important:**
-- Always use `--draft` flag to create draft PR
-- Always use `--assignee kkhys` flag to assign PR to kkhys (REQUIRED)
-- Use heredoc for multi-line body if needed:
+- `--draft` — All PRs start as drafts. This gives the author a chance to self-review before requesting reviews.
+- `--assignee kkhys` — Always assign to kkhys.
 
-```bash
-gh pr create \
-  --title "[main] feat: add user authentication" \
-  --body "$(cat <<'EOF'
-- Add JWT authentication middleware
-- Implement user login and logout endpoints
-- Add password hashing with bcrypt
-EOF
-)" \
-  --draft \
-  --assignee kkhys
-```
+## After Creation
 
-## Common Scenarios
-
-### Scenario 1: Feature Branch to Main
-
-**User Request:** "PRを作成して"
-
-**Workflow:**
-1. Current branch: `feature/user-auth`
-2. Base branch: `main`
-3. Changes: Added authentication system
-4. Type: `feat`
-5. Title: `[main] feat: add user authentication system`
-6. Description:
-   - Add JWT authentication middleware
-   - Implement login/logout endpoints
-   - Add bcrypt password hashing
-
-### Scenario 2: Bugfix Branch to Main
-
-**User Request:** "create a PR"
-
-**Workflow:**
-1. Current branch: `bugfix/null-pointer`
-2. Base branch: `main`
-3. Changes: Fixed null pointer exception
-4. Type: `fix`
-5. Title: `[main] fix: resolve null pointer in login handler`
-6. Description:
-   - Add null check before accessing user object
-   - Add error handling for missing credentials
-
-### Scenario 3: Multiple Types of Changes
-
-**User Request:** "make a pull request"
-
-**Workflow:**
-1. Current branch: `feature/api-improvements`
-2. Base branch: `develop`
-3. Changes: New endpoint + refactoring + tests
-4. Type: `feat` (primary purpose is new functionality)
-5. Title: `[develop] feat: add data export endpoint`
-6. Description:
-   - Add CSV export endpoint
-   - Refactor data processing logic
-   - Add integration tests
-
-## Type Selection Reference
-
-For detailed guidelines on selecting the appropriate type, see [commit-types.md](references/commit-types.md).
-
-**Quick Reference:**
-- **feat**: New features or functionality
-- **fix**: Bug fixes
-- **refactor**: Code restructuring
-- **test**: Test additions
-- **docs**: Documentation only
-- **chore**: Maintenance tasks
-- **perf**: Performance improvements
-- **style**: Code style/formatting
-- **ci**: CI/CD changes
-- **build**: Build system changes
+Print the PR URL returned by `gh pr create` so the user can open it directly.
