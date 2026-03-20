@@ -9,6 +9,8 @@ description: >-
   step for the fixing-review-comments workflow. Also trigger on "review comments",
   "レビューコメント", "unresolved threads", "レビュー指摘", "reviewer feedback", "PR feedback",
   or any request to read, fetch, list, or summarize review discussions on a pull request.
+model: sonnet
+allowed-tools: Bash(bash:*), Bash(gh:*), Read
 context: fork
 ---
 

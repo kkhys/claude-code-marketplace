@@ -10,6 +10,7 @@ description: >-
   "review 対応して", "レビュー指摘を修正", or any request to implement changes
   requested by PR reviewers. This is the primary skill for closing the PR
   review feedback loop.
+context: fork
 ---
 
 # Fix Review Comments
