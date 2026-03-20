@@ -35,7 +35,23 @@ Before generating a description, check if the repository has a PR template (`.gi
 
 ## Body
 
-When no template exists, write a concise bullet-point list (3-5 items) of the main changes in imperative mood ("Add", "Fix", "Update"). Focus on what matters — user-facing changes and significant technical decisions.
+When no template exists, write a flat bullet-point list in English. Each bullet uses imperative mood ("Add", "Fix", "Remove", "Update") and describes one concrete change. No headings, no "Summary" / "Test plan" sections, no sub-bullets — just a plain list. Aim for 3-5 bullets that capture the meaningful changes; omit trivial ones.
+
+Good:
+```
+- Switch image discovery from frontmatter field to directory-based auto-detection
+- Consolidate getImage/getImages into getImagesForMemo
+- Remove images field from content schema
+```
+
+Bad (too verbose, has sections):
+```
+## Summary
+画像取得をフロントマターの images フィールドによる明示的なリスト指定から、ディレクトリベースの自動検出方式に変更
+
+## Test plan
+- ローカルで pnpm dev を実行し、画像付きメモが正しく表示されることを確認
+```
 
 ## Base Branch
 
