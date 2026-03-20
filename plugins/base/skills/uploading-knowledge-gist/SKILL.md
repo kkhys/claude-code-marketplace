@@ -2,6 +2,7 @@
 name: uploading-knowledge-gist
 description: >-
   Save session knowledge to a secret GitHub Gist with built-in security scanning and content curation. This skill MUST be consulted before creating any knowledge Gist — it contains critical rules for filtering sensitive data (credentials, internal URLs, connection strings) that could leak via semi-public Gist URLs, and guidelines for structuring content so it's scannable and useful months later. Use whenever the user wants to save, record, capture, or preserve learnings, discoveries, findings, insights, or knowledge from the current session — whether to a Gist explicitly or to "somewhere searchable". Also proactively suggest saving at the end of productive sessions. Trigger phrases include "gist に保存", "ナレッジを保存", "知見を残す", "学んだことを保存", "save to gist", "capture findings", "save session knowledge", "どこかにまとめて", "後で見返せるように", or any request to persist technical learnings beyond the current conversation.
+model: sonnet
 allowed-tools: Bash(gh:*), Read
 ---
 

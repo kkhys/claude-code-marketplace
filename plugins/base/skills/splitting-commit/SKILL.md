@@ -1,6 +1,8 @@
 ---
 name: splitting-commit
 description: Split large changes into logical commits by semantic meaning. Always consult this skill when the user wants to organize uncommitted changes into multiple commits. Trigger phrases include "split commits", "organize into commits", "break up changes", "separate commits", "logical commits", "コミット分割", "コミットを分けて", "コミットを整理", "変更を整理してコミット", "変更をコミットに分割", "うまくコミット分割", "コミット分割して", "コミットどう分ける". Also trigger when the user describes multiple types of uncommitted changes that need organizing — e.g., mentioning a mix of bug fixes and features, refactoring and new code, renames and logic changes, or any situation where changes span multiple concerns. Use when preparing changes for a PR with mixed concerns, or as part of the publish-pr workflow. Do not use for single-concern changes — those go directly to formatting-commit.
+model: sonnet
+allowed-tools: Bash(git:*), Read
 ---
 
 # Splitting Commits

@@ -1,6 +1,7 @@
 ---
 name: orchestrating-agent-team
 description: Orchestrate agent teams for parallel implementation tasks. Use when the user requests agent teams, multi-teammate coordination, or parallel feature development across independent modules. Also use when the user mentions 'spawn teammates', 'create a team', 'work in parallel', 'multi-agent', or describes tasks spanning multiple independent modules (frontend/backend/tests) that could benefit from simultaneous development, concurrent code review, or competing-hypothesis debugging.
+context: fork
 ---
 
 # Agent Team Orchestration
