@@ -7,7 +7,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "afplay /System/Library/Sounds/Hero.aiff"
+            "command": "afplay /System/Library/Sounds/Hero.aiff",
+            "statusMessage": "Playing notification sound..."
           }
         ]
       }
@@ -18,7 +19,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/setup-worktree-env.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/setup-worktree-env.sh",
+            "statusMessage": "Setting up worktree environment..."
           }
         ]
       }
@@ -29,11 +31,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "afplay /System/Library/Sounds/Glass.aiff"
+            "command": "afplay /System/Library/Sounds/Glass.aiff",
+            "statusMessage": "Playing completion sound..."
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-merged-branches.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-merged-branches.sh",
+            "statusMessage": "Cleaning up merged branches..."
           }
         ]
       }
