@@ -1,7 +1,6 @@
 ---
 name: posting-pr-review
 description: Post review comments to a GitHub PR as a PENDING review using a dedicated workflow script (post-pr-review.sh) and severity tag system. Use after completing code review (pr-review-toolkit:review-pr, code-reviewer, silent-failure-hunter, or any review agent) to submit structured feedback. This skill provides the post-pr-review.sh script for correct PENDING review creation, 6-level severity tags ([critical]/[warning]/[suggestion]/[nit]/[question]/[praise]), diff line validation, and Japanese reporting. Always use this skill when posting, submitting, or sending review comments to a PR — do not attempt to call the GitHub review API directly without this skill's workflow.
-model: sonnet
 allowed-tools: Bash(gh:*), Bash(git:*), Bash(jq:*), Bash(cat:*), Bash(mktemp:*), Bash(rm:*), Bash(bash:*), Read
 context: fork
 ---

@@ -8,7 +8,6 @@ description: >-
   "close review threads", or any request to mark review threads as resolved on
   a pull request. Even if the user simply says "resolve" in the context of a PR
   review workflow, this skill is likely what they need.
-model: sonnet
 allowed-tools: Bash(bash:*), Bash(gh:*), Read
 context: fork
 ---

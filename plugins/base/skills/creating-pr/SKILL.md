@@ -1,7 +1,6 @@
 ---
 name: creating-pr
 description: Create GitHub pull requests following required project conventions. Always consult this skill when creating a PR, opening a pull request, or submitting changes for review — including "PR作って", "プルリクエスト作成", "create a PR", "make a pull request", "submit for review", "gh pr create", or any request to prepare changes for review on GitHub. Contains mandatory title format [base-branch] type: description, required --draft flag, and --assignee kkhys that differ from defaults and cannot be inferred without this skill.
-model: sonnet
 allowed-tools: Bash(gh:*), Bash(git:*), Read, Glob
 context: fork
 ---

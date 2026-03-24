@@ -1,7 +1,6 @@
 ---
 name: formatting-commit
 description: Enforce Conventional Commits format for git commits. Always consult this skill when committing code changes — including "commit", "コミット", "コミットして", "変更を記録", "save changes", "stage and commit", asking whether to use feat or fix, deciding between squash and new commit, or any request to record, amend, or finalize changes in git. Contains mandatory project-specific conventions for type/scope format (plugin name as scope), squash-vs-new-commit strategy selection, and message structure that differ from defaults and cannot be inferred without this skill.
-model: sonnet
 allowed-tools: Bash(git:*), Read
 ---
 
