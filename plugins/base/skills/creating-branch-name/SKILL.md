@@ -1,7 +1,6 @@
 ---
 name: creating-branch-name
 description: Create a git branch with an appropriate name derived from current changes. Use when the user asks to create a branch, name a branch, make a branch for current work, or wants to move changes to a new branch. Also use when changes exist on main/master that should be moved to a feature branch before committing.
-model: sonnet
 allowed-tools: Bash(git:*)
 ---
 

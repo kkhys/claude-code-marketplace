@@ -1,7 +1,6 @@
 ---
 name: creating-task-summary
 description: Creates a personal activity summary across all GitHub repositories for reflection. Use when the user wants to create weekly reports, work reviews, task summaries, activity retrospectives, or review their recent contributions. Also trigger when asked "what did I do this week", "summarize my work", "create a work log", "振り返り", or any variation of reviewing personal GitHub activity over a time period.
-model: sonnet
 allowed-tools: Bash(gh:*), Bash(date:*)
 context: fork
 ---
