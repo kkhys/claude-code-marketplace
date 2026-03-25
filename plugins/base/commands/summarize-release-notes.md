@@ -13,8 +13,6 @@ This command expects that `/release-notes` (built-in CLI command) has already be
 ## Instructions
 
 1. Locate the release notes output from the conversation context
-2. Summarize all notable items — do not filter by the user's environment or project. Include everything that a developer would find useful to know about.
-3. Present items in chronological order (oldest to newest), grouped by version
-4. For each version, write a concise bullet-point summary in the user's preferred language
-5. Omit versions that only contain minor internal bugfixes with no user-facing impact
-6. At the end, highlight 2-3 items that are especially noteworthy or actionable
+2. Identify the latest version and summarize only that version's release notes
+3. Summarize all notable items in bullet points using the user's preferred language
+4. At the end, highlight 2-3 items that are especially noteworthy or actionable
