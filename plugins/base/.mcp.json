@@ -11,6 +11,10 @@
         "GOOGLE_APPLICATION_CREDENTIALS": "/Users/keisuke.hayashi/.config/gcloud/application_default_credentials.json",
         "GOOGLE_PROJECT_ID": "just-advice-489808-d2"
       }
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"]
     }
   }
 }
