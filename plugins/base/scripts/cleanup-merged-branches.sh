@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # cleanup-merged-branches.sh
-# Interactively cleanup branches that have been merged into main
+# Automatically cleanup branches that have been merged into main.
+# Runs on the Stop hook and safely deletes merged local branches (git branch -d).
 
 SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}")"
 readonly SCRIPT_NAME
@@ -44,14 +45,12 @@ fi
 merged_branches=()
 while IFS= read -r branch; do
   [[ -n "${branch}" ]] && merged_branches+=("${branch}")
-done < <(git branch --merged "${base_branch}" | sed 's/^[* ]*//' || true)
+# Strip leading markers: "* " (current) and "+ " (checked out in another worktree)
+done < <(git branch --merged "${base_branch}" | sed 's/^[*+ ]*//' || true)
 
 # Filter out protected branches and current branch
 branches_to_delete=()
 for branch in "${merged_branches[@]}"; do
-  # Skip empty lines
-  [[ -z "${branch}" ]] && continue
-  
   # Skip current branch
   [[ "${branch}" == "${CURRENT_BRANCH}" ]] && continue
   
@@ -84,7 +83,6 @@ for branch in "${branches_to_delete[@]}"; do
   echo "  - ${branch}" >&2
 done
 echo "========================================" >&2
-echo "" >&2
 
 # Delete branches
 echo "" >&2
