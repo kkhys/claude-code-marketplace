@@ -1,12 +1,28 @@
 ---
 name: reviewing-content
-description: Orchestrate writing review agents to provide comprehensive feedback on blog posts, articles, and essays. Use when the user asks to review, check, or proofread a blog post, article, essay, or long-form written content — NOT for emails, chat messages, commit messages, or short transactional text. Trigger phrases include 'review this article', 'check my writing', 'proofread this post', 'improve this post', 'この記事をレビュー', '記事をチェック', 'ブログ記事のフィードバック', or when a user shares a draft .md file for content feedback. Automatically selects the appropriate combination of content-reviewer, language-editor, readability-enhancer, and technical-writer agents based on article characteristics.
-allowed-tools: Agent, Read, Glob, Grep
+description: Orchestrate writing review agents (content-reviewer, language-editor, readability-enhancer, technical-writer) to provide comprehensive feedback on blog posts, articles, and essays, selecting the right combination based on article characteristics.
+when_to_use: >-
+  Use when the user asks to review, check, or proofread a blog post, article,
+  essay, or long-form written content — 'review this article', 'check my
+  writing', 'proofread this post', 'この記事をレビュー', '記事をチェック',
+  'ブログ記事のフィードバック', or when a draft .md file is shared for content
+  feedback. NOT for emails, chat messages, commit messages, or short
+  transactional text.
+argument-hint: "[article-path]"
+allowed-tools:
+  - Agent
+  - Read
+  - Glob
+  - Grep
 ---
 
 # Content Review Orchestration
 
 Review articles by selecting and running the appropriate specialist agents in parallel, then consolidating their feedback into a single actionable report.
+
+Target article: $ARGUMENTS
+
+If no path is given above, use the article under discussion in the conversation.
 
 ## Process
 
