@@ -1,13 +1,19 @@
 ---
 name: creating-codepen-demo
-description: Generate CodePen 2.0 demos with copy-paste ready code. Use when the user wants to create interactive demos, playground examples, UI component showcases, browser API demonstrations, CSS animations, or any front-end experiment for CodePen. Also trigger when the user mentions "CodePen", "pen", "playground demo", or wants to share a working code snippet that runs in the browser.
-context: fork
+description: Generate CodePen 2.0 demos with copy-paste ready code — interactive demos, UI showcases, browser API demonstrations, and CSS animations.
+argument-hint: "[demo-topic]"
 disable-model-invocation: true
 ---
 
 # Creating CodePen Demos
 
 Generate self-contained, copy-paste ready code for CodePen 2.0's file-based editor.
+
+## Request
+
+$ARGUMENTS
+
+If no request is given above, derive the demo topic from the conversation context.
 
 ## Why CodePen 2.0 is different
 

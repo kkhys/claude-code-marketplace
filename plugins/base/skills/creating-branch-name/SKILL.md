@@ -1,12 +1,24 @@
 ---
 name: creating-branch-name
-description: Create a git branch with an appropriate name derived from current changes. Use when the user asks to create a branch, name a branch, make a branch for current work, or wants to move changes to a new branch. Also use when changes exist on main/master that should be moved to a feature branch before committing.
-allowed-tools: Bash(git:*)
+description: Create a git branch with an appropriate name derived from current changes, following the <type>/<description> convention.
+when_to_use: >-
+  Trigger when the user asks to create a branch, name a branch, make a branch
+  for current work, or move changes to a new branch. Also when changes exist
+  on main/master that should be moved to a feature branch before committing.
+allowed-tools:
+  - Bash(git:*)
 ---
 
 # Branch Naming
 
 Analyze the current git state — uncommitted changes, staged files, and recent commits — to generate a branch name that communicates the intent of the work at a glance.
+
+## Current Git State
+
+- Branch: !`git branch --show-current`
+- Status: !`git status --short`
+- Diff summary: !`git diff HEAD --stat`
+- Recent commits: !`git log --oneline -5`
 
 ## Why naming matters
 
@@ -44,7 +56,7 @@ Branch: `chore/update-eslint-and-cleanup` (mixed changes — name for the domina
 
 ## Process
 
-1. Read the git state (`git status`, `git diff --stat`, `git log` as needed) to understand what changed
+1. Review the injected git state above; run additional git commands (`git diff`, `git log`) only if more detail is needed
 2. Identify the dominant intent — if changes span multiple concerns, name for the primary one
 3. Pick the type that best fits, generate a clear description
 4. If the intent is ambiguous, propose 2-3 candidates with brief reasoning and let the user choose

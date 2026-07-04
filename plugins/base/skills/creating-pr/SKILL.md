@@ -1,11 +1,27 @@
 ---
 name: creating-pr
-description: Create GitHub pull requests following required project conventions. Always consult this skill when creating a PR, opening a pull request, or submitting changes for review — including "PR作って", "プルリクエスト作成", "create a PR", "make a pull request", "submit for review", "gh pr create", or any request to prepare changes for review on GitHub. Contains mandatory title format [base-branch] type: description, required --draft flag, and --assignee kkhys that differ from defaults and cannot be inferred without this skill.
-allowed-tools: Bash(gh:*), Bash(git:*), Read, Glob
+description: 'Create GitHub pull requests following required project conventions: title format "[base-branch] type: description", mandatory --draft flag, and --assignee kkhys.'
+when_to_use: >-
+  Always consult when creating a PR, opening a pull request, or submitting
+  changes for review — "PR作って", "プルリクエスト作成", "create a PR",
+  "make a pull request", "gh pr create". These conventions differ from
+  defaults and cannot be inferred without this skill.
+argument-hint: "[base-branch]"
 context: fork
+allowed-tools:
+  - Bash(gh:*)
+  - Bash(git:*)
+  - Read
+  - Glob
 ---
 
 # Creating PR
+
+## Current Branch State
+
+- Branch: !`git branch --show-current`
+- Status: !`git status --short`
+- Recent commits: !`git log --oneline -15`
 
 ## Title Format
 
@@ -55,7 +71,7 @@ Bad (too verbose, has sections):
 ## Base Branch
 
 Use `--base <branch>` to explicitly set the merge target. Determine the base branch from:
-1. User's explicit instruction (e.g., "develop にマージ")
+1. The argument passed to this skill, or the user's explicit instruction (e.g., "develop にマージ")
 2. The branch the current branch was created from
 3. Default to `main`
 

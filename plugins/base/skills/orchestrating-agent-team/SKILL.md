@@ -1,7 +1,7 @@
 ---
 name: orchestrating-agent-team
-description: Orchestrate agent teams for parallel implementation tasks. Use when the user requests agent teams, multi-teammate coordination, or parallel feature development across independent modules. Also use when the user mentions 'spawn teammates', 'create a team', 'work in parallel', 'multi-agent', or describes tasks spanning multiple independent modules (frontend/backend/tests) that could benefit from simultaneous development, concurrent code review, or competing-hypothesis debugging.
-context: fork
+description: Orchestrate agent teams for parallel implementation across independent modules, with file-ownership rules, lifecycle guidance, and quality gate hooks.
+argument-hint: "[task-description]"
 disable-model-invocation: true
 ---
 

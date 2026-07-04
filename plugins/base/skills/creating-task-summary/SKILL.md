@@ -1,8 +1,11 @@
 ---
 name: creating-task-summary
-description: Creates a personal activity summary across all GitHub repositories for reflection. Use when the user wants to create weekly reports, work reviews, task summaries, activity retrospectives, or review their recent contributions. Also trigger when asked "what did I do this week", "summarize my work", "create a work log", "振り返り", or any variation of reviewing personal GitHub activity over a time period.
-allowed-tools: Bash(gh:*), Bash(date:*)
+description: Create a personal activity summary across all GitHub repositories for weekly reports and reflection.
+argument-hint: "[period]"
 context: fork
+allowed-tools:
+  - Bash(gh:*)
+  - Bash(date:*)
 disable-model-invocation: true
 ---
 
@@ -12,11 +15,15 @@ Generate a personal activity summary across all GitHub repositories.
 
 The purpose is reflection — helping the user see the bigger picture of their work, not just producing a mechanical list of links. Synthesize what they focused on, what they accomplished, and what's still in flight.
 
+Today's date: !`date +%Y-%m-%d`
+
 ## Workflow
 
 ### 1. Determine Time Range
 
-Default: past 7 days. If the user specifies a different period (e.g., "this month", "last 2 weeks", "3/1 ~ 3/14"), calculate the start date accordingly.
+Requested period: $ARGUMENTS
+
+Default: past 7 days if no period is given above. If a different period is specified (e.g., "this month", "last 2 weeks", "3/1 ~ 3/14"), calculate the start date accordingly.
 
 ```bash
 START_DATE=$(date -v-7d +%Y-%m-%d)

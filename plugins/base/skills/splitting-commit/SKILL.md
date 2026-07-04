@@ -1,12 +1,29 @@
 ---
 name: splitting-commit
-description: Split large changes into logical commits by semantic meaning. Always consult this skill when the user wants to organize uncommitted changes into multiple commits. Trigger phrases include "split commits", "organize into commits", "break up changes", "separate commits", "logical commits", "コミット分割", "コミットを分けて", "コミットを整理", "変更を整理してコミット", "変更をコミットに分割", "うまくコミット分割", "コミット分割して", "コミットどう分ける". Also trigger when the user describes multiple types of uncommitted changes that need organizing — e.g., mentioning a mix of bug fixes and features, refactoring and new code, renames and logic changes, or any situation where changes span multiple concerns. Use when preparing changes for a PR with mixed concerns, or as part of the publish-pr workflow. Do not use for single-concern changes — those go directly to formatting-commit.
-allowed-tools: Bash(git:*), Read
+description: Split large uncommitted changes into logical commits by semantic concern, producing a reviewable, bisectable history.
+when_to_use: >-
+  Always consult when the user wants to organize uncommitted changes into
+  multiple commits — "split commits", "organize into commits", "break up
+  changes", "logical commits", "コミット分割", "コミットを分けて",
+  "コミットを整理", "変更を整理してコミット", "コミットどう分ける". Also
+  trigger when uncommitted changes span multiple concerns (a mix of bug
+  fixes and features, refactoring and new code, renames and logic changes),
+  when preparing a PR with mixed concerns, or as part of the publishing-pr
+  workflow. Do not use for single-concern changes — those go directly to
+  formatting-commit.
+allowed-tools:
+  - Bash(git:*)
+  - Read
 ---
 
 # Splitting Commits
 
 Split uncommitted changes into a sequence of focused commits, each representing one logical concern. The goal is a commit history that tells a story a reviewer can follow — and that `git bisect` and `git revert` can act on cleanly.
+
+## Current Changes
+
+- Status: !`git status --short`
+- Diff summary: !`git diff HEAD --stat`
 
 ## When to Split
 
@@ -18,13 +35,13 @@ Don't over-split. Three related files changed for one feature = one commit, not 
 
 ### 1. Survey
 
+The injected state above shows which files changed. Read the full diff before grouping:
+
 ```bash
-git status
-git diff --stat
-git diff
+git diff HEAD
 ```
 
-Read the diff carefully. Before grouping, understand what every change does and why.
+Understand what every change does and why before planning the split.
 
 ### 2. Plan
 
