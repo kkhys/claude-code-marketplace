@@ -1,10 +1,24 @@
 ---
 name: formatting-commit
-description: Enforce Conventional Commits format for git commits. Always consult this skill when committing code changes — including "commit", "コミット", "コミットして", "変更を記録", "save changes", "stage and commit", asking whether to use feat or fix, deciding between squash and new commit, or any request to record, amend, or finalize changes in git. Contains mandatory project-specific conventions for type/scope format (plugin name as scope), squash-vs-new-commit strategy selection, and message structure that differ from defaults and cannot be inferred without this skill.
-allowed-tools: Bash(git:*), Read
+description: Enforce Conventional Commits format for git commits, including project-specific type/scope conventions (plugin name as scope) and squash-vs-new-commit strategy selection.
+when_to_use: >-
+  Always consult when committing code changes — "commit", "コミット",
+  "コミットして", "変更を記録", "save changes", "stage and commit", choosing
+  between feat and fix, deciding between squash and new commit, or any
+  request to record, amend, or finalize changes in git. These conventions
+  differ from defaults and cannot be inferred without this skill.
+allowed-tools:
+  - Bash(git:*)
+  - Read
 ---
 
 # Formatting Commit
+
+## Current State
+
+- Branch: !`git branch --show-current`
+- Status: !`git status --short`
+- Recent commits: !`git log --oneline -10`
 
 ## Strategy Selection
 
@@ -90,7 +104,7 @@ Optional but valuable for non-trivial changes. Explain why the change was needed
 
 ## Process
 
-1. Run `git status` and `git log --oneline origin/main..HEAD` to understand the branch state
+1. Review the injected state above; run `git log --oneline origin/main..HEAD` if you need branch-only commits
 2. Decide strategy: new commit or squash
 3. Stage specific files — be deliberate about what goes in
 4. Compose the message and commit

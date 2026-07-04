@@ -1,21 +1,29 @@
 ---
 name: fixing-review-comments
 description: >-
-  Addresses unresolved review comments on the current branch by orchestrating
+  Address unresolved review comments on the current branch by orchestrating
   the full fix cycle: reading feedback, implementing changes, verifying,
-  committing, and replying to reviewers. Use this skill whenever the user
-  wants to fix PR review feedback, address reviewer comments, handle review
-  points, or respond to code review. Also trigger on phrases like
+  committing, and replying to reviewers.
+when_to_use: >-
+  Trigger whenever the user wants to fix PR review feedback, address reviewer
+  comments, handle review points, or respond to code review —
   "レビューコメント直して", "fix the review comments", "address the feedback",
-  "review 対応して", "レビュー指摘を修正", or any request to implement changes
-  requested by PR reviewers. This is the primary skill for closing the PR
-  review feedback loop.
-context: fork
+  "review 対応して", "レビュー指摘を修正". This is the primary skill for
+  closing the PR review feedback loop.
+allowed-tools:
+  - Bash(gh:*)
+  - Bash(git:*)
+  - Bash(bash:*)
+  - Read
 ---
 
 # Fix Review Comments
 
 Close the PR review feedback loop: read what reviewers asked for, implement the changes, verify nothing broke, and let them know what was done.
+
+## PR Context
+
+!`gh pr view --json number,title,url,state 2>/dev/null || echo "No open PR found for the current branch"`
 
 ## Phase 1: Understand the Feedback
 

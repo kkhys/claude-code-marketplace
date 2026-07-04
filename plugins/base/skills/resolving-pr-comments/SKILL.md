@@ -1,20 +1,25 @@
 ---
 name: resolving-pr-comments
-description: >-
-  Resolve all unresolved review threads on the current PR. Use when the user
-  wants to bulk-resolve PR comments after addressing feedback, mark threads as
-  done, or close out review discussions. Also trigger on "resolve threads",
-  "スレッド解決", "レビューコメント解決", "resolve all comments", "コメント全部解決して",
-  "close review threads", or any request to mark review threads as resolved on
-  a pull request. Even if the user simply says "resolve" in the context of a PR
-  review workflow, this skill is likely what they need.
-allowed-tools: Bash(bash:*), Bash(gh:*), Read
-context: fork
+description: Bulk-resolve all unresolved review threads on the current PR via the GraphQL API, after confirming with the user.
+when_to_use: >-
+  Use when the user wants to bulk-resolve PR comments after addressing
+  feedback, mark threads as done, or close out review discussions —
+  "resolve threads", "スレッド解決", "レビューコメント解決",
+  "resolve all comments", "コメント全部解決して", "close review threads".
+  Even a bare "resolve" during a PR review workflow likely means this.
+allowed-tools:
+  - Bash(bash:*)
+  - Bash(gh:*)
+  - Read
 ---
 
 # Resolve PR Comments
 
 Bulk-resolve all unresolved review threads on the current GitHub PR via the GraphQL API.
+
+## PR Context
+
+!`gh pr view --json number,title,url 2>/dev/null || echo "No open PR found for the current branch"`
 
 ## Why This Exists
 

@@ -1,21 +1,31 @@
 ---
 name: reading-unresolved-pr-comments
 description: >-
-  Fetch and analyze unresolved PR review comments using a specialized GraphQL script
-  that extracts thread-level data (thread IDs, resolution status, outdated flags, line ranges)
-  not available through basic gh commands. MUST consult this skill whenever the user wants to
-  check review feedback, see what reviewers said, view unresolved threads, understand pending
-  review comments, or prepare to address reviewer requests on a PR. This is the required first
-  step for the fixing-review-comments workflow. Also trigger on "review comments",
-  "レビューコメント", "unresolved threads", "レビュー指摘", "reviewer feedback", "PR feedback",
-  or any request to read, fetch, list, or summarize review discussions on a pull request.
-allowed-tools: Bash(bash:*), Bash(gh:*), Read
+  Fetch and analyze unresolved PR review comments using a specialized GraphQL
+  script that extracts thread-level data (thread IDs, resolution status,
+  outdated flags, line ranges) not available through basic gh commands, then
+  produce a fix plan.
+when_to_use: >-
+  MUST consult whenever the user wants to check review feedback, see what
+  reviewers said, view unresolved threads, or prepare to address reviewer
+  requests on a PR — "review comments", "レビューコメント", "unresolved
+  threads", "レビュー指摘", "reviewer feedback", "PR feedback". Required
+  first step of the fixing-review-comments workflow.
 context: fork
+agent: Explore
+allowed-tools:
+  - Bash(bash:*)
+  - Bash(gh:*)
+  - Read
 ---
 
 # Read Unresolved PR Comments
 
 Fetch unresolved review comments from the current PR and produce a fix plan that downstream skills can act on.
+
+## PR Context
+
+!`gh pr view --json number,title,url 2>/dev/null || echo "No open PR found for the current branch"`
 
 ## Fetch Comments
 

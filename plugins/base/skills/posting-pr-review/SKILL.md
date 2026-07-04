@@ -1,13 +1,30 @@
 ---
 name: posting-pr-review
-description: Post review comments to a GitHub PR as a PENDING review using a dedicated workflow script (post-pr-review.sh) and severity tag system. Use after completing code review (pr-review-toolkit:review-pr, code-reviewer, silent-failure-hunter, or any review agent) to submit structured feedback. This skill provides the post-pr-review.sh script for correct PENDING review creation, 6-level severity tags ([critical]/[warning]/[suggestion]/[nit]/[question]/[praise]), diff line validation, and Japanese reporting. Always use this skill when posting, submitting, or sending review comments to a PR — do not attempt to call the GitHub review API directly without this skill's workflow.
-allowed-tools: Bash(gh:*), Bash(git:*), Bash(jq:*), Bash(cat:*), Bash(mktemp:*), Bash(rm:*), Bash(bash:*), Read
-context: fork
+description: Post review comments to a GitHub PR as a PENDING review using the post-pr-review.sh workflow script and a 6-level severity tag system ([critical]/[warning]/[suggestion]/[nit]/[question]/[praise]).
+when_to_use: >-
+  Use after completing code review (pr-review-toolkit:review-pr,
+  code-reviewer, silent-failure-hunter, or any review agent) to submit
+  structured feedback. Always use when posting, submitting, or sending
+  review comments to a PR — do not call the GitHub review API directly
+  without this skill's workflow.
+allowed-tools:
+  - Bash(gh:*)
+  - Bash(git:*)
+  - Bash(jq:*)
+  - Bash(cat:*)
+  - Bash(mktemp:*)
+  - Bash(rm:*)
+  - Bash(bash:*)
+  - Read
 ---
 
 # Post PR Review as PENDING
 
 Post structured review comments to a GitHub PR as a PENDING review. The review is always created in PENDING state — never APPROVE or REQUEST_CHANGES. This is because submitting immediately would notify the PR author before the user has reviewed and edited the comments on GitHub.
+
+## PR Context
+
+!`gh pr view --json number,title,url 2>/dev/null || echo "No open PR found for the current branch"`
 
 ## Prerequisites
 

@@ -1,14 +1,26 @@
 ---
 name: using-cmux-browser
-description: Live browser automation using the cmux browser CLI. MUST use this skill whenever the user asks to open a URL in a real browser, interact with a live web page, fill and submit web forms, click buttons on a page, scrape or read content from a website, inspect live page state (DOM, cookies, localStorage), navigate between pages, take browser screenshots, wait for dynamic/SPA content to render, work inside iframes, or debug a web UI by viewing it. Also trigger for Japanese phrases like "ブラウザで開いて", "ページを確認して", "スクショ撮って", "フォームに入力して", "ボタンを押して", "Cookie を確認したい", or any request to visually verify a deployed/staging/localhost page. This skill is for controlling a real browser instance — do NOT use it for writing HTML/CSS/JS code, writing Playwright/Cypress test scripts, making curl/wget/fetch API requests, reading local HTML files, or building UI components.
-allowed-tools: Bash(cmux:*)
+description: Automate a live browser via the cmux browser CLI — open URLs, fill forms, click, scrape, take screenshots, and inspect page state.
+argument-hint: "[url-or-task]"
 context: fork
+allowed-tools:
+  - Bash(cmux:*)
 disable-model-invocation: true
 ---
 
 # cmux Browser Automation
 
 cmux browser is a CLI for automating browser interactions. Every operation runs as a shell command — no Playwright API or Node.js required.
+
+## Task
+
+$ARGUMENTS
+
+This skill runs in an isolated context — the task description above is all you receive. If it is empty, report that a URL or task description is required and stop.
+
+## Existing Surfaces
+
+!`cmux browser identify 2>&1`
 
 ## Core Concept: Surface Targeting
 

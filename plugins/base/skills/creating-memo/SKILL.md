@@ -1,11 +1,13 @@
 ---
+name: creating-memo
 description: Create a timestamped memo with ULID in ~/projects/private-content/memo/
-argument-hint: <memo content>
-allowed-tools: Bash(bash:*)
+argument-hint: "<memo content>"
+allowed-tools:
+  - Bash(bash:*)
 disable-model-invocation: true
 ---
 
-# Memo Command
+# Create Memo
 
 Create a new memo entry with the following content:
 
@@ -15,10 +17,10 @@ $ARGUMENTS
 
 ## Instructions
 
-Execute the shell script with the memo content:
+Execute the bundled shell script with the memo content:
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/create-memo.sh" "$ARGUMENTS"
+bash "${CLAUDE_SKILL_DIR}/scripts/creating-memo.sh" "$ARGUMENTS"
 ```
 
 The script will:
@@ -28,9 +30,9 @@ The script will:
 
 ## Example
 
-Input: `/memo Astroで開発をする際はAstro Docs MCPを使うのがおすすめ。`
+Input: `/creating-memo Astroで開発をする際はAstro Docs MCPを使うのがおすすめ。`
 
-Execute: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/create-memo.sh" "Astroで開発をする際はAstro Docs MCPを使うのがおすすめ。"`
+Execute: `bash "${CLAUDE_SKILL_DIR}/scripts/creating-memo.sh" "Astroで開発をする際はAstro Docs MCPを使うのがおすすめ。"`
 
 Output:
 ```

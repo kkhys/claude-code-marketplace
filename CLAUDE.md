@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a Claude Code plugin marketplace that provides custom commands, skills, and workflows. The marketplace enables installation of plugins containing slash commands, skills (knowledge bundles), hooks (event automation), and MCP server configurations.
+This is a Claude Code plugin marketplace that provides custom skills and workflows. The marketplace enables installation of plugins containing skills (knowledge bundles, also invocable as `/skill-name`), hooks (event automation), and MCP server configurations. Custom slash commands have been merged into skills — this marketplace no longer uses `commands/` directories.
 
 ## Architecture
 
@@ -17,8 +17,7 @@ plugins/
   {plugin-name}/
     .claude-plugin/
       plugin.json          # Plugin metadata (name, version, author)
-    commands/              # Slash commands (.md files)
-    skills/                # Reusable knowledge (SKILL.md + references)
+    skills/                # Skills (SKILL.md + references/ + scripts/)
     hooks/                 # Event hooks (hooks.json)
     scripts/               # Shell scripts for automation
     agents/                # Custom subagent definitions (.md files)
@@ -27,12 +26,13 @@ plugins/
 
 ### Plugin Anatomy
 
-**Commands** (`commands/*.md`): Slash commands with YAML frontmatter
-- Frontmatter: `description`, `argument-hint`, `allowed-tools`, `model`, `disable-model-invocation`
-- Body supports: `$ARGUMENTS`, `$1`, `$2` (arguments), `!`cmd`` (bash execution), `@path` (file refs)
-
-**Skills** (`skills/*/SKILL.md`): Knowledge bundles for specialized tasks
-- Frontmatter: `name`, `description` (recommended), `argument-hint`, `disable-model-invocation`, `user-invocable`, `allowed-tools`, `model`, `context`, `agent`, `hooks` (all optional)
+**Skills** (`skills/*/SKILL.md`): Knowledge bundles and workflows for specialized tasks. Custom slash commands are merged into skills — every skill is invocable as `/plugin-name:skill-name`, and skills replace the legacy `commands/*.md` files.
+- Frontmatter: `name`, `description` (recommended), `when_to_use`, `argument-hint`, `arguments`, `disable-model-invocation`, `user-invocable`, `allowed-tools`, `disallowed-tools`, `model`, `effort`, `context`, `agent`, `hooks`, `paths`, `shell` (all optional)
+- `description` + `when_to_use` combined is truncated at 1,536 chars — front-load the primary use case in `description`, put trigger phrases in `when_to_use`
+- `allowed-tools` accepts a space-separated string or YAML list (prefer YAML list)
+- Body supports `$ARGUMENTS` / `$N` / `$name` substitution and `` !`cmd` `` dynamic context injection (runs before Claude sees the content)
+- Skills with `disable-model-invocation: true` never expose their description to Claude — keep it short (it only appears in the `/` menu)
+- `context: fork` runs the skill in a subagent (optionally with `agent:`) — only for self-contained tasks; forked skills cannot see conversation history, ask the user questions, spawn subagents, or create agent teams
 - References: 1-level deep only (`references/*.md`)
 - Keep body under 500 lines (Claude already knows general practices)
 
@@ -52,7 +52,7 @@ plugins/
 
 1. **Progressive Disclosure**: Main file (SKILL.md) contains essentials, reference files contain details
 2. **Brevity Over Completeness**: Only document what Claude doesn't already know
-3. **Skill-Based Workflow**: Skills are directly discoverable by Claude; commands are only needed for multi-step workflows or script execution
+3. **Skill-Based Workflow**: Skills are directly discoverable by Claude and invocable as slash commands; user-driven workflows use `disable-model-invocation: true` instead of a separate command file
 4. **Conventional Commits**: All commits follow `<type>[scope]: <description>` format
 5. **Standardized PRs**: Format `[base-branch] type: description` with bullet-point body
 
@@ -73,6 +73,7 @@ claude plugin validate .
 ```bash
 # ShellCheck for bash scripts
 shellcheck plugins/base/scripts/*.sh
+shellcheck plugins/base/skills/*/scripts/*.sh
 shellcheck plugins/base/hooks/*.sh
 ```
 
@@ -85,18 +86,18 @@ shellcheck plugins/base/hooks/*.sh
 # Install plugin
 /plugin install base@my-marketplace
 
-# Test command
-/memo "Test memo content"
+# Test a user-invoked skill
+/creating-memo "Test memo content"
 ```
 
 ### Git Workflow
 
 ```bash
 # Complete git workflow - branch creation, commit split, PR creation
-/publish-pr
+/publishing-pr
 ```
 
-Note: Individual git operations (commit, commit-split, create-branch, create-pr) are available as skills that Claude can invoke directly without slash commands.
+Note: Individual git operations (formatting-commit, splitting-commit, creating-branch-name, creating-pr) are skills that Claude invokes directly when relevant; `/publishing-pr` orchestrates them in sequence.
 
 ## Development Workflow
 
@@ -108,18 +109,19 @@ Note: Individual git operations (commit, commit-split, create-branch, create-pr)
 4. Test with different models (Haiku, Sonnet, Opus)
 5. Skills are directly discoverable by Claude — no wrapper command needed
 
-### Adding New Commands
+### Adding User-Driven Workflow Skills
 
-Only create commands when a skill alone is insufficient (script execution, multi-skill orchestration, argument processing):
+Slash commands are merged into skills — do not create `commands/*.md` files. For workflows the user triggers explicitly (script execution, multi-skill orchestration):
 
-1. Create `.md` file in `plugins/{plugin}/commands/`
-2. Add YAML frontmatter with `description` and optional `argument-hint`, `allowed-tools`, `model`
-3. Write command body using `$ARGUMENTS`, `!`bash``, `@file` syntax
-4. Validate: `/plugin validate .`
+1. Create a normal skill directory: `plugins/{plugin}/skills/{skill-name}/`
+2. Set `disable-model-invocation: true` so only the user can invoke it via `/skill-name`
+3. Use `argument-hint` and `$ARGUMENTS` for input, `` !`cmd` `` for dynamic context
+4. Bundle scripts under the skill (`scripts/`) and reference them via `${CLAUDE_SKILL_DIR}`
+5. Validate: `/plugin validate .`
 
 ### Adding New Scripts
 
-1. Create script in `plugins/{plugin}/scripts/`
+1. Create scripts used by a single skill in `plugins/{plugin}/skills/{skill-name}/scripts/` (reference via `${CLAUDE_SKILL_DIR}`); create scripts shared by hooks in `plugins/{plugin}/scripts/` (reference via `${CLAUDE_PLUGIN_ROOT}`)
 2. Use bash shebang: `#!/usr/bin/env bash`
 3. Set strict mode: `set -euo pipefail`
 4. Quote all variables: `"${var}"`
@@ -130,19 +132,16 @@ Only create commands when a skill alone is insufficient (script execution, multi
 
 The `base` plugin (`plugins/base/`) is the primary plugin containing core workflows:
 
-**Commands**:
-- `/memo` - Timestamped memo with ULID in `~/projects/private-content/memo/`
-- `/publish-pr` - Complete git workflow: branch creation → commit split → PR creation
-
-**Skills** (invoked directly by Claude without slash commands):
-
-Scaffolding:
-- `creating-command` - Create slash commands
-- `creating-skill` - Create skills
-- `creating-subagent` - Create subagents
-- `creating-rules` - Create Claude Code rules
+**User-driven skills** (`disable-model-invocation: true`, invoked via `/skill-name`):
+- `creating-memo` - Timestamped memo with ULID in `~/projects/private-content/memo/`
+- `publishing-pr` - Complete git workflow: branch creation → commit split → PR creation
 - `creating-codepen-demo` - Create CodePen demos
-- `adding-hooks` - Add and configure hooks
+- `creating-task-summary` - Create weekly task summaries
+- `uploading-knowledge-gist` - Upload session knowledge to secret GitHub Gist
+- `orchestrating-agent-team` - Orchestrate agent teams for parallel implementation
+- `using-cmux-browser` - Browser automation via cmux browser CLI
+
+**Model-invocable skills** (discovered by Claude, also invocable via `/skill-name`):
 
 Git workflow:
 - `formatting-commit` - Conventional Commits format
@@ -156,14 +155,8 @@ PR review:
 - `fixing-review-comments` - Address unresolved review comments on the current branch
 - `posting-pr-review` - Post review comments to a GitHub PR as a PENDING review
 
-Task / Knowledge:
-- `creating-task-summary` - Create weekly task summaries
-- `uploading-knowledge-gist` - Upload session knowledge to secret GitHub Gist
-- `orchestrating-agent-team` - Orchestrate agent teams for parallel implementation
-
-External tools:
-- `using-serena` - Codebase analysis with Serena
-- `using-cmux-browser` - Browser automation via cmux browser CLI
+Other:
+- `summarizing-release-notes` - Summarize recent Claude Code release notes
 
 **Agents**:
 - `general-purpose-assistant` - Fallback agent for broad inquiries and cross-domain tasks
@@ -187,12 +180,12 @@ The `writing` plugin (`plugins/writing/`) provides specialized writing agents:
 
 ## Important Patterns
 
-### Skills as Primary Interface
+### Skills as the Single Interface
 
-Skills are directly discoverable and invocable by Claude without needing wrapper commands. Only create commands when:
-- The command executes a script directly (e.g., `/memo`)
-- The command orchestrates multiple skills in sequence (e.g., `/publish-pr`)
-- The command requires argument processing beyond what skills provide
+Skills cover both auto-discovery by Claude and explicit `/skill-name` invocation — there is no separate command layer. Choose the invocation mode per skill:
+- Model + user invocable (default): knowledge and conventions Claude should apply when relevant (e.g., `formatting-commit`)
+- `disable-model-invocation: true`: side-effectful or user-timed workflows (e.g., `/creating-memo`, `/publishing-pr`)
+- `user-invocable: false`: background knowledge that is not a meaningful user action
 
 ### Skill Description Format
 
@@ -212,10 +205,16 @@ Scope `allowed-tools` narrowly to prevent overly broad permissions:
 
 ```yaml
 # Good
-allowed-tools: Bash(git:*), Read
+allowed-tools:
+  - Bash(git:*)
+  - Read
 
 # Bad
-allowed-tools: Bash(*), Read, Write, Edit
+allowed-tools:
+  - Bash(*)
+  - Read
+  - Write
+  - Edit
 ```
 
 ### Heredoc for Multi-line
