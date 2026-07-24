@@ -148,6 +148,7 @@ Git workflow:
 - `splitting-commit` - Split commits by semantic meaning
 - `creating-branch-name` - Create branch with appropriate naming
 - `creating-pr` - GitHub PR creation
+- `creating-stacked-pr` - Verify whether a task should be split into stacked PRs, design layers, build the stack with gh-stack
 
 PR review:
 - `reading-unresolved-pr-comments` - Fetch unresolved PR review comments and create fix plan
