@@ -2,7 +2,7 @@
 set -euo pipefail
 set +H
 
-readonly BASE_DIR="${HOME}/projects/private-content/memo"
+readonly BASE_DIR="${HOME}/projects/github.com/kkhys/me/apps/memo/memo-content/memo"
 SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}")"
 readonly SCRIPT_NAME
 
@@ -73,7 +73,7 @@ EOF
 
   echo ""
   echo "Memo created successfully"
-  echo "  Directory: ~/projects/private-content/memo/${dir_name}/"
+  echo "  Directory: ~/projects/github.com/kkhys/me/apps/memo/memo-content/memo/${dir_name}/"
   echo "  File: index.md"
   echo "  ID: ${ulid}"
   echo "  Created: ${created_at}"
