@@ -2,7 +2,7 @@
 set -euo pipefail
 set +H
 
-readonly BASE_DIR="${HOME}/projects/private-content/memo"
+readonly BASE_DIR="${HOME}/projects/github.com/kkhys/me/apps/memo/memo-content/memo"
 SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}")"
 readonly SCRIPT_NAME
 
@@ -49,7 +49,9 @@ create_memo() {
   local dir_name="${1}"
   local ulid="${2}"
   local created_at="${3}"
-  local content="${4}"
+  local tag="${4}"
+  local comment="${5}"
+  local content="${6}"
 
   local memo_dir="${BASE_DIR}/${dir_name}"
   local index_file="${memo_dir}/index.md"
@@ -61,31 +63,54 @@ create_memo() {
   content="${content#$'\n'}"
 
   {
-    cat <<EOF
----
-id: ${ulid}
-createdAt: ${created_at}
----
-
-EOF
+    echo "---"
+    echo "id: ${ulid}"
+    echo "createdAt: ${created_at}"
+    [ -n "${tag}" ] && echo "tag: ${tag}"
+    [ -n "${comment}" ] && echo "comment: ${comment}"
+    echo "---"
+    echo ""
     printf '%s\n' "${content}"
   } > "${index_file}"
 
   echo ""
   echo "Memo created successfully"
-  echo "  Directory: ~/projects/private-content/memo/${dir_name}/"
+  echo "  Directory: ~/projects/github.com/kkhys/me/apps/memo/memo-content/memo/${dir_name}/"
   echo "  File: index.md"
   echo "  ID: ${ulid}"
   echo "  Created: ${created_at}"
+  [ -n "${tag}" ] && echo "  Tag: ${tag}"
+  [ -n "${comment}" ] && echo "  Comment: ${comment}"
 }
 
 main() {
+  local tag=""
+  local comment=""
+
+  while [ $# -gt 0 ]; do
+    case "${1}" in
+      --tag)
+        tag="${2:-}"
+        shift 2
+        ;;
+      --comment)
+        comment="${2:-}"
+        shift 2
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+
   if [ $# -eq 0 ]; then
     echo "" >&2
     echo "Error: Memo content is required" >&2
     echo "" >&2
-    echo "Usage: ${SCRIPT_NAME} [memo content]" >&2
+    echo "Usage: ${SCRIPT_NAME} [--tag TAG] [--comment MEMO_ID] [memo content]" >&2
     echo "Example: ${SCRIPT_NAME} \"Your memo content here\"" >&2
+    echo "Example: ${SCRIPT_NAME} --tag drink_log \"Your memo content here\"" >&2
+    echo "Example: ${SCRIPT_NAME} --comment 01kybqps0g15hbv4byxa4h6bw6 \"Follow-up memo\"" >&2
     exit 1
   fi
 
@@ -103,7 +128,7 @@ main() {
   local dir_name
   dir_name="$(datetime_to_dirname "${created_at}")"
 
-  create_memo "${dir_name}" "${ulid}" "${created_at}" "${content}"
+  create_memo "${dir_name}" "${ulid}" "${created_at}" "${tag}" "${comment}" "${content}"
 }
 
 main "$@"
