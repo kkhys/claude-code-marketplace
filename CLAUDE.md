@@ -140,6 +140,7 @@ The `base` plugin (`plugins/base/`) is the primary plugin containing core workfl
 - `uploading-knowledge-gist` - Upload session knowledge to secret GitHub Gist
 - `orchestrating-agent-team` - Orchestrate agent teams for parallel implementation
 - `using-cmux-browser` - Browser automation via cmux browser CLI
+- `syncing-skills` - Sync skills to the portable skills repository for Codex/Gemini CLI
 
 **Model-invocable skills** (discovered by Claude, also invocable via `/skill-name`):
 
@@ -180,6 +181,15 @@ The `writing` plugin (`plugins/writing/`) provides specialized writing agents:
 - `technical-writer` - Technical writing assistance
 
 ## Important Patterns
+
+### Cross-Agent Skill Distribution
+
+This marketplace is the source of truth for skills. A portable variant is generated into a separate skills repository for Codex, Gemini CLI, and Copilot, which read `~/.agents/skills` — a path Claude Code does not scan. Because the search paths never overlap, the same skill may exist in both places without loading twice.
+
+- Never link the skills repository into `~/.claude/skills`; that is the one change that causes double loading
+- Every skill must be classified in `plugins/base/skills/syncing-skills/portable-skills.txt` (exported / `?pending` / `!claude-only`) — the converter fails on an unclassified skill
+- Wrap Claude Code specific sections in `<!-- claude:start -->` / `<!-- portable:start -->` block pairs so both variants stay reviewable in one file
+- Generate and verify with `plugins/base/skills/syncing-skills/scripts/sync-skills.sh --out <skills-repo> [--check]`; the transform is deterministic, so `--check` can gate CI
 
 ### Skills as the Single Interface
 
