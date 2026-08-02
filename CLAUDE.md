@@ -13,10 +13,12 @@ This is a Claude Code plugin marketplace that provides custom skills and workflo
 ```
 .claude-plugin/
   marketplace.json          # Marketplace metadata and plugin registry
+.github/workflows/
+  validate.yml              # CI: manifest validation + shellcheck
 plugins/
   {plugin-name}/
     .claude-plugin/
-      plugin.json          # Plugin metadata (name, version, author)
+      plugin.json          # Plugin metadata, userConfig, component paths
     skills/                # Skills (SKILL.md + references/ + scripts/)
     hooks/                 # Event hooks (hooks.json)
     scripts/               # Shell scripts for automation
@@ -24,29 +26,42 @@ plugins/
     .mcp.json             # MCP server configuration
 ```
 
+Components that exist in the plugin spec but are unused here: `workflows/` (Workflow scripts), `monitors/`, `themes/`, `.lsp.json`, and `dependencies`. Add them only when there is a concrete need.
+
+Both manifests carry a `$schema` for editor autocomplete; `claude plugin validate` ignores it at load time.
+
 ### Plugin Anatomy
 
 **Skills** (`skills/*/SKILL.md`): Knowledge bundles and workflows for specialized tasks. Custom slash commands are merged into skills — every skill is invocable as `/plugin-name:skill-name`, and skills replace the legacy `commands/*.md` files.
-- Frontmatter: `name`, `description` (recommended), `when_to_use`, `argument-hint`, `arguments`, `disable-model-invocation`, `user-invocable`, `allowed-tools`, `disallowed-tools`, `model`, `effort`, `context`, `agent`, `hooks`, `paths`, `shell` (all optional)
+- Frontmatter: `name`, `description` (recommended), `when_to_use`, `argument-hint`, `arguments`, `disable-model-invocation`, `user-invocable`, `allowed-tools`, `disallowed-tools`, `model`, `effort`, `context`, `agent`, `background`, `hooks`, `paths`, `shell` (all optional)
 - `description` + `when_to_use` combined is truncated at 1,536 chars — front-load the primary use case in `description`, put trigger phrases in `when_to_use`
 - `allowed-tools` accepts a space-separated string or YAML list (prefer YAML list)
 - Body supports `$ARGUMENTS` / `$N` / `$name` substitution and `` !`cmd` `` dynamic context injection (runs before Claude sees the content)
+- Also substitutable in the body: `${CLAUDE_SKILL_DIR}`, `${CLAUDE_PROJECT_DIR}`, `${CLAUDE_SESSION_ID}`, `${CLAUDE_EFFORT}`
 - Skills with `disable-model-invocation: true` never expose their description to Claude — keep it short (it only appears in the `/` menu)
 - `context: fork` runs the skill in a subagent (optionally with `agent:`) — only for self-contained tasks; forked skills cannot see conversation history, ask the user questions, spawn subagents, or create agent teams
+- Forked skills default to `background: true`. Set `background: false` whenever the caller needs the result in the same turn (orchestrated steps, required first steps of another workflow)
 - References: 1-level deep only (`references/*.md`)
 - Keep body under 500 lines (Claude already knows general practices)
 
 **Hooks** (`hooks/hooks.json`): Event-driven automation
-- Events: `PreToolUse`, `PostToolUse`, `Notification`, `Stop`, `WorktreeCreate`
-- Actions: Execute shell commands on events
+- Around 30 events are available. Session: `SessionStart`, `Setup`, `SessionEnd`, `ConfigChange`, `CwdChanged`, `InstructionsLoaded`, `FileChanged`. Prompt/tool: `UserPromptSubmit`, `UserPromptExpansion`, `PreToolUse`, `PermissionRequest`, `PermissionDenied`, `PostToolUse`, `PostToolUseFailure`, `PostToolBatch`. Output: `Notification`, `MessageDisplay`, `Stop`, `StopFailure`. Agents/tasks: `SubagentStart`, `SubagentStop`, `TaskCreated`, `TaskCompleted`, `TeammateIdle`. Worktrees: `WorktreeCreate`, `WorktreeRemove`. Context: `PreCompact`, `PostCompact`. MCP: `Elicitation`, `ElicitationResult`
+- Handler types: `command`, `http`, `mcp_tool`, `prompt`, `agent`
+- Common handler fields: `type`, `if`, `timeout`, `statusMessage`. Command handlers add `command`, `args`, `async`, `asyncRewake`, `shell`
+- Prefer exec form (`command` + `args`) over shell form — no shell tokenization, and path placeholders are substituted verbatim. Use shell form only for pipes and redirects
+- Mark long-running, non-blocking handlers `async: true` so they do not stall the turn
+- Matchers only apply to tool events; omit `matcher` on `Stop`, `Notification`, `WorktreeCreate`, and similar
 
 **Agents** (`agents/*.md`): Custom subagent definitions
-- Frontmatter: `name`, `description`, `model`
+- Frontmatter: `name`, `description`, `model`, `effort`, `maxTurns`, `tools`, `disallowedTools`, `skills`, `memory`, `background`, `isolation` (only valid value: `worktree`)
+- `hooks`, `mcpServers`, and `permissionMode` are not supported in plugin-shipped agents for security reasons
 - Specialized agents for specific task domains
 
 **MCP Servers** (`.mcp.json`): External tool integrations
 - HTTP servers: `type: "http"`, `url`
 - Stdio/command servers: `command`, `args`
+- Never hardcode machine-specific paths or secrets — declare them in `plugin.json` `userConfig` and reference as `${user_config.KEY}`
+- Hooks targeting a bundled server use the scoped tool name `mcp__plugin_<plugin>_<server>__<tool>`
 
 ### Key Design Principles
 
@@ -61,8 +76,12 @@ plugins/
 ### Validation
 
 ```bash
-# Validate marketplace structure and JSON syntax
-claude plugin validate .
+# Validate the marketplace manifest (--strict turns warnings into errors)
+claude plugin validate . --strict
+
+# Validate each plugin manifest — the marketplace check does not cover these
+claude plugin validate ./plugins/base --strict
+claude plugin validate ./plugins/writing --strict
 
 # Within Claude Code
 /plugin validate .
@@ -71,11 +90,11 @@ claude plugin validate .
 ### Linting
 
 ```bash
-# ShellCheck for bash scripts
-shellcheck plugins/base/scripts/*.sh
-shellcheck plugins/base/skills/*/scripts/*.sh
-shellcheck plugins/base/hooks/*.sh
+# ShellCheck for bash scripts (must exit 0 — CI enforces this)
+shellcheck plugins/base/scripts/*.sh plugins/base/skills/*/scripts/*.sh
 ```
+
+CI (`.github/workflows/validate.yml`) runs both of the above on every push and pull request.
 
 ### Local Testing
 
@@ -117,7 +136,8 @@ Slash commands are merged into skills — do not create `commands/*.md` files. F
 2. Set `disable-model-invocation: true` so only the user can invoke it via `/skill-name`
 3. Use `argument-hint` and `$ARGUMENTS` for input, `` !`cmd` `` for dynamic context
 4. Bundle scripts under the skill (`scripts/`) and reference them via `${CLAUDE_SKILL_DIR}`
-5. Validate: `/plugin validate .`
+5. If the skill uses `context: fork`, decide `background` deliberately — `false` when a caller needs the result in the same turn
+6. Validate: `/plugin validate .`
 
 ### Adding New Scripts
 
@@ -133,13 +153,11 @@ Slash commands are merged into skills — do not create `commands/*.md` files. F
 The `base` plugin (`plugins/base/`) is the primary plugin containing core workflows:
 
 **User-driven skills** (`disable-model-invocation: true`, invoked via `/skill-name`):
-- `creating-memo` - Timestamped memo with ULID in `~/projects/private-content/memo/`
+- `creating-memo` - Timestamped memo with ULID in `~/projects/github.com/kkhys/me/apps/memo/memo-content/memo/`
 - `publishing-pr` - Complete git workflow: branch creation → commit split → PR creation
 - `creating-codepen-demo` - Create CodePen demos
 - `creating-task-summary` - Create weekly task summaries
 - `uploading-knowledge-gist` - Upload session knowledge to secret GitHub Gist
-- `orchestrating-agent-team` - Orchestrate agent teams for parallel implementation
-- `using-cmux-browser` - Browser automation via cmux browser CLI
 
 **Model-invocable skills** (discovered by Claude, also invocable via `/skill-name`):
 
@@ -162,10 +180,12 @@ Other:
 **Agents**:
 - `general-purpose-assistant` - Fallback agent for broad inquiries and cross-domain tasks
 
-**MCP Servers**:
-- `context7` - Documentation search
-- `astro-docs`, `vercel`, `next-devtools`, `shadcn`, `playwright` - Framework-specific tools
-- `serena` - Codebase analysis
+**MCP Servers** (`plugins/base/.mcp.json`):
+- `astro-docs` - Astro documentation search (HTTP)
+- `analytics-mcp` - Google Analytics queries. Project ID comes from `userConfig.google_project_id`; auth uses gcloud application default credentials (`gcloud auth application-default login`)
+- `chrome-devtools` - Chrome DevTools automation
+
+Other MCP servers used day to day (`context7`, `serena`, `playwright`, and framework-specific ones) come from official plugins or user settings, not from this repository.
 
 When modifying, maintain consistency with existing patterns and update version in `.claude-plugin/plugin.json`.
 

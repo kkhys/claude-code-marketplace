@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly OWNER_REPO="$(gh repo view --json nameWithOwner --jq '.nameWithOwner')"
+OWNER_REPO="$(gh repo view --json nameWithOwner --jq '.nameWithOwner')"
+readonly OWNER_REPO
 readonly OWNER="${OWNER_REPO%%/*}"
 readonly REPO="${OWNER_REPO##*/}"
-readonly PR_NUMBER="$(gh pr view --json number --jq '.number')"
+PR_NUMBER="$(gh pr view --json number --jq '.number')"
+readonly PR_NUMBER
 
+# shellcheck disable=SC2016  # $owner/$repo/$prNumber are GraphQL variables, not shell ones
 gh api graphql \
   -f owner="${OWNER}" \
   -f repo="${REPO}" \

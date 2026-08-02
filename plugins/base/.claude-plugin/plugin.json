@@ -1,9 +1,24 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "base",
+  "displayName": "Base",
   "description": "Personal development workflow utilities for efficient knowledge management and automation",
-  "version": "0.0.37",
+  "version": "0.0.38",
   "author": {
     "name": "Keisuke Hayashi",
-    "email": "hi@kkhys.me"
+    "email": "hi@kkhys.me",
+    "url": "https://github.com/kkhys"
+  },
+  "homepage": "https://github.com/kkhys/claude-code-marketplace",
+  "repository": "https://github.com/kkhys/claude-code-marketplace",
+  "license": "MIT",
+  "keywords": ["git", "pull-request", "code-review", "memo", "automation"],
+  "userConfig": {
+    "google_project_id": {
+      "type": "string",
+      "title": "Google Cloud project ID",
+      "description": "Project ID used by the analytics MCP server. Authentication uses gcloud application default credentials; run `gcloud auth application-default login` if the server fails to start.",
+      "default": "just-advice-489808-d2"
+    }
   }
 }

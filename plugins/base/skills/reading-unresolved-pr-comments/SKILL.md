@@ -13,6 +13,7 @@ when_to_use: >-
   first step of the fixing-review-comments workflow.
 context: fork
 agent: Explore
+background: false
 allowed-tools:
   - Bash(bash:*)
   - Bash(gh:*)

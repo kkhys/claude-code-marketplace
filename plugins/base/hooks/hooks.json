@@ -3,11 +3,13 @@
   "hooks": {
     "Notification": [
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "afplay /System/Library/Sounds/Hero.aiff",
+            "command": "afplay",
+            "args": ["/System/Library/Sounds/Hero.aiff"],
+            "async": true,
+            "timeout": 10,
             "statusMessage": "Playing notification sound..."
           }
         ]
@@ -15,11 +17,11 @@
     ],
     "WorktreeCreate": [
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/scripts/setup-worktree-env.sh",
+            "timeout": 120,
             "statusMessage": "Setting up worktree environment..."
           }
         ]
@@ -27,16 +29,20 @@
     ],
     "Stop": [
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "afplay /System/Library/Sounds/Glass.aiff",
+            "command": "afplay",
+            "args": ["/System/Library/Sounds/Glass.aiff"],
+            "async": true,
+            "timeout": 10,
             "statusMessage": "Playing completion sound..."
           },
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-merged-branches.sh",
+            "async": true,
+            "timeout": 60,
             "statusMessage": "Cleaning up merged branches..."
           }
         ]

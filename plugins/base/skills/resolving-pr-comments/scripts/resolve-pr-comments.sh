@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly OWNER_REPO="$(gh repo view --json nameWithOwner --jq '.nameWithOwner')"
+OWNER_REPO="$(gh repo view --json nameWithOwner --jq '.nameWithOwner')"
+readonly OWNER_REPO
 readonly OWNER="${OWNER_REPO%%/*}"
 readonly REPO="${OWNER_REPO##*/}"
-readonly PR_NUMBER="$(gh pr view --json number --jq '.number')"
+PR_NUMBER="$(gh pr view --json number --jq '.number')"
+readonly PR_NUMBER
 
-# Fetch all unresolved thread IDs with pagination
+# Fetch all unresolved thread IDs with pagination.
+# shellcheck disable=SC2016  # $endCursor is a GraphQL variable, not a shell one
 THREAD_IDS=$(gh api graphql --paginate -f query='
 query($endCursor: String) {
   repository(owner: "'"${OWNER}"'", name: "'"${REPO}"'") {
@@ -24,7 +27,8 @@ if [ -z "${THREAD_IDS}" ]; then
   exit 0
 fi
 
-readonly COUNT=$(echo "${THREAD_IDS}" | wc -l | tr -d ' ')
+COUNT=$(echo "${THREAD_IDS}" | wc -l | tr -d ' ')
+readonly COUNT
 echo "Found ${COUNT} unresolved thread(s)."
 echo ""
 
@@ -32,6 +36,7 @@ resolved=0
 failed=0
 
 while read -r thread_id; do
+  # shellcheck disable=SC2016  # $threadId is a GraphQL variable, not a shell one
   if result=$(gh api graphql \
     -f query='mutation($threadId: ID!) {
       resolveReviewThread(input: {threadId: $threadId}) {

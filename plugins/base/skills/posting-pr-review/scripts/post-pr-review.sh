@@ -19,19 +19,26 @@ if ! jq empty "${PAYLOAD_FILE}" 2>/dev/null; then
   exit 1
 fi
 
-readonly COMMENT_COUNT="$(jq '.comments | length' "${PAYLOAD_FILE}")"
+COMMENT_COUNT="$(jq '.comments | length' "${PAYLOAD_FILE}")"
+readonly COMMENT_COUNT
 
 # Get PR context
-readonly OWNER_REPO="$(gh repo view --json nameWithOwner --jq '.nameWithOwner')"
+OWNER_REPO="$(gh repo view --json nameWithOwner --jq '.nameWithOwner')"
+readonly OWNER_REPO
 readonly OWNER="${OWNER_REPO%%/*}"
 readonly REPO="${OWNER_REPO##*/}"
-readonly PR_JSON="$(gh pr view --json number,url,headRefOid)"
-readonly PR_NUMBER="$(echo "${PR_JSON}" | jq -r '.number')"
-readonly PR_URL="$(echo "${PR_JSON}" | jq -r '.url')"
-readonly HEAD_OID="$(echo "${PR_JSON}" | jq -r '.headRefOid')"
+PR_JSON="$(gh pr view --json number,url,headRefOid)"
+readonly PR_JSON
+PR_NUMBER="$(echo "${PR_JSON}" | jq -r '.number')"
+readonly PR_NUMBER
+PR_URL="$(echo "${PR_JSON}" | jq -r '.url')"
+readonly PR_URL
+HEAD_OID="$(echo "${PR_JSON}" | jq -r '.headRefOid')"
+readonly HEAD_OID
 
 # Build API request body (event omitted = PENDING)
-readonly REQUEST_BODY="$(jq --arg commit_id "${HEAD_OID}" '{
+# shellcheck disable=SC2016  # $commit_id is a jq variable, not a shell one
+REQUEST_BODY="$(jq --arg commit_id "${HEAD_OID}" '{
   commit_id: $commit_id,
   body: (.body // ""),
   comments: [.comments[] | {
@@ -41,18 +48,23 @@ readonly REQUEST_BODY="$(jq --arg commit_id "${HEAD_OID}" '{
     body: .body
   } + (if .start_line then {start_line: .start_line, start_side: (.start_side // "RIGHT")} else {} end)]
 }' "${PAYLOAD_FILE}")"
+readonly REQUEST_BODY
 
-# Create PENDING review via REST API
-readonly RESPONSE="$(gh api \
+# Create PENDING review via REST API.
+# Assignment and declaration are kept separate so that a gh failure is not
+# masked by readonly's own exit status.
+if ! RESPONSE="$(gh api \
   "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}/reviews" \
   --method POST \
-  --input - <<< "${REQUEST_BODY}" 2>&1)" || {
+  --input - <<< "${REQUEST_BODY}" 2>&1)"; then
   echo "Error: Failed to create review" >&2
   echo "${RESPONSE}" >&2
   exit 1
-}
+fi
+readonly RESPONSE
 
-readonly REVIEW_ID="$(echo "${RESPONSE}" | jq -r '.id')"
+REVIEW_ID="$(echo "${RESPONSE}" | jq -r '.id')"
+readonly REVIEW_ID
 
 echo "PENDING review created successfully."
 echo "  Review ID: ${REVIEW_ID}"

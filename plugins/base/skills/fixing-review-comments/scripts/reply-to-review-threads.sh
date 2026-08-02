@@ -18,7 +18,8 @@ if ! jq empty "${PAYLOAD_FILE}" 2>/dev/null; then
   exit 1
 fi
 
-readonly REPLY_COUNT="$(jq '.replies | length' "${PAYLOAD_FILE}")"
+REPLY_COUNT="$(jq '.replies | length' "${PAYLOAD_FILE}")"
+readonly REPLY_COUNT
 
 if [[ "${REPLY_COUNT}" -eq 0 ]]; then
   echo "No replies to post."
@@ -34,6 +35,7 @@ for i in $(seq 0 $(( REPLY_COUNT - 1 ))); do
   thread_id="$(jq -r ".replies[$i].thread_id" "${PAYLOAD_FILE}")"
   body="$(jq -r ".replies[$i].body" "${PAYLOAD_FILE}")"
 
+  # shellcheck disable=SC2016  # $threadId/$body are GraphQL variables, not shell ones
   if gh api graphql \
     -f query='
       mutation($threadId: ID!, $body: String!) {

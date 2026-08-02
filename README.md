@@ -81,15 +81,19 @@ To test the marketplace locally:
 /plugin install base@my-marketplace
 
 # Test the plugin
-/memo "Test memo"  # Run a command from the base plugin
+/creating-memo "Test memo"  # Run a skill from the base plugin
 ```
 
 ### Validating the Marketplace
 
-Validate JSON syntax and marketplace structure:
+Validate JSON syntax and marketplace structure. The marketplace check does not cover individual plugin manifests, so validate those separately:
 
 ```bash
-claude plugin validate .
+claude plugin validate . --strict
+claude plugin validate ./plugins/base --strict
+claude plugin validate ./plugins/writing --strict
+
+shellcheck plugins/base/scripts/*.sh plugins/base/skills/*/scripts/*.sh
 ```
 
 Or from within Claude Code:
@@ -98,24 +102,34 @@ Or from within Claude Code:
 /plugin validate .
 ```
 
+These same checks run in CI via `.github/workflows/validate.yml`.
+
 ### Adding New Plugins
+
+Custom slash commands are merged into skills, so plugins use `skills/`, not `commands/`.
 
 1. **Create plugin directory**:
    ```bash
    mkdir -p plugins/your-plugin/.claude-plugin
-   mkdir -p plugins/your-plugin/commands
+   mkdir -p plugins/your-plugin/skills
    ```
 
 2. **Create plugin manifest** (`plugins/your-plugin/.claude-plugin/plugin.json`):
    ```json
    {
+     "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
      "name": "your-plugin",
+     "displayName": "Your Plugin",
      "description": "Description of your plugin",
      "version": "1.0.0",
      "author": {
        "name": "Your Name",
        "email": "your.email@example.com"
-     }
+     },
+     "homepage": "https://github.com/kkhys/claude-code-marketplace",
+     "repository": "https://github.com/kkhys/claude-code-marketplace",
+     "license": "MIT",
+     "keywords": ["example"]
    }
    ```
 
@@ -126,11 +140,15 @@ Or from within Claude Code:
        {
          "name": "your-plugin",
          "source": "./plugins/your-plugin",
-         "description": "Brief description of your plugin"
+         "description": "Brief description of your plugin",
+         "category": "workflow",
+         "tags": ["example"]
        }
      ]
    }
    ```
+
+   When renaming or removing an entry, add the old name to the top-level `renames` map so existing users migrate automatically.
 
 4. **Validate and test**:
    ```shell
