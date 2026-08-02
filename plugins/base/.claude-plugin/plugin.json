@@ -5,5 +5,13 @@
   "author": {
     "name": "Keisuke Hayashi",
     "email": "hi@kkhys.me"
+  },
+  "userConfig": {
+    "google_project_id": {
+      "type": "string",
+      "title": "Google Cloud project ID",
+      "description": "Project ID used by the analytics MCP server. Authentication uses gcloud application default credentials; run `gcloud auth application-default login` if the server fails to start.",
+      "default": "just-advice-489808-d2"
+    }
   }
 }
