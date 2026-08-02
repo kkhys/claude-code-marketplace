@@ -8,6 +8,7 @@ when_to_use: >-
   defaults and cannot be inferred without this skill.
 argument-hint: "[base-branch]"
 context: fork
+background: false
 allowed-tools:
   - Bash(gh:*)
   - Bash(git:*)

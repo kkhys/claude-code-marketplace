@@ -3,6 +3,7 @@ name: creating-task-summary
 description: Create a personal activity summary across all GitHub repositories for weekly reports and reflection.
 argument-hint: "[period]"
 context: fork
+background: false
 allowed-tools:
   - Bash(gh:*)
   - Bash(date:*)
