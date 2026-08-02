@@ -9,6 +9,7 @@ disable-model-invocation: true
 
 # Create Memo
 
+<!-- claude:start -->
 Create a new memo entry with the following content:
 
 ```
@@ -22,6 +23,18 @@ Execute the bundled shell script with the memo content:
 ```bash
 bash "${CLAUDE_SKILL_DIR}/scripts/creating-memo.sh" "$ARGUMENTS"
 ```
+<!-- claude:end -->
+<!-- portable:start -->
+Create a new memo entry from the content the user supplied with the request.
+
+## Instructions
+
+Execute the bundled shell script, passing that content as the single argument:
+
+```bash
+bash "${CLAUDE_SKILL_DIR}/scripts/creating-memo.sh" "<memo content>"
+```
+<!-- portable:end -->
 
 The script will:
 - Generate a ULID-like identifier

@@ -14,11 +14,24 @@ allowed-tools:
 
 # Formatting Commit
 
+<!-- claude:start -->
 ## Current State
 
 - Branch: !`git branch --show-current`
 - Status: !`git status --short`
 - Recent commits: !`git log --oneline -10`
+<!-- claude:end -->
+<!-- portable:start -->
+## Current State
+
+Gather the current state before deciding anything:
+
+```bash
+git branch --show-current
+git status --short
+git log --oneline -10
+```
+<!-- portable:end -->
 
 ## Strategy Selection
 
@@ -104,7 +117,7 @@ Optional but valuable for non-trivial changes. Explain why the change was needed
 
 ## Process
 
-1. Review the injected state above; run `git log --oneline origin/main..HEAD` if you need branch-only commits
+1. Review the current state above; run `git log --oneline origin/main..HEAD` if you need branch-only commits
 2. Decide strategy: new commit or squash
 3. Stage specific files — be deliberate about what goes in
 4. Compose the message and commit

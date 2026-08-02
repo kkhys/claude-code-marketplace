@@ -13,12 +13,26 @@ allowed-tools:
 
 Analyze the current git state — uncommitted changes, staged files, and recent commits — to generate a branch name that communicates the intent of the work at a glance.
 
+<!-- claude:start -->
 ## Current Git State
 
 - Branch: !`git branch --show-current`
 - Status: !`git status --short`
 - Diff summary: !`git diff HEAD --stat`
 - Recent commits: !`git log --oneline -5`
+<!-- claude:end -->
+<!-- portable:start -->
+## Current Git State
+
+Gather the state the name has to describe:
+
+```bash
+git branch --show-current
+git status --short
+git diff HEAD --stat
+git log --oneline -5
+```
+<!-- portable:end -->
 
 ## Why naming matters
 

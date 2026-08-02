@@ -22,9 +22,20 @@ allowed-tools:
 
 Post structured review comments to a GitHub PR as a PENDING review. The review is always created in PENDING state — never APPROVE or REQUEST_CHANGES. This is because submitting immediately would notify the PR author before the user has reviewed and edited the comments on GitHub.
 
+<!-- claude:start -->
 ## PR Context
 
 !`gh pr view --json number,title,url 2>/dev/null || echo "No open PR found for the current branch"`
+<!-- claude:end -->
+<!-- portable:start -->
+## PR Context
+
+Identify the PR the review targets:
+
+```bash
+gh pr view --json number,title,url
+```
+<!-- portable:end -->
 
 ## Prerequisites
 

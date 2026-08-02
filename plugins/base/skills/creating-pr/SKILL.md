@@ -17,11 +17,24 @@ allowed-tools:
 
 # Creating PR
 
+<!-- claude:start -->
 ## Current Branch State
 
 - Branch: !`git branch --show-current`
 - Status: !`git status --short`
 - Recent commits: !`git log --oneline -15`
+<!-- claude:end -->
+<!-- portable:start -->
+## Current Branch State
+
+Gather the branch state before composing anything:
+
+```bash
+git branch --show-current
+git status --short
+git log --oneline -15
+```
+<!-- portable:end -->
 
 ## Title Format
 

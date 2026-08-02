@@ -15,13 +15,23 @@ Generate a personal activity summary across all GitHub repositories.
 
 The purpose is reflection — helping the user see the bigger picture of their work, not just producing a mechanical list of links. Synthesize what they focused on, what they accomplished, and what's still in flight.
 
+<!-- claude:start -->
 Today's date: !`date +%Y-%m-%d`
+<!-- claude:end -->
+<!-- portable:start -->
+Establish today's date with `date +%Y-%m-%d` — every range below is relative to it.
+<!-- portable:end -->
 
 ## Workflow
 
 ### 1. Determine Time Range
 
+<!-- claude:start -->
 Requested period: $ARGUMENTS
+<!-- claude:end -->
+<!-- portable:start -->
+Take the requested period from the user's request.
+<!-- portable:end -->
 
 Default: past 7 days if no period is given above. If a different period is specified (e.g., "this month", "last 2 weeks", "3/1 ~ 3/14"), calculate the start date accordingly.
 

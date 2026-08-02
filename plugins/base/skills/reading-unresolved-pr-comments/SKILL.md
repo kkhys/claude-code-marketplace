@@ -23,9 +23,20 @@ allowed-tools:
 
 Fetch unresolved review comments from the current PR and produce a fix plan that downstream skills can act on.
 
+<!-- claude:start -->
 ## PR Context
 
 !`gh pr view --json number,title,url 2>/dev/null || echo "No open PR found for the current branch"`
+<!-- claude:end -->
+<!-- portable:start -->
+## PR Context
+
+Confirm there is a PR to read from:
+
+```bash
+gh pr view --json number,title,url
+```
+<!-- portable:end -->
 
 ## Fetch Comments
 
@@ -49,7 +60,7 @@ Structure the plan as follows:
 2. Order groups by dependency (foundational changes first, dependent changes after)
 3. For each fix item, include the file path, line, reviewer's concern (the "why"), and the concrete action to take
 4. Mark `is_outdated` threads explicitly — the referenced code may have already changed, so verify the current state before planning a fix
-5. Design each fix to be independently actionable, since `fixing-review-comments` may execute them in parallel via subagents
+5. Design each fix to be independently actionable, so the fixes can be applied in any order or in parallel
 
 ## Scope
 

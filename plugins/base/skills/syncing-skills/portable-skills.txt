@@ -7,23 +7,20 @@
 #   !<plugin>/<skill>   Claude Code only, never exported
 
 # --- exported -----------------------------------------------------------
+base/creating-branch-name
+base/creating-codepen-demo
+base/creating-memo
+base/creating-pr
 base/creating-stacked-pr
+base/creating-task-summary
+base/formatting-commit
+base/posting-pr-review
+base/reading-unresolved-pr-comments
+base/resolving-pr-comments
+base/splitting-commit
 base/summarizing-release-notes
 base/uploading-knowledge-gist
-
-# --- pending migration --------------------------------------------------
-# Needs claude:/portable: annotation before it can be exported.
-?base/creating-branch-name
-?base/creating-codepen-demo
-?base/creating-memo
-?base/creating-pr
-?base/creating-task-summary
-?base/formatting-commit
-?base/posting-pr-review
-?base/reading-unresolved-pr-comments
-?base/resolving-pr-comments
-?base/splitting-commit
-?base/using-cmux-browser
+base/using-cmux-browser
 
 # --- Claude Code only ---------------------------------------------------
 # Subagent orchestration and skill chaining have no portable equivalent.

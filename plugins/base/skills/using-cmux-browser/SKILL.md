@@ -14,13 +14,27 @@ cmux browser is a CLI for automating browser interactions. Every operation runs 
 
 ## Task
 
+<!-- claude:start -->
 $ARGUMENTS
 
 This skill runs in an isolated context — the task description above is all you receive. If it is empty, report that a URL or task description is required and stop.
+<!-- claude:end -->
+<!-- portable:start -->
+Take the URL or task description from the user's request. If neither is present, report that one is required and stop.
+<!-- portable:end -->
 
 ## Existing Surfaces
 
+<!-- claude:start -->
 !`cmux browser identify 2>&1`
+<!-- claude:end -->
+<!-- portable:start -->
+List the surfaces that already exist before opening anything new:
+
+```bash
+cmux browser identify
+```
+<!-- portable:end -->
 
 ## Core Concept: Surface Targeting
 

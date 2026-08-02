@@ -17,9 +17,20 @@ allowed-tools:
 
 Bulk-resolve all unresolved review threads on the current GitHub PR via the GraphQL API.
 
+<!-- claude:start -->
 ## PR Context
 
 !`gh pr view --json number,title,url 2>/dev/null || echo "No open PR found for the current branch"`
+<!-- claude:end -->
+<!-- portable:start -->
+## PR Context
+
+Identify the PR first. Stop if there is none — this skill has nothing to act on.
+
+```bash
+gh pr view --json number,title,url
+```
+<!-- portable:end -->
 
 ## Why This Exists
 

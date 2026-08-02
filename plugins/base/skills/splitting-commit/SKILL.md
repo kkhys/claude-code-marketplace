@@ -20,10 +20,22 @@ allowed-tools:
 
 Split uncommitted changes into a sequence of focused commits, each representing one logical concern. The goal is a commit history that tells a story a reviewer can follow — and that `git bisect` and `git revert` can act on cleanly.
 
+<!-- claude:start -->
 ## Current Changes
 
 - Status: !`git status --short`
 - Diff summary: !`git diff HEAD --stat`
+<!-- claude:end -->
+<!-- portable:start -->
+## Current Changes
+
+Survey what is uncommitted before deciding how to split:
+
+```bash
+git status --short
+git diff HEAD --stat
+```
+<!-- portable:end -->
 
 ## When to Split
 

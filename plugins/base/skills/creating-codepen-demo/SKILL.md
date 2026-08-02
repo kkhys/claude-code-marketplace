@@ -11,9 +11,15 @@ Generate self-contained, copy-paste ready code for CodePen 2.0's file-based edit
 
 ## Request
 
+<!-- claude:start -->
 $ARGUMENTS
 
 If no request is given above, derive the demo topic from the conversation context.
+<!-- claude:end -->
+<!-- portable:start -->
+Take the demo topic from the user's request. If they named no topic, derive it
+from the conversation context.
+<!-- portable:end -->
 
 ## Why CodePen 2.0 is different
 
