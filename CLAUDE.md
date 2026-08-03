@@ -158,6 +158,7 @@ The `base` plugin (`plugins/base/`) is the primary plugin containing core workfl
 - `creating-codepen-demo` - Create CodePen demos
 - `creating-task-summary` - Create weekly task summaries
 - `uploading-knowledge-gist` - Upload session knowledge to secret GitHub Gist
+- `digging` - Interrogate a plan, design, or decision one question at a time until shared understanding is reached
 
 **Model-invocable skills** (discovered by Claude, also invocable via `/skill-name`):
 
