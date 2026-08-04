@@ -55,6 +55,10 @@ Format: tag alone on the first line, body starting on the next line (1-3 sentenc
 This catch block swallows the error silently. Consider logging or re-throwing.
 ```
 
+## Attribution
+
+The script prefixes the review summary and every comment with `[from Claude Code]`, producing `[from Claude Code] [warning]` on the first line. Write bodies without the marker. The PR author needs to tell agent-authored feedback from a human reviewer's, since the two carry different weight.
+
 ## Suggestion Blocks
 
 When the fix is a concrete, small change, use a GitHub suggestion block. The PR author can apply it with one click, which significantly speeds up the review cycle.
@@ -125,10 +129,10 @@ Fields:
 
 ### 3. Post General Comments
 
-For findings that reference files not in the diff, post as general PR comments:
+For findings that reference files not in the diff, post as general PR comments. Nothing prepends the marker here, so include it yourself:
 
 ```bash
-gh pr comment --body "[severity]
+gh pr comment --body "[from Claude Code] [severity]
 Comment about non-diff code..."
 ```
 

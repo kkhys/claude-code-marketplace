@@ -1,16 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OWNER_REPO="$(gh repo view --json nameWithOwner --jq '.nameWithOwner')"
-readonly OWNER_REPO
-readonly OWNER="${OWNER_REPO%%/*}"
-readonly REPO="${OWNER_REPO##*/}"
-PR_NUMBER="$(gh pr view --json number --jq '.number')"
-readonly PR_NUMBER
+# Resolve GitHub PR review threads.
+# Usage: resolve-pr-comments.sh [thread-id ...]
+#
+# With thread IDs, only those threads are resolved — this is how an automated
+# workflow resolves exactly the threads it addressed without touching ones it
+# deliberately left open. With no arguments, every unresolved thread on the
+# current branch's PR is resolved.
 
-# Fetch all unresolved thread IDs with pagination.
-# shellcheck disable=SC2016  # $endCursor is a GraphQL variable, not a shell one
-THREAD_IDS=$(gh api graphql --paginate -f query='
+if [ "$#" -gt 0 ]; then
+  THREAD_IDS="$(printf '%s\n' "$@")"
+else
+  OWNER_REPO="$(gh repo view --json nameWithOwner --jq '.nameWithOwner')"
+  readonly OWNER_REPO
+  readonly OWNER="${OWNER_REPO%%/*}"
+  readonly REPO="${OWNER_REPO##*/}"
+  PR_NUMBER="$(gh pr view --json number --jq '.number')"
+  readonly PR_NUMBER
+
+  # Fetch all unresolved thread IDs with pagination.
+  # shellcheck disable=SC2016  # $endCursor is a GraphQL variable, not a shell one
+  THREAD_IDS=$(gh api graphql --paginate -f query='
 query($endCursor: String) {
   repository(owner: "'"${OWNER}"'", name: "'"${REPO}"'") {
     pullRequest(number: '"${PR_NUMBER}"') {
@@ -21,6 +32,7 @@ query($endCursor: String) {
     }
   }
 }' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .id')
+fi
 
 if [ -z "${THREAD_IDS}" ]; then
   echo "No unresolved threads found."
