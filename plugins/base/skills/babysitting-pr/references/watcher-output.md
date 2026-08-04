@@ -37,7 +37,8 @@ with CI green and no open threads, what remains is a human approval.
   all. Use `ci.failed_checks` and `--failed-logs` for anything failing.
 - `reviews.threads` excludes comments belonging to a `PENDING` review, and drops
   a thread whose every comment is pending. Pending reviews are unsent drafts.
-- `reviews.submitted` keeps only each reviewer's latest submission.
+- `reviews.submitted` keeps only each reviewer's latest verdict, for the final
+  summary. The loop uses `pr.review_decision` and `copilot.*` instead.
 - `copilot.participant` is true when Copilot is currently requested or has
   reviewed at least once — the loop never pulls Copilot into a PR that never
   involved it. Only the review bot counts, not `copilot-swe-agent[bot]`.

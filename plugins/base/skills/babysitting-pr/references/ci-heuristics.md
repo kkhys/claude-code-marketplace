@@ -63,11 +63,7 @@ report.
 
 ## Stop and ask instead of pressing on
 
-- The worktree has unrelated uncommitted changes.
-- `gh` auth or repository permissions fail.
-- The push is rejected because someone else pushed to the branch.
-- Failures persist after the rerun budget.
-- The fix would need a product decision, a dependency upgrade, or a change
-  outside the PR's scope.
-- The failure is in infrastructure the user owns (self-hosted runner, external
-  credentials).
+Beyond the blockers the snapshot already reports, stop when the fix itself is not
+yours to make: it needs a dependency upgrade, a change outside the PR's scope, or
+it lives in infrastructure the user owns (self-hosted runner, external
+credentials).

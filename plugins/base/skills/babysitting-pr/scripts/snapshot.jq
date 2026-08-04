@@ -102,8 +102,11 @@ $raw.data.repository.pullRequest as $pr
     reviews: {
       unresolved_thread_count: ($threads | length),
       threads: $threads,
-      # Latest submission per reviewer — earlier ones are superseded.
-      submitted: [ $reviews | group_by(.author)[] | last ],
+      # Who has weighed in and how, for the final summary only — the loop reads
+      # pr.review_decision for the verdict and copilot.* for Copilot's round, so
+      # carrying each review's commit and timestamp would be dead weight on
+      # every poll.
+      submitted: [ $reviews | group_by(.author)[] | last | {author, state} ],
       requested_reviewers: $requested
     },
     copilot: {
