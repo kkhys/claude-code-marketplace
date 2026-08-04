@@ -6,8 +6,13 @@ set -euo pipefail
 #
 # Payload: { body: string, comments: [{ path, line, body, side?, start_line?, start_side? }] }
 # Review is always created in PENDING state (event field is intentionally omitted).
+#
+# The review summary and every comment are prefixed with an attribution marker so
+# the PR author can tell agent-authored feedback from a human reviewer's. It is
+# applied here rather than left to the caller so it cannot be forgotten.
 
 readonly PAYLOAD_FILE="${1:?Usage: post-pr-review.sh <payload.json>}"
+readonly MARKER="[from Claude Code]"
 
 if [[ ! -f "${PAYLOAD_FILE}" ]]; then
   echo "Error: Payload file not found: ${PAYLOAD_FILE}" >&2
@@ -37,15 +42,20 @@ HEAD_OID="$(echo "${PR_JSON}" | jq -r '.headRefOid')"
 readonly HEAD_OID
 
 # Build API request body (event omitted = PENDING)
-# shellcheck disable=SC2016  # $commit_id is a jq variable, not a shell one
-REQUEST_BODY="$(jq --arg commit_id "${HEAD_OID}" '{
+# shellcheck disable=SC2016  # $commit_id/$marker are jq variables, not shell ones
+REQUEST_BODY="$(jq --arg commit_id "${HEAD_OID}" --arg marker "${MARKER}" '
+def attribute:
+  if . == null or . == "" then $marker
+  elif startswith($marker) then .
+  else "\($marker) \(.)" end;
+{
   commit_id: $commit_id,
-  body: (.body // ""),
+  body: (.body | attribute),
   comments: [.comments[] | {
     path: .path,
     line: .line,
     side: (.side // "RIGHT"),
-    body: .body
+    body: (.body | attribute)
   } + (if .start_line then {start_line: .start_line, start_side: (.start_side // "RIGHT")} else {} end)]
 }' "${PAYLOAD_FILE}")"
 readonly REQUEST_BODY

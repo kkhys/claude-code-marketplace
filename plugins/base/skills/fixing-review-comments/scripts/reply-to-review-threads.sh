@@ -5,8 +5,13 @@ set -euo pipefail
 # Usage: reply-to-review-threads.sh <replies.json>
 #
 # Payload: { replies: [{ thread_id: string, body: string }] }
+#
+# Every reply is prefixed with an attribution marker so reviewers can tell an
+# agent's reply from the user's own. It is applied here rather than left to the
+# caller so it cannot be forgotten.
 
 readonly PAYLOAD_FILE="${1:?Usage: reply-to-review-threads.sh <replies.json>}"
+readonly MARKER="[from Claude Code]"
 
 if [[ ! -f "${PAYLOAD_FILE}" ]]; then
   echo "Error: Payload file not found: ${PAYLOAD_FILE}" >&2
@@ -33,7 +38,9 @@ failed=0
 
 for i in $(seq 0 $(( REPLY_COUNT - 1 ))); do
   thread_id="$(jq -r ".replies[$i].thread_id" "${PAYLOAD_FILE}")"
-  body="$(jq -r ".replies[$i].body" "${PAYLOAD_FILE}")"
+  body="$(jq -r --arg marker "${MARKER}" --argjson i "${i}" \
+    '.replies[$i].body | if startswith($marker) then . else "\($marker) \(.)" end' \
+    "${PAYLOAD_FILE}")"
 
   # shellcheck disable=SC2016  # $threadId/$body are GraphQL variables, not shell ones
   if gh api graphql \

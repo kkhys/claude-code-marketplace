@@ -221,6 +221,10 @@ description: Enforce Conventional Commits format for git commits. Use when creat
 description: Helps with commits
 ```
 
+### GitHub Comment Attribution
+
+Every comment posted to GitHub from this marketplace starts with `[from Claude Code]`, so reviewers can tell an agent's comment from the user's own. `reply-to-review-threads.sh` and `post-pr-review.sh` prepend it idempotently — write bodies without it. Add it by hand when posting with plain `gh pr comment`.
+
 ### Tool Restrictions
 
 Scope `allowed-tools` narrowly to prevent overly broad permissions:

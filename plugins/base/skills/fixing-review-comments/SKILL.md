@@ -91,6 +91,10 @@ Payload format:
 
 Write replies in Japanese. Be concise but specific — one sentence per reply that describes the actual change made.
 
+### Attribution
+
+The script prefixes every reply with `[from Claude Code]`, so write the body without it. Reviewers need to tell an agent's reply from the user's own — an unmarked reply reads as a personal commitment from the user. The same marker belongs on anything posted with plain `gh pr comment`, where nothing adds it for you.
+
 ### Thread Resolution
 
 Do not auto-resolve threads. Resolution is the reviewer's prerogative — they decide when the fix is satisfactory. If the user explicitly asks to resolve threads, invoke the `resolving-pr-comments` skill.
