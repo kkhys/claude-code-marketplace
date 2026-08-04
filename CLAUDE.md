@@ -171,9 +171,10 @@ Git workflow:
 
 PR review:
 - `reading-unresolved-pr-comments` - Fetch unresolved PR review comments and create fix plan
-- `resolving-pr-comments` - Bulk-resolve all unresolved review threads on current PR
+- `resolving-pr-comments` - Resolve review threads on the current PR (all unresolved, or a specific thread ID list)
 - `fixing-review-comments` - Address unresolved review comments on the current branch
 - `posting-pr-review` - Post review comments to a GitHub PR as a PENDING review
+- `babysitting-pr` - Monitor a PR until it is mergeable (draft: until review comments are resolved): long-poll CI/review/merge state via `pr-watch.sh`, autonomously fix branch-caused CI failures and actionable review comments, and re-request Copilot review after each fix round until Copilot stops commenting
 
 Other:
 - `summarizing-release-notes` - Summarize recent Claude Code release notes

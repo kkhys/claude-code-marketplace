@@ -98,3 +98,5 @@ The script prefixes every reply with `[from Claude Code]`, so write the body wit
 ### Thread Resolution
 
 Do not auto-resolve threads. Resolution is the reviewer's prerogative — they decide when the fix is satisfactory. If the user explicitly asks to resolve threads, invoke the `resolving-pr-comments` skill.
+
+One workflow overrides this: `babysitting-pr` resolves the threads it addressed, because its terminal condition is "no unresolved threads" and an addressed-but-open thread would keep it polling forever. That override belongs to that skill; on its own, this one leaves resolution alone.
