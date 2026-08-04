@@ -23,6 +23,24 @@ if ! jq empty "${PAYLOAD_FILE}" 2>/dev/null; then
   exit 1
 fi
 
+if [[ "$(jq '.replies | type' "${PAYLOAD_FILE}")" != '"array"' ]]; then
+  echo "Error: Payload must contain a 'replies' array" >&2
+  exit 1
+fi
+
+# Validate every entry before posting anything. A malformed body discovered
+# mid-loop would abort under `set -e` after earlier replies already landed,
+# leaving the threads half-answered with no record of where it stopped.
+INVALID="$(jq '[.replies[]
+  | select((.thread_id | type) != "string" or .thread_id == ""
+           or (.body | type) != "string" or .body == "")] | length' "${PAYLOAD_FILE}")"
+readonly INVALID
+
+if [[ "${INVALID}" -ne 0 ]]; then
+  echo "Error: ${INVALID} of $(jq '.replies | length' "${PAYLOAD_FILE}") replies lack a non-empty thread_id and body" >&2
+  exit 1
+fi
+
 REPLY_COUNT="$(jq '.replies | length' "${PAYLOAD_FILE}")"
 readonly REPLY_COUNT
 

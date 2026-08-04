@@ -48,4 +48,15 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run offline script tests
-        run: bash plugins/base/skills/babysitting-pr/scripts/test-pr-watch.sh
+        run: |
+          shopt -s nullglob
+          tests=(plugins/*/skills/*/scripts/test-*.sh plugins/*/scripts/test-*.sh)
+          if [[ ${#tests[@]} -eq 0 ]]; then
+            echo "No test scripts found" >&2
+            exit 1
+          fi
+          for test in "${tests[@]}"; do
+            echo "::group::${test}"
+            bash "${test}"
+            echo "::endgroup::"
+          done
