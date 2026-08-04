@@ -40,3 +40,12 @@ jobs:
           shellcheck \
             plugins/base/scripts/*.sh \
             plugins/base/skills/*/scripts/*.sh
+
+  scripts:
+    name: Script tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run offline script tests
+        run: bash plugins/base/skills/babysitting-pr/scripts/test-pr-watch.sh

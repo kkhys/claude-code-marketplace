@@ -94,7 +94,14 @@ claude plugin validate ./plugins/writing --strict
 shellcheck plugins/base/scripts/*.sh plugins/base/skills/*/scripts/*.sh
 ```
 
-CI (`.github/workflows/validate.yml`) runs both of the above on every push and pull request.
+### Tests
+
+```bash
+# Offline tests for the babysitting-pr watcher (terminal rules, state, version gate)
+bash plugins/base/skills/babysitting-pr/scripts/test-pr-watch.sh
+```
+
+CI (`.github/workflows/validate.yml`) runs manifest validation, ShellCheck, and the script tests on every push and pull request.
 
 ### Local Testing
 
