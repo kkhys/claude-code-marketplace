@@ -25,6 +25,7 @@ interval=30
 timeout_secs=420
 retry_budget=3
 copilot_cap=5
+copilot_stall=900
 log_lines=80
 state_file=""
 owner=""
@@ -50,6 +51,8 @@ Options:
   --timeout <seconds>       Stop waiting after this long (default: 420).
   --retry-budget <n>        Max flaky rerun cycles per head SHA (default: 3).
   --copilot-cap <n>         Max Copilot review rounds per PR (default: 5).
+  --copilot-stall <secs>    Flag a Copilot request that produced no review after
+                            this long as a blocker (default: 900).
   --log-lines <n>           Log tail length for --failed-logs (default: 80).
   --state-file <path>       Override the state file location.
   -h, --help                Show this help.
@@ -79,6 +82,7 @@ parse_args() {
       --timeout) timeout_secs="${2:?--timeout requires a value}"; shift 2 ;;
       --retry-budget) retry_budget="${2:?--retry-budget requires a value}"; shift 2 ;;
       --copilot-cap) copilot_cap="${2:?--copilot-cap requires a value}"; shift 2 ;;
+      --copilot-stall) copilot_stall="${2:?--copilot-stall requires a value}"; shift 2 ;;
       --log-lines) log_lines="${2:?--log-lines requires a value}"; shift 2 ;;
       --state-file) state_file="${2:?--state-file requires a value}"; shift 2 ;;
       -h | --help) usage; exit 0 ;;
@@ -265,8 +269,10 @@ build_snapshot() {
     --argjson prior "${prior}" \
     --argjson local "${local_info}" \
     --arg now "${now}" \
+    --argjson now_epoch "$(date +%s)" \
     --argjson budget "${retry_budget}" \
     --argjson cap "${copilot_cap}" \
+    --argjson stall "${copilot_stall}" \
     --from-file "${SNAPSHOT_JQ}"
 }
 
@@ -287,6 +293,7 @@ save_state() {
     --argjson snap "${snapshot}" \
     --argjson retry_delta "${retry_delta}" \
     --argjson copilot_delta "${copilot_delta}" \
+    --argjson now_epoch "$(date +%s)" \
     '$snap.pr.head_sha as $head
      | {
          pr: $snap.pr.number,
@@ -296,6 +303,8 @@ save_state() {
          retries: (($prior.retries // {})
                    + {($head): (($prior.retries[$head] // 0) + $retry_delta)}),
          copilot_rounds: (($prior.copilot_rounds // 0) + $copilot_delta),
+         copilot_requested_at: (if $copilot_delta > 0 then $now_epoch
+                                else ($prior.copilot_requested_at // null) end),
          updated_at: $snap.polled_at
        }' > "${tmp}"
   mv "${tmp}" "${state_file}"

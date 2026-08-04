@@ -20,7 +20,7 @@ the rules that produced them.
 with CI green and no open threads, what remains is a human approval.
 
 `blockers`, each needing the user: `merge_conflict`, `retry_budget_exhausted`,
-`copilot_round_cap`.
+`copilot_round_cap`, `copilot_review_stalled`.
 
 `actions`, in the order the loop should consider them: `stop_pr_merged`,
 `stop_pr_closed`, `process_review_comment`, `diagnose_ci_failure`,
@@ -41,6 +41,9 @@ with CI green and no open threads, what remains is a human approval.
 - `copilot.participant` is true when Copilot is currently requested or has
   reviewed at least once — the loop never pulls Copilot into a PR that never
   involved it. Only the review bot counts, not `copilot-swe-agent[bot]`.
+- `copilot.request_age_seconds` is how long the outstanding request has gone
+  unanswered, and is null when nothing is pending or when the state file predates
+  the field — the stall blocker fails open rather than crying wolf.
 - `local.*` describes the working copy the script ran in. When watching another
   repository's PR via `--pr <url>`, those fields describe the wrong checkout.
 - `new_thread_ids` is relative to every earlier poll in this state file, not just
@@ -57,6 +60,7 @@ with CI green and no open threads, what remains is a human approval.
   "known_thread_ids": ["PRRT_..."],    // union across polls
   "retries": { "<head-sha>": 1 },      // rerun cycles, per SHA
   "copilot_rounds": 2,                 // review requests, per PR
+  "copilot_requested_at": 1785899000,  // epoch of the last request; drives the stall blocker
   "updated_at": "2026-08-04T02:11:09Z"
 }
 ```

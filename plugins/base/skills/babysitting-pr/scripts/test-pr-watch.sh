@@ -79,8 +79,10 @@ snapshot() {
     --argjson prior "${prior_json}" \
     --argjson local '{"current_branch":"feature/x","head_sha":"sha-new","dirty":false,"unpushed_commits":0}' \
     --arg now "2026-08-04T00:00:00Z" \
+    --argjson now_epoch 1000000 \
     --argjson budget 3 \
     --argjson cap 5 \
+    --argjson stall 900 \
     --from-file "${SNAPSHOT_JQ}"
 }
 
@@ -252,6 +254,26 @@ expect 'the Copilot round cap becomes a blocker' \
   '[.blockers, .actions]' '[["copilot_round_cap"],["wait"]]' \
   '{"copilot_rounds":5}'
 
+# A request that never yields a review changes nothing, so the watcher has
+# nothing to detect and would poll until the user gave up.
+expect 'a Copilot request that produced no review becomes a blocker' \
+  "$(jq '.reviewRequests.nodes += [{"requestedReviewer":{"__typename":"Bot","login":"copilot-pull-request-reviewer"}}]' <<< "${BASE}")" \
+  '[.copilot.request_age_seconds, .blockers]' '[1000,["copilot_review_stalled"]]' \
+  '{"copilot_requested_at":999000}'
+
+expect 'a request still inside the stall window is not a blocker' \
+  "$(jq '.reviewRequests.nodes += [{"requestedReviewer":{"__typename":"Bot","login":"copilot-pull-request-reviewer"}}]' <<< "${BASE}")" \
+  '[.copilot.request_age_seconds, .blockers, .actions]' '[300,[],["wait"]]' \
+  '{"copilot_requested_at":999700}'
+
+expect 'a state file predating the timestamp field never false-positives' \
+  "$(jq '.reviewRequests.nodes += [{"requestedReviewer":{"__typename":"Bot","login":"copilot-pull-request-reviewer"}}]' <<< "${BASE}")" \
+  '[.copilot.request_age_seconds, .blockers]' '[null,[]]' \
+  '{"copilot_rounds":1}'
+
+expect 'age is not reported once the review has landed' \
+  "${BASE}" '.copilot.request_age_seconds' 'null' '{"copilot_requested_at":999000}'
+
 expect 'Copilot threads are counted separately from other reviewers' \
   "$(jq --argjson t "$(copilot_thread)" '.reviewThreads.nodes += [$t] | .reviews.nodes += [{"state":"COMMENTED","submittedAt":"2026-08-04T00:00:00Z","author":{"login":"copilot-pull-request-reviewer[bot]"},"commit":{"oid":"sha-new"}}]' <<< "${BASE}")" \
   '[.copilot.unresolved_thread_count, .copilot.unresolved_thread_ids]' '[1,["THREAD_1"]]'
@@ -357,6 +379,16 @@ check 'a snapshot with no action preserves the counters' \
 
 check 'threads seen once stay known' \
   '["THREAD_1"]' "$(jq -c '.known_thread_ids' <<< "${prior}")"
+
+# The stall blocker is only as good as this timestamp surviving plain polls.
+check 'requesting a review stamps the request time' \
+  'number' "$(jq -r '.copilot_requested_at | type' <<< "${prior}")"
+
+REQUESTED_AT="$(jq -r '.copilot_requested_at' <<< "${prior}")"
+readonly REQUESTED_AT
+prior="$(save_and_read "${SNAP_A}")"
+check 'a snapshot with no action preserves the request time' \
+  "${REQUESTED_AT}" "$(jq -r '.copilot_requested_at' <<< "${prior}")"
 
 SNAP_B="$(snapshot "$(jq '.headRefOid = "sha-2" | .commits.nodes[0].commit.oid = "sha-2"' <<< "${BASE}")")"
 readonly SNAP_B

@@ -114,7 +114,13 @@ $raw.data.repository.pullRequest as $pr
       unresolved_thread_count: ($copilot_threads | length),
       unresolved_thread_ids: [ $copilot_threads[].thread_id ],
       rounds_used: ($prior.copilot_rounds // 0),
-      rounds_cap: $cap
+      rounds_cap: $cap,
+      # How long the current request has been outstanding. Null when nothing is
+      # pending, or when the request predates this field in the state file.
+      request_age_seconds: (if $copilot_requested and ($prior.copilot_requested_at // null) != null
+                            then $now_epoch - $prior.copilot_requested_at
+                            else null end),
+      stall_after_seconds: $stall
     },
     retries: {
       used: ($prior.retries[$head] // 0),
@@ -165,7 +171,12 @@ $raw.data.repository.pullRequest as $pr
    + (if ($s.ci.failed > 0 and $s.ci.pending == 0 and $s.retries.used >= $s.retries.budget)
       then ["retry_budget_exhausted"] else [] end)
    + (if (($copilot_clean | not) and $s.copilot.rounds_used >= $s.copilot.rounds_cap)
-      then ["copilot_round_cap"] else [] end)) as $blockers
+      then ["copilot_round_cap"] else [] end)
+   # A request that never produces a review leaves nothing for the watcher to
+   # detect, so without this it would poll until the user gave up. The round cap
+   # counts requests, not elapsed silence, and cannot catch it.
+   + (if (($s.copilot.request_age_seconds // 0) > $stall)
+      then ["copilot_review_stalled"] else [] end)) as $blockers
 | (if $terminal == "merged" then ["stop_pr_merged"]
    elif $terminal == "closed" then ["stop_pr_closed"]
    else

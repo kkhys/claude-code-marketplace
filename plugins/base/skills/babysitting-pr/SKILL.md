@@ -176,13 +176,19 @@ The snapshot only asks for a re-request when Copilot is already a participant �
 either currently requested or has reviewed at least once. Do not add Copilot to
 a PR that never involved it.
 
-Two guards, both surfaced as blockers rather than silently swallowed:
+Copilot takes several minutes per round, so `review_pending: true` with no other
+change is normal — keep waiting. Three guards, all surfaced rather than silently
+swallowed:
 
 - Copilot repeats comments it has already made, including dismissed ones. If a
   round produces only feedback you already addressed on this branch, treat the
   loop as converged, say so, and stop re-requesting.
 - After 5 rounds (`copilot.rounds_cap`), stop and report. A loop that will not
   converge is information the user needs, not something to grind on.
+- `copilot_review_stalled` means a request has been outstanding for 15 minutes
+  (`copilot.stall_after_seconds`) with no review. Since a request that never
+  lands changes nothing, there is nothing for the watcher to detect — check
+  whether Copilot code review is enabled and in quota for the repository.
 
 If `--request-copilot-review` fails because Copilot code review is unavailable on
 the repository, note it once and continue babysitting without the Copilot loop.
