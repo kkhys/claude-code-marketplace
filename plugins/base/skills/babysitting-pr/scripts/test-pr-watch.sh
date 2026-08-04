@@ -334,6 +334,40 @@ expect 'the bare "Copilot" login counts as the review bot' \
   "$(jq '.reviews.nodes += [{"state":"COMMENTED","submittedAt":"2026-08-04T00:00:00Z","author":{"login":"Copilot"},"commit":{"oid":"sha-old"}}]' <<< "${BASE}")" \
   '[.copilot.participant, .actions]' '[true,["request_copilot_review"]]'
 
+# --- failed job log trimming -------------------------------------------------
+
+# Shape taken from a real ShellCheck job failure: the useful lines sit above a
+# long post-job cleanup section, and every line carries an ISO timestamp.
+job_log_fixture() {
+  cat <<'EOF'
+2026-08-04T03:09:26.4891885Z      ^-----^ SC2086 (info): Double quote to prevent globbing.
+2026-08-04T03:09:26.4933700Z ##[error]Process completed with exit code 1.
+2026-08-04T03:09:26.5092425Z Node 20 is being deprecated.
+2026-08-04T03:09:26.5094264Z Post job cleanup.
+2026-08-04T03:09:26.6075121Z [command]/usr/bin/git version
+2026-08-04T03:09:26.7409014Z Cleaning up orphan processes
+EOF
+}
+
+# shellcheck disable=SC2034  # read by trim_job_log from the sourced script
+log_lines=50
+check 'timestamps and the post-job cleanup section are dropped' \
+  '     ^-----^ SC2086 (info): Double quote to prevent globbing.
+##[error]Process completed with exit code 1.
+Node 20 is being deprecated.' \
+  "$(job_log_fixture | trim_job_log)"
+
+check 'the grouped form of the cleanup marker is also cut' \
+  'boom' \
+  "$(printf '2026-08-04T03:09:26.1Z boom\n2026-08-04T03:09:26.2Z ##[group]Post job cleanup\n2026-08-04T03:09:26.3Z noise\n' | trim_job_log)"
+
+# shellcheck disable=SC2034  # read by trim_job_log from the sourced script
+log_lines=2
+check 'the tail limit still applies after trimming' \
+  '##[error]Process completed with exit code 1.
+Node 20 is being deprecated.' \
+  "$(job_log_fixture | trim_job_log)"
+
 # --- version gate ------------------------------------------------------------
 
 check 'gh 2.96.0 satisfies the 2.88.0 Copilot requirement' \

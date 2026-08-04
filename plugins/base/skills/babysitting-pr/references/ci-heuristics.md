@@ -10,10 +10,13 @@ correct response is opposite in each case.
 bash "${CLAUDE_SKILL_DIR}/scripts/pr-watch.sh" --failed-logs
 ```
 
-This prints the tail of every failed job's log on the head SHA. It uses the
-per-job log endpoint rather than `gh run view --log-failed`, which stays empty
-until the whole workflow run finishes — so a job that failed 30 seconds into a
-15-minute run is diagnosable immediately instead of 14 minutes later.
+This prints the tail of every failed job's log on the head SHA, with the ISO
+timestamps and the post-job cleanup section stripped — raw Actions logs end in
+about twenty lines of git config and runner boilerplate that would otherwise
+crowd out the failure. It uses the per-job log endpoint rather than
+`gh run view --log-failed`, which stays empty until the whole workflow run
+finishes, so a job that failed 30 seconds into a 15-minute run is diagnosable
+immediately instead of 14 minutes later.
 
 For more than the tail: `gh api repos/<owner>/<repo>/actions/jobs/<job-id>/logs`.
 

@@ -398,6 +398,15 @@ action_request_copilot_review() {
     '{action: "request_copilot_review", head_sha: $head, rounds_used: $rounds, rounds_cap: $cap}'
 }
 
+# Actions logs stamp every line with an ISO timestamp and end with ~20 lines of
+# post-job cleanup. Tailing them raw spends most of the window on boilerplate, so
+# drop the cleanup section and the timestamps before taking the tail.
+trim_job_log() {
+  sed -e 's/^[0-9][0-9-]*T[0-9:.]*Z //' \
+      -e '/^\(##\[group\]\)\{0,1\}Post job cleanup/,$d' \
+    | tail -n "${log_lines}"
+}
+
 action_failed_logs() {
   local snapshot run_ids run_id jobs failed_jobs="" job_id job_name
   snapshot="$(build_snapshot)"
@@ -417,7 +426,7 @@ action_failed_logs() {
     printf '\n===== failed job: %s (id %s, last %s lines) =====\n' \
       "${job_name}" "${job_id}" "${log_lines}"
     if ! gh api "repos/${owner}/${repo}/actions/jobs/${job_id}/logs" 2> /dev/null \
-      | tail -n "${log_lines}"; then
+      | trim_job_log; then
       printf '(logs unavailable — the job may still be uploading them)\n'
     fi
   done <<< "${failed_jobs}"
