@@ -166,6 +166,7 @@ The `base` plugin (`plugins/base/`) is the primary plugin containing core workfl
 - `creating-task-summary` - Create weekly task summaries
 - `uploading-knowledge-gist` - Upload session knowledge to secret GitHub Gist
 - `digging` - Interrogate a plan, design, or decision one question at a time until shared understanding is reached
+- `creating-trend-digest` - Collect today's trends from 7 sources (HN, Hatena, Zenn, Qiita, Lobsters, GitHub Trending, dev.to), score by personal interest profile in `~/.claude/trend-digest/`, and open an HTML digest
 
 **Model-invocable skills** (discovered by Claude, also invocable via `/skill-name`):
 
