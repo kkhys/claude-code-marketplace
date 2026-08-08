@@ -12,6 +12,12 @@ disable-model-invocation: true
 
 Save knowledge from the current session as a secret GitHub Gist — searchable, linkable, and available for future reference.
 
+## Topic
+
+$ARGUMENTS
+
+If blank, derive the topic from the session's main subject.
+
 ## What makes a good knowledge Gist
 
 The goal is to help future-you (or a teammate) who hits the same problem or needs the same context. Good candidates:

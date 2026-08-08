@@ -18,6 +18,13 @@ allowed-tools:
 
 # Creating PR
 
+## Requested Base Branch
+
+$ARGUMENTS
+
+This skill runs in a fork and cannot see the conversation, so any explicit
+base-branch instruction from the user must arrive through the argument above.
+
 ## Current Branch State
 
 - Branch: !`git branch --show-current`
@@ -47,7 +54,7 @@ A feature branch that includes bug fixes and tests is still `feat`. A bug fix wi
 
 ## PR Template
 
-Before generating a description, check if the repository has a PR template (`.github/pull_request_template.md` or similar standard locations). If found, use it as the body structure and fill in sections based on the actual changes. If multiple templates exist, ask the user which to use.
+Before generating a description, check if the repository has a PR template (`.github/pull_request_template.md` or similar standard locations). If found, use it as the body structure and fill in sections based on the actual changes. If multiple templates exist, use the default `pull_request_template.md` when present; otherwise pick the one whose name best matches the change type and state which template was chosen in the output (this skill runs in a fork and cannot ask).
 
 ## Body
 
@@ -72,7 +79,7 @@ Bad (too verbose, has sections):
 ## Base Branch
 
 Use `--base <branch>` to explicitly set the merge target. Determine the base branch from:
-1. The argument passed to this skill, or the user's explicit instruction (e.g., "develop にマージ")
+1. The requested base branch above (the skill argument carries the user's explicit instruction, e.g., "develop にマージ")
 2. The branch the current branch was created from
 3. Default to `main`
 

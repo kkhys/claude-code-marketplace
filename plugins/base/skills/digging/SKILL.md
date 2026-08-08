@@ -11,6 +11,12 @@ disallowed-tools:
 
 # Digging
 
+## Topic
+
+$ARGUMENTS
+
+If blank, dig into the plan or decision currently under discussion.
+
 Question the user about every side of a plan, design, or decision until both
 sides hold the same picture of it. Push on soft or vague answers. Walk each
 branch of the design tree, resolving the dependencies between judgments one at

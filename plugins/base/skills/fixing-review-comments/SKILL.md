@@ -15,6 +15,11 @@ allowed-tools:
   - Bash(git:*)
   - Bash(bash:*)
   - Read
+  - Edit
+  - Write
+  - Glob
+  - Grep
+  - Agent
 ---
 
 # Fix Review Comments
