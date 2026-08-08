@@ -3,7 +3,7 @@
   "name": "writing",
   "displayName": "Writing",
   "description": "Specialized writing agents for reviewing, editing, and enhancing blog posts, articles, and essays",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "author": {
     "name": "Keisuke Hayashi",
     "email": "hi@kkhys.me",

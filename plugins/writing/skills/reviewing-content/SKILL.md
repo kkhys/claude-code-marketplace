@@ -61,7 +61,7 @@ Review the following article according to your specialization.
 
 Article: {article_path}
 
-Read the article in full, then provide feedback. Communicate entirely in Japanese.
+Read the article in full, then provide feedback.
 
 Organize findings by priority:
 1. Critical — issues that significantly harm quality or correctness (must fix)
