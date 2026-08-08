@@ -1,3 +1,5 @@
+include "unresolved-threads";
+
 def check_bucket:
   if .__typename == "CheckRun" then
     if .status != "COMPLETED" then "pending"
@@ -28,28 +30,10 @@ $raw.data.repository.pullRequest as $pr
         run_id: (.checkSuite.workflowRun.databaseId // null),
         url: (.detailsUrl // .targetUrl)
       } ] as $checks
-| [ $pr.reviewThreads.nodes[]
-    | select(.isResolved == false)
-    | {
-        thread_id: .id,
-        path: .path,
-        line: .line,
-        start_line: .startLine,
-        is_outdated: .isOutdated,
-        comments: [ .comments.nodes[]
-                    # Comments attached to a PENDING review are not published
-                    # yet; acting on them would leak an unsent draft review.
-                    | select((.pullRequestReview.state // "SUBMITTED") != "PENDING")
-                    | {
-                        author: (.author.login // "ghost"),
-                        association: .authorAssociation,
-                        body: .body,
-                        url: .url,
-                        created_at: .createdAt
-                      } ]
-      }
-    | select((.comments | length) > 0) ] as $threads
-| [ $pr.reviews.nodes[]
+# Thread selection lives in scripts/lib/unresolved-threads.jq, shared with
+# read-unresolved-pr-comments.sh (PENDING-draft filter included).
+| ($pr.reviewThreads | unresolved_threads) as $threads
+| [ (($pr.reviews.nodes) // [])[]
     | select(.state != "PENDING")
     | {
         author: (.author.login // "ghost"),

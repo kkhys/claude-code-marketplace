@@ -16,6 +16,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR
+LIB_DIR="$(cd -- "${SCRIPT_DIR}/../../../scripts/lib" && pwd)"
+readonly LIB_DIR
 readonly SNAPSHOT_JQ="${SCRIPT_DIR}/snapshot.jq"
 readonly GH_MIN_VERSION_COPILOT="2.88.0"
 
@@ -138,6 +140,9 @@ load_state() {
   fi
 }
 
+# The reviewRequests / reviewThreads selections are shared fragments in
+# scripts/lib, so the reviewer type fragments and the PENDING-filter fields
+# cannot drift from read-unresolved-pr-comments.sh.
 graphql_query() {
   cat <<'EOF'
 query($owner: String!, $repo: String!, $number: Int!) {
@@ -155,16 +160,9 @@ query($owner: String!, $repo: String!, $number: Int!) {
       headRefName
       headRefOid
       author { login }
-      reviewRequests(first: 50) {
-        nodes {
-          requestedReviewer {
-            __typename
-            ... on User { login }
-            ... on Bot { login }
-            ... on Team { slug }
-          }
-        }
-      }
+EOF
+  cat "${LIB_DIR}/review-requests.graphql"
+  cat <<'EOF'
       reviews(last: 30) {
         nodes {
           state
@@ -173,26 +171,9 @@ query($owner: String!, $repo: String!, $number: Int!) {
           commit { oid }
         }
       }
-      reviewThreads(first: 100) {
-        nodes {
-          id
-          isResolved
-          isOutdated
-          path
-          line
-          startLine
-          comments(first: 50) {
-            nodes {
-              author { login }
-              authorAssociation
-              body
-              url
-              createdAt
-              pullRequestReview { state }
-            }
-          }
-        }
-      }
+EOF
+  cat "${LIB_DIR}/review-threads.graphql"
+  cat <<'EOF'
       commits(last: 1) {
         nodes {
           commit {
@@ -246,11 +227,25 @@ local_json() {
 build_snapshot() {
   local raw mergeable state attempt=0 now local_info
   while :; do
-    raw="$(gh api graphql \
+    if ! raw="$(gh api graphql \
       -f owner="${owner}" \
       -f repo="${repo}" \
       -F number="${pr_number}" \
-      -f query="$(graphql_query)")"
+      -f query="$(graphql_query)")"; then
+      printf 'Error: GraphQL query for %s/%s#%s failed (gh error above).\n' \
+        "${owner}" "${repo}" "${pr_number}" >&2
+      exit 1
+    fi
+    # A partial response (renamed repo, lost token scope, secondary rate
+    # limit) has no pullRequest; surface the API's own message instead of
+    # letting the snapshot derivation run on nulls.
+    if [[ "$(jq -r '.data.repository.pullRequest != null' <<< "${raw}")" != "true" ]]; then
+      printf 'Error: no pull request data returned for %s/%s#%s.\n' \
+        "${owner}" "${repo}" "${pr_number}" >&2
+      jq -r '(.errors // [])[] | "  " + .message' <<< "${raw}" 2> /dev/null \
+        || printf '%s\n' "${raw}" >&2
+      exit 1
+    fi
     mergeable="$(jq -r '.data.repository.pullRequest.mergeable // "UNKNOWN"' <<< "${raw}")"
     state="$(jq -r '.data.repository.pullRequest.state // "UNKNOWN"' <<< "${raw}")"
     # GitHub computes mergeability lazily; a first read often returns UNKNOWN.
@@ -265,6 +260,7 @@ build_snapshot() {
   local_info="$(local_json)"
 
   jq -n \
+    -L "${LIB_DIR}" \
     --argjson raw "${raw}" \
     --argjson prior "${prior}" \
     --argjson local "${local_info}" \

@@ -14,6 +14,17 @@ when_to_use: >-
   state without further prompting, or when they ask to keep fixing Copilot
   feedback until Copilot stops finding things.
 argument-hint: "[PR number | PR URL]"
+allowed-tools:
+  - Bash(gh:*)
+  - Bash(git:*)
+  - Bash(bash:*)
+  - Read
+  - Edit
+  - Write
+  - Glob
+  - Grep
+  - Agent
+  - Skill
 ---
 
 # Babysitting a PR
