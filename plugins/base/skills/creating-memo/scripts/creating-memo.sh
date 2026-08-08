@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-set +H
 
 readonly BASE_DIR="${HOME}/projects/github.com/kkhys/me/apps/memo/memo-content/memo"
 SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}")"
@@ -8,11 +7,10 @@ readonly SCRIPT_NAME
 
 # ULID-like ID generator (26 characters, lowercase)
 # Format: 10 chars timestamp + 16 chars random
-# Character set: 0-9, a-v (base32-like)
 generate_ulid() {
   local timestamp_ms="${1}"
 
-  # Base32 character set (0-9, a-v)
+  # Crockford base32 charset (0-9 plus a-z minus i, l, o, u)
   local charset="0123456789abcdefghjkmnpqrstvwxyz"
 
   # Generate timestamp part (10 characters)
@@ -56,6 +54,14 @@ create_memo() {
   local memo_dir="${BASE_DIR}/${dir_name}"
   local index_file="${memo_dir}/index.md"
 
+  # The directory name has one-second granularity; a second memo in the same
+  # second would silently overwrite the first.
+  if [[ -e "${index_file}" ]]; then
+    echo "Error: A memo created in the same second already exists: ${memo_dir}" >&2
+    echo "Retry in a moment." >&2
+    exit 1
+  fi
+
   mkdir -p "${memo_dir}"
 
   # Remove leading newlines from content
@@ -66,8 +72,8 @@ create_memo() {
     echo "---"
     echo "id: ${ulid}"
     echo "createdAt: ${created_at}"
-    [ -n "${tag}" ] && echo "tag: ${tag}"
-    [ -n "${comment}" ] && echo "comment: ${comment}"
+    if [[ -n "${tag}" ]]; then echo "tag: ${tag}"; fi
+    if [[ -n "${comment}" ]]; then echo "comment: ${comment}"; fi
     echo "---"
     echo ""
     printf '%s\n' "${content}"
@@ -79,23 +85,29 @@ create_memo() {
   echo "  File: index.md"
   echo "  ID: ${ulid}"
   echo "  Created: ${created_at}"
-  [ -n "${tag}" ] && echo "  Tag: ${tag}"
-  [ -n "${comment}" ] && echo "  Comment: ${comment}"
+  if [[ -n "${tag}" ]]; then echo "  Tag: ${tag}"; fi
+  # An `[ -n ... ] && echo` list here would end the function — and under
+  # set -e the whole script — with status 1 whenever the option is omitted.
+  if [[ -n "${comment}" ]]; then echo "  Comment: ${comment}"; fi
 }
 
 main() {
   local tag=""
   local comment=""
 
-  while [ $# -gt 0 ]; do
+  while [[ $# -gt 0 ]]; do
     case "${1}" in
       --tag)
-        tag="${2:-}"
+        tag="${2:?--tag requires a value}"
         shift 2
         ;;
       --comment)
-        comment="${2:-}"
+        comment="${2:?--comment requires a value}"
         shift 2
+        ;;
+      --)
+        shift
+        break
         ;;
       *)
         break
@@ -103,7 +115,7 @@ main() {
     esac
   done
 
-  if [ $# -eq 0 ]; then
+  if [[ $# -eq 0 ]]; then
     echo "" >&2
     echo "Error: Memo content is required" >&2
     echo "" >&2
