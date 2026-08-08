@@ -11,56 +11,34 @@ disallowed-tools:
 
 # Explaining Like Doraemon
 
-Take something in this session the user could not get a grip on and re-explain
-it as a dialogue between のび太 and ドラえもん, then restate it precisely.
+Re-explain `$ARGUMENTS` — or, when blank, the previous answer the user got
+stuck on — as a dialogue between のび太 and ドラえもん, in Japanese, then
+restate it precisely. Never invent a fresh topic; this skill re-explains what
+is already on screen.
 
-The subject is `$ARGUMENTS` when given, otherwise the previous answer — usually
-the part that just made the user stop. Never invent a fresh topic; this skill
-re-explains what is already on screen.
+## The dialogue
 
-## Why a dialogue
+The format earns its length only because のび太 can say the wrong thing out
+loud where a monologue can only assert. Before writing, ask what someone
+plausibly gets wrong here; those misconceptions are のび太's lines, and they
+set the order of the piece. If のび太 only nods along —「へえ、すごい！」—
+the format has bought nothing and cost length.
 
-The dialogue is not worth its length for the voices. It is worth it because
-のび太 can say the wrong thing out loud. A monologue can only assert. A dialogue
-can voice the misconception the reader is actually holding and then take it
-apart in front of them.
+- のび太 asks in concrete terms —「なんで同じこと2回も書かなきゃいけないの？」,
+  not 「抽象化とは何ですか」— proposes fixes that are reasonable and wrong,
+  and pushes back when a metaphor feels off.
+- ドラえもん connects to what のび太 already lives with (給食の当番、ジャイアンの
+  リサイタル、0点のテスト), grants the right part before correcting —
+  「そこまでは合ってる。でもね」— and says where every metaphor breaks:
+  「ただし本物はここがちがってね」. An unbounded metaphor is a falsehood the
+  reader will trust precisely because it was easy to picture.
+- Reach for a ひみつ道具 only when the mapping is genuinely tight (どこでもドア
+  for a symlink, タイムふろしき for a rollback). A gadget dragged in for flavor
+  reads as costume.
 
-So before writing anything, ask: what does someone plausibly get wrong here?
-Those misconceptions are のび太's lines, and they set the order of the whole
-piece. If のび太 only nods along —「へえ、すごい！」— the format has bought
-nothing and cost length. That is the failure to avoid above all others.
-
-## The two voices
-
-のび太 asks in concrete terms. Not 「抽象化とは何ですか」 but 「なんで同じこと
-2回も書かなきゃいけないの？」. He proposes fixes that are reasonable and wrong.
-He pushes back when a metaphor feels off, because a reader who noticed the same
-gap needs it addressed rather than glossed.
-
-ドラえもん connects to what のび太 already lives with: 給食の当番、ジャイアンの
-リサイタル、0点のテスト、押し入れ. He grants the right part before correcting —
-「そこまでは合ってる。でもね」 — since a correction that erases the whole guess
-never teaches which part was wrong.
-
-Reach for a ひみつ道具 only when the mapping is genuinely tight: どこでもドア for
-a symlink or a tunnel, もしもボックス for a feature flag or a staging
-environment, タイムふろしき for a rollback. A gadget dragged in for flavor reads
-as costume, not explanation.
-
-## Bound every metaphor
-
-Every metaphor breaks somewhere. Say where, inside the dialogue, in ドラえもん's
-voice:「ただし本物はここがちがってね」. An unbounded metaphor is a falsehood the
-reader will go on to trust, and they will trust it precisely because it was easy
-to picture.
-
-## Pacing
-
-One concept per exchange, ordered so each rests on the one before. Length
-follows the concept count rather than a target — four to eight exchanges is
-typical. Stop once the last thing worth misunderstanding has been cleared up.
-
-Write the dialogue in Japanese.
+One concept per exchange, each resting on the one before; four to eight
+exchanges is typical. Stop once the last thing worth misunderstanding has been
+cleared up.
 
 ## Format
 
@@ -76,7 +54,7 @@ Write the dialogue in Japanese.
 ...
 ```
 
-Close with the technical restatement:
+Close with:
 
 ```
 ---
@@ -92,17 +70,14 @@ Close with the technical restatement:
 - `path/to/file.ts:42` — [その行に何があるか]
 ```
 
-The dialogue traded precision for intuition; this section buys it back. It is
-not a summary of the conversation — it is the exact vocabulary, identifiers,
-commands, and paths that got softened into metaphor, so the user can grep for
-them and use them with other people. Read the code before naming a path or a
-line; a wrong reference costs more than an omitted one. Drop 該当箇所 entirely
-when the subject is not code.
+This closing section buys back the precision the dialogue traded away — the
+exact terms, identifiers, and paths that got softened into metaphor, so the
+user can grep for them. Read the code before naming a path or a line; a wrong
+reference costs more than an omitted one. Drop 該当箇所 when the subject is
+not code.
 
 ## When not to use this
 
-A previous answer that was long rather than hard only gets longer as a dialogue.
-Say so and offer a plain summary instead. Same when showing the code or running
-the command settles it faster. Reach for the dialogue when a concept is the
-obstacle — not when the obstacle is volume, or an unfamiliar API that a link
-would fix.
+An answer that was long rather than hard only gets longer as a dialogue — say
+so and offer a plain summary instead. Reach for the dialogue when a concept is
+the obstacle, not volume.
