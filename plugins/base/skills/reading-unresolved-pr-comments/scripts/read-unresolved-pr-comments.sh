@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OWNER_REPO="$(gh repo view --json nameWithOwner --jq '.nameWithOwner')"
-readonly OWNER_REPO
-readonly OWNER="${OWNER_REPO%%/*}"
-readonly REPO="${OWNER_REPO##*/}"
-PR_NUMBER="$(gh pr view --json number --jq '.number')"
-readonly PR_NUMBER
+# Fetch the current PR's unresolved review threads as structured JSON.
+#
+# The thread selection and mapping live in scripts/lib and are shared with the
+# babysitting-pr watcher, so PENDING drafts are filtered, Bot/Team reviewers
+# resolve to a name, and deleted users fall back to "ghost" in both places.
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+LIB_DIR="$(cd -- "${SCRIPT_DIR}/../../../scripts/lib" && pwd)"
+readonly LIB_DIR
+
+# shellcheck source=../../../scripts/lib/gh-context.sh disable=SC1091  # CI runs shellcheck without -x
+source "${LIB_DIR}/gh-context.sh"
+gh_context
 
 # shellcheck disable=SC2016  # $owner/$repo/$prNumber are GraphQL variables, not shell ones
 gh api graphql \
@@ -24,64 +32,21 @@ query($owner: String!, $repo: String!, $prNumber: Int!) {
       author {
         login
       }
-      reviewRequests(first: 100) {
-        nodes {
-          requestedReviewer {
-            ... on User {
-              login
-            }
-          }
-        }
-      }
-      reviewThreads(first: 100) {
-        edges {
-          node {
-            id
-            isResolved
-            isOutdated
-            path
-            line
-            startLine
-            comments(last: 100) {
-              nodes {
-                author {
-                  login
-                }
-                body
-                url
-                createdAt
-              }
-            }
-          }
-        }
-      }
+      '"$(cat "${LIB_DIR}/review-requests.graphql")"'
+      '"$(cat "${LIB_DIR}/review-threads.graphql")"'
     }
   }
-}' | jq '{
-  pr_number: .data.repository.pullRequest.number,
-  title: .data.repository.pullRequest.title,
-  url: .data.repository.pullRequest.url,
-  state: .data.repository.pullRequest.state,
-  author: .data.repository.pullRequest.author.login,
-  requested_reviewers: [.data.repository.pullRequest.reviewRequests.nodes[].requestedReviewer.login],
-  unresolved_threads: [
-    .data.repository.pullRequest.reviewThreads.edges[] |
-    select(.node.isResolved == false) |
-    {
-      thread_id: .node.id,
-      path: .node.path,
-      line: .node.line,
-      start_line: .node.startLine,
-      is_outdated: .node.isOutdated,
-      comments: [
-        .node.comments.nodes[] |
-        {
-          author: .author.login,
-          body: .body,
-          url: .url,
-          created_at: .createdAt
-        }
-      ]
-    }
-  ]
-}'
+}' | jq -L "${LIB_DIR}" '
+include "unresolved-threads";
+.data.repository.pullRequest as $pr
+| {
+    pr_number: $pr.number,
+    title: $pr.title,
+    url: $pr.url,
+    state: $pr.state,
+    author: ($pr.author.login // "ghost"),
+    requested_reviewers: [ (($pr.reviewRequests.nodes) // [])[]
+                           | (.requestedReviewer.login // .requestedReviewer.slug)
+                           | select(. != null) ],
+    unresolved_threads: ($pr.reviewThreads | unresolved_threads)
+  }'
