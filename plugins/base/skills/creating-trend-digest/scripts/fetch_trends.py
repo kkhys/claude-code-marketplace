@@ -306,7 +306,11 @@ def main():
     args = parser.parse_args()
 
     created = bootstrap(args.state_dir, args.skill_dir)
-    cfg = json.loads((args.state_dir / "config.json").read_text())
+    config_path = args.state_dir / "config.json"
+    try:
+        cfg = json.loads(config_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        return f"config.json が不正な JSON です ({config_path}): {e}"
     disabled = set(cfg.get("disabled_sources", []))
 
     now = datetime.now(timezone.utc)
@@ -315,7 +319,7 @@ def main():
     run_dir.mkdir(parents=True, exist_ok=True)
 
     seen_path = args.state_dir / "seen.json"
-    seen = json.loads(seen_path.read_text()) if seen_path.exists() else {}
+    seen = json.loads(seen_path.read_text(encoding="utf-8")) if seen_path.exists() else {}
 
     def run(svc):
         if svc["id"] in disabled:
@@ -341,17 +345,19 @@ def main():
             "status": res["status"], "note": res.get("note", ""), "items": items,
         })
 
-    if len(seen) > 8000:
-        seen = dict(sorted(seen.items(), key=lambda kv: kv[1], reverse=True)[:6000])
-    seen_path.write_text(json.dumps(seen, ensure_ascii=False))
-
     raw_path = run_dir / "raw.json"
     raw_path.write_text(json.dumps({
         "date": today,
         "fetched_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "items_per_service": cfg.get("items_per_service", 10),
         "services": services,
-    }, ensure_ascii=False, indent=1))
+    }, ensure_ascii=False, indent=1), encoding="utf-8")
+
+    # seen.json is written only after raw.json succeeds: URLs marked seen
+    # without a surviving raw file would never surface in any digest.
+    if len(seen) > 8000:
+        seen = dict(sorted(seen.items(), key=lambda kv: kv[1], reverse=True)[:6000])
+    seen_path.write_text(json.dumps(seen, ensure_ascii=False), encoding="utf-8")
 
     if created:
         print(f"BOOTSTRAPPED: {', '.join(created)} を {args.state_dir} に作成 (要ユーザー確認)")
@@ -360,6 +366,12 @@ def main():
         print(f"{s['id']:<11} {s['status']:<8} {len(s['items']):>3} items{note}")
     print(f"raw: {raw_path}")
     print(f"run_dir: {run_dir}")
+
+    # Partial failures are tolerated by design, but a run where every source
+    # failed produced nothing to digest and must fail loudly.
+    if all(s["status"] == "error" for s in services):
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

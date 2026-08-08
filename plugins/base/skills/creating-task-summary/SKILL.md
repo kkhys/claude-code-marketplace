@@ -60,11 +60,23 @@ When the period covers a week or more, fetch daily contribution counts to visual
 
 ```bash
 USERNAME=$(gh api user --jq '.login')
-gh api "users/${USERNAME}/contributions" \
-  --jq '.contributions[] | select(.date >= "'${START_DATE}'")'
+gh api graphql \
+  -f login="${USERNAME}" \
+  -f from="${START_DATE}T00:00:00Z" \
+  -f to="${END_DATE}T23:59:59Z" \
+  -f query='
+query($login: String!, $from: DateTime!, $to: DateTime!) {
+  user(login: $login) {
+    contributionsCollection(from: $from, to: $to) {
+      contributionCalendar {
+        weeks { contributionDays { date contributionCount } }
+      }
+    }
+  }
+}' --jq '.data.user.contributionsCollection.contributionCalendar.weeks[].contributionDays[] | "\(.date) \(.contributionCount)"'
 ```
 
-If this endpoint is unavailable, approximate from the PR/issue data by counting items per day based on `createdAt` / `mergedAt` dates.
+If the query fails, approximate from the PR/issue data by counting items per day based on `createdAt` / `mergedAt` dates.
 
 Render as a simple ASCII bar chart:
 

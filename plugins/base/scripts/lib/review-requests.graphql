@@ -1,0 +1,13 @@
+# Requested-reviewer selection shared by pr-watch.sh and
+# read-unresolved-pr-comments.sh. Bots (Copilot) and teams do not match a
+# User-only fragment and would silently disappear from the reviewer list.
+reviewRequests(first: 100) {
+  nodes {
+    requestedReviewer {
+      __typename
+      ... on User { login }
+      ... on Bot { login }
+      ... on Team { slug }
+    }
+  }
+}

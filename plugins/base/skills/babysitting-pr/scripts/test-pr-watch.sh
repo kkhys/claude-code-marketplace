@@ -75,6 +75,7 @@ snapshot() {
   [[ -n "${prior_json}" ]] || prior_json='{}'
   raw="$(jq -n --argjson pr "${pr_json}" '{data: {repository: {pullRequest: $pr}}}')"
   jq -n \
+    -L "${LIB_DIR}" \
     --argjson raw "${raw}" \
     --argjson prior "${prior_json}" \
     --argjson local '{"current_branch":"feature/x","head_sha":"sha-new","dirty":false,"unpushed_commits":0}' \
@@ -233,6 +234,11 @@ expect 'already-seen threads are excluded from new_thread_ids' \
 expect 'a resolved thread is ignored' \
   "$(jq --argjson t "$(copilot_thread)" '.reviewThreads.nodes += [($t | .isResolved = true)]' <<< "${BASE}")" \
   '[.reviews.unresolved_thread_count, .terminal]' '[0,"mergeable"]'
+
+# Regression: a partial GraphQL response (null pullRequest) used to crash the
+# derivation with "Cannot iterate over null" and kill the watch loop.
+expect 'a null pullRequest yields an empty snapshot instead of a jq crash' \
+  'null' '[.pr.number, .reviews.unresolved_thread_count, .actions]' '[null,0,["wait"]]'
 
 # --- Copilot review loop -----------------------------------------------------
 

@@ -11,6 +11,8 @@ set -euo pipefail
 TEST_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly TEST_DIR
 readonly SCRIPT="${TEST_DIR}/reply-to-review-threads.sh"
+LIB_DIR="$(cd -- "${TEST_DIR}/../../../scripts/lib" && pwd)"
+readonly LIB_DIR
 
 pass_count=0
 fail_count=0
@@ -63,10 +65,12 @@ expect_reject 'an empty replies array is a no-op, not an error' \
   '{"replies":[]}' 0 'No replies to post.'
 
 # Guards the marker contract the callers rely on: idempotent, first-token.
+# Exercises the shared attribution module the scripts themselves load, not a
+# copy of the expression, so drift in scripts/lib/attribution.jq fails here.
 check_marker() {
   local label="$1" input="$2" expected="$3" actual
-  actual="$(jq -rn --arg marker '[from Claude Code]' --argjson body "${input}" \
-    '$body | if startswith($marker) then . else "\($marker) \(.)" end')"
+  actual="$(jq -rn -L "${LIB_DIR}" --argjson body "${input}" \
+    'include "attribution"; $body | attribute')"
   if [[ "${actual}" == "${expected}" ]]; then
     printf 'ok   %s\n' "${label}"
     pass_count=$((pass_count + 1))
@@ -81,6 +85,10 @@ check_marker 'the marker is prepended to a plain body' \
   '"abc1234 で修正しました。"' '[from Claude Code] abc1234 で修正しました。'
 check_marker 'an already-marked body is left alone' \
   '"[from Claude Code] すでに付いている"' '[from Claude Code] すでに付いている'
+check_marker 'a null body becomes the bare marker' \
+  'null' '[from Claude Code]'
+check_marker 'an empty body becomes the bare marker' \
+  '""' '[from Claude Code]'
 
 printf '\n%s passed, %s failed\n' "${pass_count}" "${fail_count}"
 [[ "${fail_count}" -eq 0 ]]

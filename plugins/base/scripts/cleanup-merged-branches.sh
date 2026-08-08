@@ -41,20 +41,25 @@ else
   exit 0
 fi
 
-# Get merged branches (bash 3.2+ compatible)
+# Get merged branches (bash 3.2+ compatible). A branch checked out in any
+# worktree cannot be deleted, so skip those instead of queueing a guaranteed
+# failure.
 merged_branches=()
-while IFS= read -r branch; do
-  [[ -n "${branch}" ]] && merged_branches+=("${branch}")
-# Strip leading markers: "* " (current) and "+ " (checked out in another worktree)
-done < <(git branch --merged "${base_branch}" | sed 's/^[*+ ]*//' || true)
+while IFS=$'\t' read -r branch worktree; do
+  if [[ -z "${branch}" || -n "${worktree}" ]]; then
+    continue
+  fi
+  merged_branches+=("${branch}")
+done < <(git branch --merged "${base_branch}" --format='%(refname:short)%09%(worktreepath)' || true)
 
-# Filter out protected branches and current branch
+# Filter out protected branches and current branch. The ${arr[@]+...}
+# expansion keeps an empty array from tripping set -u on bash 3.2.
 branches_to_delete=()
-for branch in "${merged_branches[@]}"; do
-  # Skip current branch
-  [[ "${branch}" == "${CURRENT_BRANCH}" ]] && continue
-  
-  # Skip protected branches
+for branch in ${merged_branches[@]+"${merged_branches[@]}"}; do
+  if [[ "${branch}" == "${CURRENT_BRANCH}" ]]; then
+    continue
+  fi
+
   is_protected=false
   for protected in "${PROTECTED_BRANCHES[@]}"; do
     if [[ "${branch}" == "${protected}" ]]; then
@@ -62,9 +67,11 @@ for branch in "${merged_branches[@]}"; do
       break
     fi
   done
-  
-  [[ "${is_protected}" == true ]] && continue
-  
+
+  if [[ "${is_protected}" == true ]]; then
+    continue
+  fi
+
   branches_to_delete+=("${branch}")
 done
 
@@ -88,10 +95,14 @@ echo "========================================" >&2
 echo "" >&2
 echo "[Info] Deleting merged branches..." >&2
 for branch in "${branches_to_delete[@]}"; do
-  if git branch -d "${branch}" 2>/dev/null; then
+  # -D rather than -d: the --merged filter above already proves the branch is
+  # merged into ${base_branch}; -d would additionally require it to be merged
+  # into HEAD and fail whenever the hook fires from a feature branch.
+  if result="$(git branch -D "${branch}" 2>&1)"; then
     echo "  ✓ Deleted: ${branch}" >&2
   else
     echo "  ✗ Failed to delete: ${branch}" >&2
+    echo "    ${result}" >&2
   fi
 done
 

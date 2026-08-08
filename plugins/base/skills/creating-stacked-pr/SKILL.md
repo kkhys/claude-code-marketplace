@@ -15,9 +15,24 @@ when_to_use: >-
   Includes deciding NOT to stack — consult even to verify that a task is
   fine as a single PR.
 argument-hint: "[task description | split current branch]"
+allowed-tools:
+  - Bash(gh:*)
+  - Bash(git:*)
+  - Read
+  - Edit
+  - Write
+  - Glob
+  - Grep
+  - Skill
 ---
 
 # Creating Stacked PRs
+
+## Task
+
+$ARGUMENTS
+
+If blank, evaluate the task or branch under discussion in the conversation.
 
 A stacked PR splits one large change into a chain of small, dependent PRs.
 Each branch builds on the one below it; each PR shows only its own layer's
@@ -90,12 +105,9 @@ concern → normal PR" (then hand off to the usual commit/PR flow).
 
 ### Branch names and PR types
 
-Name each branch with the `creating-branch-name` convention:
-`<type>/<description>`, where type is one of `feature`, `fix`,
-`refactor`, `docs`, `style`, `chore` and the description is 2-4
-kebab-case English words. Branch types are full words — `feature/`,
-never `feat/`; the abbreviated Conventional Commits types (`feat:`)
-belong to commit messages and PR titles, not branch names. Each layer
+Name each branch with the `creating-branch-name` convention (that skill
+defines the `<type>/<description>` format, the full-word type list, and
+the kebab-case description rules). The stack-specific rule: each layer
 gets its own type — a stack often reads
 `refactor/extract-validation → feature/add-profiles → docs/document-profiles`,
 which is exactly the story the reviewer should see.
@@ -160,28 +172,26 @@ gh stack submit --auto        # pushes all branches, creates draft PRs, links th
 
 `submit --auto` generates titles from commits and always creates drafts —
 which matches this project's draft-first convention. Immediately after,
-bring every PR in line with `creating-pr` conventions:
+bring every PR in line with `creating-pr` conventions (title format, type
+selection, body style, assignee — that skill is the single source for
+them) via `gh pr edit`:
 
 ```bash
 gh pr edit <number> --title "[main] refactor: extract validation helpers" --add-assignee kkhys
-gh pr edit <number> --body "$(cat <<'EOF'
-- Extract validation helpers from request handlers into validation module
-- Add unit tests for the extracted helpers
-EOF
-)"
 ```
 
-- Title: `[main] type: description` — always the stack's base branch in
-  brackets, not the PR's direct parent. GitHub evaluates every PR in a
-  stack against the stack base, and partial merges retarget PRs to it, so
-  `[main]` stays correct for the stack's lifetime.
-- Type: each PR's own dominant type (the refactor layer is `refactor`,
-  even if the stack exists for a `feat`).
-- Body: flat English imperative bullets covering that layer only, per
-  `creating-pr`. The stack map already shows the big picture — don't
-  repeat it in each body.
-- Finish by listing all PR URLs bottom → top with one line each, so the
-  user can walk the stack in review order.
+Two stack-specific rules on top of `creating-pr`:
+
+- Title brackets name the stack's base branch (`[main]`), not the PR's
+  direct parent. GitHub evaluates every PR in a stack against the stack
+  base, and partial merges retarget PRs to it, so `[main]` stays correct
+  for the stack's lifetime.
+- Each PR's type and body cover its own layer only (the refactor layer is
+  `refactor`, even if the stack exists for a `feat`). The stack map
+  already shows the big picture — don't repeat it in each body.
+
+Finish by listing all PR URLs bottom → top with one line each, so the
+user can walk the stack in review order.
 
 ## Fallback: stacked PRs unavailable
 

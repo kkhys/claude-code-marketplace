@@ -8,9 +8,16 @@ This repository serves as a personal Claude Code plugin marketplace designed to 
 
 Claude Code plugin marketplaces support centralized plugin discovery, version tracking, automatic updates, and multiple source types (Git repositories, local paths, etc.).
 
+## Plugins
+
+| Plugin | Description |
+|---|---|
+| `base` | Git/PR workflow skills (commit conventions, PR creation, review handling, PR babysitting), memo and knowledge management, event hooks, and MCP server configs |
+| `writing` | Review agents for blog posts and articles (structure, language, readability, technical accuracy), orchestrated by the `reviewing-content` skill |
+
 ## Features
 
-- **Efficient Knowledge Management**: Dedicated commands for memo creation and document management
+- **Efficient Knowledge Management**: Dedicated skills for memo creation and document management
 - **Custom Hooks**: Event-driven automation for development workflows
 - **MCP Server Integration**: External tool integrations to extend Claude Code capabilities
 - **Version Control**: Safe plugin updates with semantic versioning
@@ -30,6 +37,7 @@ Run the following command in Claude Code:
 
 ```shell
 /plugin install base@my-marketplace
+/plugin install writing@my-marketplace
 ```
 
 ### 3. Verify Installation
@@ -93,7 +101,11 @@ claude plugin validate . --strict
 claude plugin validate ./plugins/base --strict
 claude plugin validate ./plugins/writing --strict
 
-shellcheck plugins/base/scripts/*.sh plugins/base/skills/*/scripts/*.sh
+find plugins -name '*.sh' -print0 | xargs -0 -r shellcheck
+python3 -m compileall -q plugins
+
+bash plugins/base/skills/babysitting-pr/scripts/test-pr-watch.sh
+bash plugins/base/skills/fixing-review-comments/scripts/test-reply-to-review-threads.sh
 ```
 
 Or from within Claude Code:

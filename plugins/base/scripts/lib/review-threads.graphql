@@ -1,0 +1,23 @@
+# Review-thread selection shared by pr-watch.sh and
+# read-unresolved-pr-comments.sh, so the fields the PENDING-draft filter and
+# the thread mapping depend on (see unresolved-threads.jq) stay identical.
+reviewThreads(first: 100) {
+  nodes {
+    id
+    isResolved
+    isOutdated
+    path
+    line
+    startLine
+    comments(first: 50) {
+      nodes {
+        author { login }
+        authorAssociation
+        body
+        url
+        createdAt
+        pullRequestReview { state }
+      }
+    }
+  }
+}
