@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trend Digest</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --text: #1a1f27;
+    --muted: #6b7280;
+    --border: #e2e5ea;
+    --accent: #2563eb;
+    --accent-soft: #dbeafe;
+    --star: #f59e0b;
+    --hero-bg: #101828;
+    --hero-text: #f4f6fa;
+    --score-hi: #2563eb;
+    --score-mid: #64748b;
+    --score-lo: #a8b0bd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1117;
+      --card: #171c26;
+      --text: #e6e9ef;
+      --muted: #8b93a1;
+      --border: #262c38;
+      --accent: #6ea8ff;
+      --accent-soft: #1c2c4a;
+      --hero-bg: #1a2233;
+      --hero-text: #eef1f7;
+      --score-hi: #6ea8ff;
+      --score-mid: #7c8698;
+      --score-lo: #4b5566;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Sans", "Noto Sans JP", sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px 60px; }
+
+  header.site {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .site-inner {
+    max-width: 980px; margin: 0 auto; padding: 10px 20px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .brand { font-weight: 700; font-size: 17px; }
+  .brand .date { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
+
+  nav.tabs ul {
+    list-style: none; display: flex; gap: 4px; margin: 0; padding: 0; position: relative;
+  }
+  nav.tabs button {
+    border: 0; background: none; color: var(--muted); font: inherit; font-size: 14px;
+    padding: 6px 12px; cursor: pointer; border-radius: 6px;
+  }
+  nav.tabs li.active button { color: var(--text); font-weight: 600; }
+  nav.tabs li.active { anchor-name: --active-tab; }
+  nav.tabs ul::before {
+    content: '';
+    position: absolute;
+    position-anchor: --active-tab;
+    inset-block-start: calc(anchor(bottom) - 2px);
+    inset-inline-start: anchor(left);
+    inset-inline-end: anchor(right);
+    block-size: 2px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    nav.tabs ul::before { transition: inset .2s; }
+  }
+  @supports not (position-anchor: --a) {
+    nav.tabs ul::before { content: none; }
+    nav.tabs li.active button { box-shadow: inset 0 -2px 0 var(--accent); border-radius: 6px 6px 0 0; }
+  }
+
+  .filter { margin-left: auto; }
+  .filter input {
+    background: var(--card); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 12px; font: inherit; font-size: 13px; width: 190px;
+  }
+  .filter input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .hero {
+    background: var(--hero-bg); color: var(--hero-text);
+    border-radius: 14px; padding: 26px 28px; margin: 26px 0 8px;
+  }
+  .hero h1 { margin: 0 0 8px; font-size: 21px; line-height: 1.4; }
+  .hero .lead { margin: 0 0 18px; opacity: .85; font-size: 14.5px; }
+  .hero ol { margin: 0; padding: 0 0 0 2px; list-style: none; counter-reset: hl; }
+  .hero ol li {
+    counter-increment: hl; padding: 9px 0;
+    border-top: 1px solid color-mix(in srgb, var(--hero-text) 14%, transparent);
+  }
+  .hero ol li::before {
+    content: counter(hl, decimal-leading-zero);
+    font-weight: 700; opacity: .5; margin-right: 12px; font-variant-numeric: tabular-nums;
+  }
+  .hero ol a { color: var(--hero-text); font-weight: 600; }
+  .hero .hl-service {
+    font-size: 11px; opacity: .65; border: 1px solid currentColor;
+    border-radius: 99px; padding: 1px 8px; margin-left: 8px; white-space: nowrap;
+  }
+  .hero .hl-reason { display: block; margin-left: 34px; font-size: 13px; opacity: .78; }
+  .hero .action {
+    margin: 16px 0 0; padding: 12px 14px; font-size: 13.5px;
+    background: color-mix(in srgb, var(--hero-text) 8%, transparent);
+    border-radius: 8px;
+  }
+  .hero .action strong { opacity: .9; }
+
+  .market { margin-top: 34px; }
+  .market > h2 {
+    font-size: 13px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 14px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .service {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 18px; overflow: hidden;
+  }
+  .service > header {
+    display: flex; align-items: baseline; gap: 10px;
+    padding: 13px 18px 11px; border-bottom: 1px solid var(--border);
+  }
+  .service .dot { width: 9px; height: 9px; border-radius: 50%; align-self: center; flex: none; }
+  .service h3 { margin: 0; font-size: 15.5px; }
+  .service .count { color: var(--muted); font-size: 12.5px; }
+  .service .note { color: var(--muted); font-size: 12.5px; margin-left: auto; text-align: right; }
+
+  .item { display: flex; gap: 14px; padding: 12px 18px; border-top: 1px solid var(--border); }
+  .item:first-of-type { border-top: 0; }
+  .item .rank {
+    flex: none; width: 20px; text-align: right; color: var(--muted);
+    font-size: 12.5px; font-variant-numeric: tabular-nums; padding-top: 3px;
+  }
+  .item .score { flex: none; width: 44px; padding-top: 1px; }
+  .item .score b { font-size: 14.5px; font-variant-numeric: tabular-nums; }
+  .item .bar { display: block; height: 3px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .item .bar i { display: block; height: 100%; border-radius: 2px; }
+  .item .body { min-width: 0; }
+  .item .title { font-weight: 600; font-size: 14.5px; line-height: 1.45; }
+  .item .meta {
+    display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center;
+    color: var(--muted); font-size: 12px; margin-top: 3px;
+  }
+  .item .stars { color: var(--star); letter-spacing: 1px; }
+  .item .chip {
+    background: var(--accent-soft); color: var(--accent);
+    border-radius: 99px; padding: 0 9px; font-size: 11px; line-height: 18px;
+  }
+  .item .seen {
+    border: 1px solid var(--border); color: var(--muted);
+    border-radius: 4px; padding: 0 5px; font-size: 10.5px;
+  }
+  .item .summary { color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .item .comments { font-size: 12px; white-space: nowrap; }
+
+  footer.site {
+    margin-top: 44px; color: var(--muted); font-size: 12.5px;
+    border-top: 1px solid var(--border); padding-top: 14px;
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header class="site">
+  <div class="site-inner">
+    <span class="brand">Trend Digest<span class="date" id="date"></span></span>
+    <nav class="tabs" aria-label="市場フィルタ">
+      <ul id="tabs"></ul>
+    </nav>
+    <div class="filter">
+      <input type="search" id="filter" placeholder="キーワードで絞り込み" aria-label="キーワードで絞り込み">
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="hero" id="hero"></section>
+  <main id="markets"></main>
+  <footer class="site" id="footer"></footer>
+</div>
+
+<script>
+const data = __DATA_JSON__;
+
+const SERVICE_COLORS = {
+  hackernews: "#ff6600", lobsters: "#ac130d", github: "#8b5cf6", devto: "#0f172a",
+  hatena: "#00a4de", zenn: "#3ea8ff", qiita: "#55c500",
+};
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+document.getElementById("date").textContent = data.date;
+document.title = `Trend Digest ${data.date}`;
+
+// --- hero (digest) ---
+const d = data.digest || {};
+document.getElementById("hero").innerHTML = `
+  <h1>${esc(d.headline)}</h1>
+  <p class="lead">${esc(d.lead)}</p>
+  <ol>${(d.highlights || []).map(h => `
+    <li><a href="${esc(h.url)}" target="_blank" rel="noopener">${esc(h.title)}</a>
+      <span class="hl-service">${esc(h.service_label)}</span>
+      <span class="hl-reason">${esc(h.reason)}</span></li>`).join("")}
+  </ol>
+  ${d.action_note ? `<p class="action"><strong>今日の一手:</strong> ${esc(d.action_note)}</p>` : ""}`;
+
+// --- markets & services ---
+const scoreColor = s => s >= 80 ? "var(--score-hi)" : s >= 60 ? "var(--score-mid)" : "var(--score-lo)";
+
+const itemHtml = (it, i) => `
+  <article class="item" data-text="${esc((it.title + " " + (it.summary||"") + " " + (it.category||"") + " " + (it.extra||"")).toLowerCase())}">
+    <span class="rank">${i + 1}</span>
+    <span class="score"><b>${it.score}</b>
+      <span class="bar"><i style="width:${Math.min(100, it.score)}%;background:${scoreColor(it.score)}"></i></span>
+    </span>
+    <div class="body">
+      <div class="title"><a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.title)}</a></div>
+      <div class="meta">
+        <span class="stars" title="興味マッチ度">${"★".repeat(it.interest || 1)}</span>
+        ${it.category ? `<span class="chip">${esc(it.category)}</span>` : ""}
+        <span>${esc(it.engagement_label)}</span>
+        ${it.seen_before ? `<span class="seen">既出</span>` : ""}
+        ${it.comments_url && it.comments_url !== it.url
+          ? `<a class="comments" href="${esc(it.comments_url)}" target="_blank" rel="noopener">議論を見る</a>` : ""}
+      </div>
+      ${it.summary ? `<div class="summary">${esc(it.summary)}</div>` : ""}
+    </div>
+  </article>`;
+
+const serviceHtml = svc => `
+  <section class="service" data-service="${esc(svc.id)}">
+    <header>
+      <span class="dot" style="background:${SERVICE_COLORS[svc.id] || "var(--muted)"}"></span>
+      <h3>${esc(svc.label)}</h3>
+      <span class="count" data-count>${svc.items.length}件</span>
+      ${svc.note ? `<span class="note">${esc(svc.note)}</span>` : ""}
+    </header>
+    ${svc.items.map(itemHtml).join("") ||
+      (svc.status !== "ok" ? "" : `<article class="item"><div class="body"><div class="summary">該当なし</div></div></article>`)}
+  </section>`;
+
+document.getElementById("markets").innerHTML = (data.markets || []).map(m => `
+  <section class="market" data-market="${esc(m.id)}">
+    <h2>${esc(m.label)}</h2>
+    ${m.services.map(serviceHtml).join("")}
+  </section>`).join("");
+
+document.getElementById("footer").innerHTML =
+  `生成: ${esc(data.generated_at)} / 気になる記事や不要なテーマは Claude に伝えるとプロフィールが更新され、明日以降の精度が上がります。`;
+
+// --- tabs ---
+const tabs = [{id: "all", label: "すべて"},
+              ...(data.markets || []).map(m => ({id: m.id, label: m.label}))];
+const tabList = document.getElementById("tabs");
+tabList.innerHTML = tabs.map((t, i) =>
+  `<li${i === 0 ? ' class="active"' : ""}><button type="button" data-tab="${t.id}"
+     aria-pressed="${i === 0}">${esc(t.label)}</button></li>`).join("");
+
+tabList.addEventListener("click", e => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  tabList.querySelectorAll("li").forEach(li => {
+    const on = li.contains(btn);
+    li.classList.toggle("active", on);
+    li.querySelector("button").setAttribute("aria-pressed", on);
+  });
+  const id = btn.dataset.tab;
+  document.querySelectorAll(".market").forEach(m =>
+    m.classList.toggle("hidden", id !== "all" && m.dataset.market !== id));
+});
+
+// --- keyword filter ---
+document.getElementById("filter").addEventListener("input", e => {
+  const q = e.target.value.trim().toLowerCase();
+  document.querySelectorAll(".service").forEach(svc => {
+    let visible = 0;
+    svc.querySelectorAll(".item[data-text]").forEach(it => {
+      const hit = !q || it.dataset.text.includes(q);
+      it.classList.toggle("hidden", !hit);
+      if (hit) visible++;
+    });
+    svc.querySelector("[data-count]").textContent = `${visible}件`;
+    svc.classList.toggle("hidden", q && visible === 0);
+  });
+});
+</script>
+</body>
+</html>

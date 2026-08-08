@@ -158,6 +158,7 @@ The `base` plugin (`plugins/base/`) is the primary plugin containing core workfl
 - `creating-codepen-demo` - Create CodePen demos
 - `creating-task-summary` - Create weekly task summaries
 - `uploading-knowledge-gist` - Upload session knowledge to secret GitHub Gist
+- `creating-trend-digest` - Collect today's trends from 7 sources (HN, Hatena, Zenn, Qiita, Lobsters, GitHub Trending, dev.to), score by personal interest profile in `~/.claude/trend-digest/`, and open an HTML digest
 
 **Model-invocable skills** (discovered by Claude, also invocable via `/skill-name`):
 
