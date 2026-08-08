@@ -90,8 +90,11 @@ claude plugin validate ./plugins/writing --strict
 ### Linting
 
 ```bash
-# ShellCheck for bash scripts (must exit 0 — CI enforces this)
-shellcheck plugins/base/scripts/*.sh plugins/base/skills/*/scripts/*.sh
+# ShellCheck for all bash scripts, including shared libs (must exit 0 — CI enforces this)
+find plugins -name '*.sh' -print0 | xargs -0 -r shellcheck
+
+# Syntax check for Python scripts (stdlib only, no install step)
+python3 -m compileall -q plugins
 ```
 
 ### Tests
@@ -99,9 +102,12 @@ shellcheck plugins/base/scripts/*.sh plugins/base/skills/*/scripts/*.sh
 ```bash
 # Offline tests for the babysitting-pr watcher (terminal rules, state, version gate)
 bash plugins/base/skills/babysitting-pr/scripts/test-pr-watch.sh
+
+# Payload validation and attribution-marker tests for the reply script
+bash plugins/base/skills/fixing-review-comments/scripts/test-reply-to-review-threads.sh
 ```
 
-CI (`.github/workflows/validate.yml`) runs manifest validation, ShellCheck, and the script tests on every push and pull request.
+CI (`.github/workflows/validate.yml`) runs manifest validation, ShellCheck, Python syntax checks, and the script tests on pull requests and pushes to `main`. Every `test-*.sh` under `plugins/*/scripts/` and `plugins/*/skills/*/scripts/` is picked up automatically — new test scripts need no CI change.
 
 ### Local Testing
 
@@ -149,11 +155,13 @@ Slash commands are merged into skills — do not create `commands/*.md` files. F
 ### Adding New Scripts
 
 1. Create scripts used by a single skill in `plugins/{plugin}/skills/{skill-name}/scripts/` (reference via `${CLAUDE_SKILL_DIR}`); create scripts shared by hooks in `plugins/{plugin}/scripts/` (reference via `${CLAUDE_PLUGIN_ROOT}`)
-2. Use bash shebang: `#!/usr/bin/env bash`
-3. Set strict mode: `set -euo pipefail`
-4. Quote all variables: `"${var}"`
-5. Use `readonly` for constants
-6. Make executable: `chmod +x script.sh`
+2. Helpers shared across skills live in `plugins/{plugin}/scripts/lib/`: bash files are sourced, jq modules load via `jq -L`, GraphQL fragments via `cat`. Skill scripts resolve the lib dir relative to their own path (`"${SCRIPT_DIR}/../../../scripts/lib"`)
+3. Use bash shebang: `#!/usr/bin/env bash`
+4. Set strict mode: `set -euo pipefail` (executable scripts only — sourced libs leave options to the caller)
+5. Quote all variables: `"${var}"`
+6. Use `readonly` for constants
+7. Make executable: `chmod +x script.sh`
+8. Python scripts follow the same spirit: `#!/usr/bin/env python3`, stdlib only (no package manifests), argparse CLI, `encoding="utf-8"` on every file read/write
 
 ### Modifying Base Plugin
 
@@ -203,6 +211,9 @@ When modifying, maintain consistency with existing patterns and update version i
 ### Writing Plugin
 
 The `writing` plugin (`plugins/writing/`) provides specialized writing agents:
+
+**Skills**:
+- `reviewing-content` - Orchestrate the four writing agents below, select the relevant ones per article, and consolidate their feedback into one prioritized report
 
 **Agents**:
 - `content-reviewer` - Review content quality
@@ -269,7 +280,7 @@ EOF
 
 ## Notes
 
-- All bash scripts use `set -euo pipefail` for strict error handling
+- All executable bash scripts use `set -euo pipefail` for strict error handling; sourced libraries in `scripts/lib/` set no shell options
 - No package.json - this is a pure plugin marketplace (no npm dependencies)
 - MCP servers extend Claude Code capabilities without plugin code changes
 - Skills are knowledge bundles, not executable code (use scripts for automation)
