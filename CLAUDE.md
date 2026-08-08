@@ -94,7 +94,14 @@ claude plugin validate ./plugins/writing --strict
 shellcheck plugins/base/scripts/*.sh plugins/base/skills/*/scripts/*.sh
 ```
 
-CI (`.github/workflows/validate.yml`) runs both of the above on every push and pull request.
+### Tests
+
+```bash
+# Offline tests for the babysitting-pr watcher (terminal rules, state, version gate)
+bash plugins/base/skills/babysitting-pr/scripts/test-pr-watch.sh
+```
+
+CI (`.github/workflows/validate.yml`) runs manifest validation, ShellCheck, and the script tests on every push and pull request.
 
 ### Local Testing
 
@@ -158,6 +165,7 @@ The `base` plugin (`plugins/base/`) is the primary plugin containing core workfl
 - `creating-codepen-demo` - Create CodePen demos
 - `creating-task-summary` - Create weekly task summaries
 - `uploading-knowledge-gist` - Upload session knowledge to secret GitHub Gist
+- `digging` - Interrogate a plan, design, or decision one question at a time until shared understanding is reached
 - `creating-trend-digest` - Collect today's trends from 7 sources (HN, Hatena, Zenn, Qiita, Lobsters, GitHub Trending, dev.to), score by personal interest profile in `~/.claude/trend-digest/`, and open an HTML digest
 
 **Model-invocable skills** (discovered by Claude, also invocable via `/skill-name`):
@@ -171,9 +179,10 @@ Git workflow:
 
 PR review:
 - `reading-unresolved-pr-comments` - Fetch unresolved PR review comments and create fix plan
-- `resolving-pr-comments` - Bulk-resolve all unresolved review threads on current PR
+- `resolving-pr-comments` - Resolve review threads on the current PR (all unresolved, or a specific thread ID list)
 - `fixing-review-comments` - Address unresolved review comments on the current branch
 - `posting-pr-review` - Post review comments to a GitHub PR as a PENDING review
+- `babysitting-pr` - Monitor a PR until it is mergeable (draft: until review comments are resolved): long-poll CI/review/merge state via `pr-watch.sh`, autonomously fix branch-caused CI failures and actionable review comments, and re-request Copilot review after each fix round until Copilot stops commenting
 
 Other:
 - `summarizing-release-notes` - Summarize recent Claude Code release notes
@@ -220,6 +229,10 @@ description: Enforce Conventional Commits format for git commits. Use when creat
 # Bad
 description: Helps with commits
 ```
+
+### GitHub Comment Attribution
+
+Every comment posted to GitHub from this marketplace starts with `[from Claude Code]`, so reviewers can tell an agent's comment from the user's own. `reply-to-review-threads.sh` and `post-pr-review.sh` prepend it idempotently — write bodies without it. Add it by hand when posting with plain `gh pr comment`.
 
 ### Tool Restrictions
 

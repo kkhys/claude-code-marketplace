@@ -40,3 +40,23 @@ jobs:
           shellcheck \
             plugins/base/scripts/*.sh \
             plugins/base/skills/*/scripts/*.sh
+
+  scripts:
+    name: Script tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run offline script tests
+        run: |
+          shopt -s nullglob
+          tests=(plugins/*/skills/*/scripts/test-*.sh plugins/*/scripts/test-*.sh)
+          if [[ ${#tests[@]} -eq 0 ]]; then
+            echo "No test scripts found" >&2
+            exit 1
+          fi
+          for test in "${tests[@]}"; do
+            echo "::group::${test}"
+            bash "${test}"
+            echo "::endgroup::"
+          done
