@@ -17,11 +17,13 @@ def main():
     )
     args = parser.parse_args()
 
-    data = json.loads(args.input.read_text())
+    data = json.loads(args.input.read_text(encoding="utf-8"))
     # "</" would terminate the inline <script> block early
     payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
-    html = args.template.read_text().replace("__DATA_JSON__", payload)
-    args.output.write_text(html)
+    template = args.template.read_text(encoding="utf-8")
+    if "__DATA_JSON__" not in template:
+        raise SystemExit(f"template has no __DATA_JSON__ placeholder: {args.template}")
+    args.output.write_text(template.replace("__DATA_JSON__", payload), encoding="utf-8")
     print(f"digest: {args.output}")
 
 
