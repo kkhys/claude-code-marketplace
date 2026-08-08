@@ -204,8 +204,6 @@ Other:
 - `analytics-mcp` - Google Analytics queries. Project ID comes from `userConfig.google_project_id`; auth uses gcloud application default credentials (`gcloud auth application-default login`)
 - `chrome-devtools` - Chrome DevTools automation
 
-Other MCP servers used day to day (`context7`, `serena`, `playwright`, and framework-specific ones) come from official plugins or user settings, not from this repository.
-
 When modifying, maintain consistency with existing patterns and update version in `.claude-plugin/plugin.json`.
 
 ### Writing Plugin
