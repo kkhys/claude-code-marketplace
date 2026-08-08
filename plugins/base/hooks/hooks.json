@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "afplay",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/play-sound.sh",
             "args": ["/System/Library/Sounds/Hero.aiff"],
             "async": true,
             "timeout": 10,
@@ -32,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "afplay",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/play-sound.sh",
             "args": ["/System/Library/Sounds/Glass.aiff"],
             "async": true,
             "timeout": 10,

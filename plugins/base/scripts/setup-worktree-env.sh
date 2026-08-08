@@ -42,19 +42,18 @@ if [[ -z "${CWD}" ]]; then
   exit 1
 fi
 
-# Reject path traversal and unsafe characters in NAME
-if [[ "${NAME}" == *".."* ]] || [[ "${NAME}" == *"/"* ]]; then
-  echo "[Error] 'name' contains unsafe characters (.., /): ${NAME}" >&2
-  exit 1
-fi
-
-if [[ ! "${NAME}" =~ ^[a-zA-Z0-9._-]+$ ]]; then
-  echo "[Error] 'name' must only contain alphanumeric characters, dots, hyphens, and underscores: ${NAME}" >&2
+# Reject unsafe names: characters outside the safe set, or path traversal
+# ("..", which the character set alone would allow)
+if [[ ! "${NAME}" =~ ^[a-zA-Z0-9._-]+$ ]] || [[ "${NAME}" == *".."* ]]; then
+  echo "[Error] 'name' must only contain alphanumeric characters, dots, hyphens, and underscores, and must not contain '..': ${NAME}" >&2
   exit 1
 fi
 
 # Resolve repository root to avoid subdirectory issues
-REPO_ROOT="$(git -C "${CWD}" rev-parse --show-toplevel)"
+if ! REPO_ROOT="$(git -C "${CWD}" rev-parse --show-toplevel)"; then
+  echo "[Error] 'cwd' is not inside a git repository: ${CWD}" >&2
+  exit 1
+fi
 readonly REPO_ROOT
 
 WORKTREE_DIR="${REPO_ROOT}/.claude/worktrees/${NAME}"
@@ -64,7 +63,11 @@ readonly BRANCH
 
 # Idempotent: if worktree already exists and is registered, reuse it
 if [[ -d "${WORKTREE_DIR}" ]]; then
-  if git -C "${REPO_ROOT}" worktree list --porcelain | grep -q "^worktree ${WORKTREE_DIR}$"; then
+  # Capture first: under pipefail, `... | grep -q` can SIGPIPE the producer
+  # when grep exits on the first match. -xF because the path is a fixed
+  # string, not a regex.
+  WT_LIST="$(git -C "${REPO_ROOT}" worktree list --porcelain)"
+  if grep -qxF "worktree ${WORKTREE_DIR}" <<< "${WT_LIST}"; then
     echo "[Info] Worktree already exists, reusing: ${WORKTREE_DIR}" >&2
     echo "${WORKTREE_DIR}"
     exit 0
