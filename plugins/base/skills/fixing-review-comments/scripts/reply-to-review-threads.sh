@@ -6,12 +6,19 @@ set -euo pipefail
 #
 # Payload: { replies: [{ thread_id: string, body: string }] }
 #
-# Every reply is prefixed with an attribution marker so reviewers can tell an
-# agent's reply from the user's own. It is applied here rather than left to the
-# caller so it cannot be forgotten.
+# Every reply is prefixed with an attribution marker (scripts/lib/attribution.jq)
+# so reviewers can tell an agent's reply from the user's own. It is applied here
+# rather than left to the caller so it cannot be forgotten.
+#
+# Exits non-zero when any reply failed to post, so a caller can tell a clean
+# run from a partial one.
 
 readonly PAYLOAD_FILE="${1:?Usage: reply-to-review-threads.sh <replies.json>}"
-readonly MARKER="[from Claude Code]"
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+LIB_DIR="$(cd -- "${SCRIPT_DIR}/../../../scripts/lib" && pwd)"
+readonly LIB_DIR
 
 if [[ ! -f "${PAYLOAD_FILE}" ]]; then
   echo "Error: Payload file not found: ${PAYLOAD_FILE}" >&2
@@ -56,12 +63,14 @@ failed=0
 
 for i in $(seq 0 $(( REPLY_COUNT - 1 ))); do
   thread_id="$(jq -r ".replies[$i].thread_id" "${PAYLOAD_FILE}")"
-  body="$(jq -r --arg marker "${MARKER}" --argjson i "${i}" \
-    '.replies[$i].body | if startswith($marker) then . else "\($marker) \(.)" end' \
+  body="$(jq -r -L "${LIB_DIR}" --argjson i "${i}" \
+    'include "attribution"; .replies[$i].body | attribute' \
     "${PAYLOAD_FILE}")"
 
+  # Capture stderr only: the failure reason (already-resolved thread, rate
+  # limit, bad ID) is the part the caller needs to act on.
   # shellcheck disable=SC2016  # $threadId/$body are GraphQL variables, not shell ones
-  if gh api graphql \
+  if reply_err="$(gh api graphql \
     -f query='
       mutation($threadId: ID!, $body: String!) {
         addPullRequestReviewThreadReply(
@@ -71,13 +80,15 @@ for i in $(seq 0 $(( REPLY_COUNT - 1 ))); do
         }
       }' \
     -f threadId="${thread_id}" \
-    -f body="${body}" > /dev/null 2>&1; then
+    -f body="${body}" 2>&1 > /dev/null)"; then
     echo "Replied: ${thread_id}"
     (( success++ )) || true
   else
     echo "Failed:  ${thread_id}" >&2
+    echo "  Error: ${reply_err}" >&2
     (( failed++ )) || true
   fi
 done
 
 echo "Done. ${success} replied, ${failed} failed."
+[[ "${failed}" -eq 0 ]]
