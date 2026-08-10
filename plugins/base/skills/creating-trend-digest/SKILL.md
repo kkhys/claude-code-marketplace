@@ -65,9 +65,11 @@ the script. For each service, work through its items and produce the display
 list (top `items_per_service` per service after filtering):
 
 - **Drop** items matching the profile's 除外テーマ.
-- **interest** (1-3 stars) and multiplier from the profile's 興味テーマ:
-  high match → 3 stars ×1.3, mid → 2 stars ×1.0, weak/none → 1 star ×0.6.
-- **score** = `min(100, round(base_score × multiplier))`. Sort descending.
+- **interest** (1-3 stars) from the profile's 興味テーマ: high match → 3
+  stars, mid → 2 stars, weak/none → 1 star. Stars are an annotation only —
+  they must not affect the ranking, so the list stays a flat view of what
+  actually trended.
+- **score** = `base_score` unchanged. Sort descending.
 - **category**: short label derived from the profile themes (e.g. "AI/開発",
   "セキュリティ", "キャリア"). Leave empty if nothing fits.
 - **summary**: one Japanese sentence (≤60 chars): what it is and why it is
