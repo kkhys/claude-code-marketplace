@@ -17,6 +17,7 @@ import re
 import shutil
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
@@ -259,6 +260,93 @@ SERVICES = [
 ]
 
 
+# --- discussion comments ------------------------------------------------------
+
+COMMENT_LIMIT = 8
+COMMENT_CLIP = 300
+
+
+def fetch_hn_comments(item):
+    m = re.search(r"id=(\d+)", item.get("comments_url") or "")
+    if not m:
+        return []
+    data = get_json(f"https://hn.algolia.com/api/v1/items/{m.group(1)}")
+    out = []
+    for child in data.get("children") or []:
+        text = clip(child.get("text") or "", COMMENT_CLIP)
+        if text:
+            out.append(text)
+        if len(out) >= COMMENT_LIMIT:
+            break
+    return out
+
+
+def fetch_lobsters_comments(item):
+    m = re.search(r"/s/([0-9a-z]+)", item.get("comments_url") or "")
+    if not m:
+        return []
+    data = get_json(f"https://lobste.rs/s/{m.group(1)}.json")
+    out = []
+    for comment in data.get("comments") or []:
+        text = clip(comment.get("comment_plain") or comment.get("comment") or "", COMMENT_CLIP)
+        if text:
+            out.append(text)
+        if len(out) >= COMMENT_LIMIT:
+            break
+    return out
+
+
+def fetch_hatena_comments(item):
+    # jsonlite returns the latest bookmarks; commented ones are a minority,
+    # so scan the whole page and keep the first COMMENT_LIMIT with text.
+    url = "https://b.hatena.ne.jp/entry/jsonlite/?url=" + urllib.parse.quote(item["url"], safe="")
+    data = get_json(url)
+    out = []
+    for bookmark in (data or {}).get("bookmarks") or []:
+        text = clip(bookmark.get("comment") or "", COMMENT_CLIP)
+        if text:
+            out.append(text)
+        if len(out) >= COMMENT_LIMIT:
+            break
+    return out
+
+
+COMMENT_FETCHERS = {
+    "hackernews": fetch_hn_comments,
+    "lobsters": fetch_lobsters_comments,
+    "hatena": fetch_hatena_comments,
+}
+
+
+def attach_comments(services, cfg):
+    """Fetch discussion comments for the top items of comment-capable
+    services. Failures leave the item without a comments field; the digest
+    simply renders no discussion summary for it."""
+    top_n = cfg.get("comments_top_n", 3)
+    if top_n <= 0:
+        return
+
+    jobs = []
+    for svc in services:
+        fetcher = COMMENT_FETCHERS.get(svc["id"])
+        if fetcher is None or svc["status"] != "ok":
+            continue
+        jobs.extend((fetcher, item) for item in svc["items"][:top_n])
+
+    def run_job(job):
+        fetcher, item = job
+        try:
+            return fetcher(item)
+        except Exception:  # noqa: BLE001 - comments are best-effort
+            return []
+
+    with cf.ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(run_job, jobs))
+    for (_, item), comments in zip(jobs, results):
+        if comments:
+            item["comments"] = comments
+
+
 # --- scoring / state --------------------------------------------------------
 
 
@@ -344,6 +432,8 @@ def main():
             "id": svc["id"], "label": svc["label"], "market": svc["market"],
             "status": res["status"], "note": res.get("note", ""), "items": items,
         })
+
+    attach_comments(services, cfg)
 
     raw_path = run_dir / "raw.json"
     raw_path.write_text(json.dumps({
