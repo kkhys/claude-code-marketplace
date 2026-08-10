@@ -33,6 +33,14 @@ chat completions + search_parameters を使う fetcher を足し、`SERVICES` �
 | ファイル | 役割 |
 |---|---|
 | `profile.md` | 興味プロフィール。フィードバックで育つ |
-| `config.json` | ソース設定 (hatena_categories, 表示件数など) |
+| `config.json` | ソース設定 (hatena_categories, 表示件数など) と `site_repo` (公開先リポジトリのパス) |
 | `seen.json` | 既出URL履歴 (「既出」バッジ用、自動管理) |
-| `runs/<date>/` | raw.json / enriched.json / digest.html |
+| `runs/<date>/` | raw.json (取得結果) |
+
+## 公開
+
+完成した digest は me リポジトリの `apps/trends/src/content/runs/<date>.json`
+にコミットされ、`pnpm deploy:trends` で trends.kkhys.me にデプロイされる。
+JSON のスキーマ検証は同リポジトリの `apps/trends/src/content.config.ts`
+(zod) がビルド時に行う。ローカルプレビューは me リポジトリで
+`pnpm dev:trends`。
