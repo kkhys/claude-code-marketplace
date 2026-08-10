@@ -73,6 +73,12 @@ list (top `items_per_service` per service after filtering):
 - **summary**: one Japanese sentence (≤60 chars): what it is and why it is
   relevant to the profile. Write from title/excerpt and your own knowledge —
   do not fetch each article.
+- **discussion_summary**: only for items whose raw.json entry has a
+  `comments` array (the fetch script attaches top comments to the top
+  `comments_top_n` items of HN / Lobsters / はてなブックマーク): summarize
+  the discussion in 2-3 Japanese sentences — the main points raised and, when
+  visible, the split of opinion. Facts only, no editorializing. Items without
+  `comments` get `""`.
 
 ### 3. Write the digest
 
@@ -117,7 +123,8 @@ Write `$REPO/apps/trends/src/content/runs/<date>.json` in this shape:
       {"id": "hatena", "label": "はてなブックマーク", "status": "ok", "note": "",
        "items": [{"title": "...", "url": "...", "comments_url": "...", "score": 87,
                   "engagement_label": "313 users", "category": "AI/開発", "interest": 3,
-                  "summary": "...", "seen_before": false, "extra": ""}]}
+                  "summary": "...", "discussion_summary": "", "seen_before": false,
+                  "extra": ""}]}
     ]},
     {"id": "global", "label": "グローバル", "services": ["... hackernews, lobsters, github, devto ..."]}
   ]

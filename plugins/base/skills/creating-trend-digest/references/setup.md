@@ -33,7 +33,7 @@ chat completions + search_parameters を使う fetcher を足し、`SERVICES` �
 | ファイル | 役割 |
 |---|---|
 | `profile.md` | 興味プロフィール。フィードバックで育つ |
-| `config.json` | ソース設定 (hatena_categories, 表示件数など) と `site_repo` (公開先リポジトリのパス) |
+| `config.json` | ソース設定 (hatena_categories, 表示件数, comments_top_n など) と `site_repo` (公開先リポジトリのパス) |
 | `seen.json` | 既出URL履歴 (「既出」バッジ用、自動管理) |
 | `runs/<date>/` | raw.json (取得結果) |
 

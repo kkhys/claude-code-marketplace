@@ -3,5 +3,6 @@
   "fetch_limit": 30,
   "hatena_categories": ["it", "all"],
   "disabled_sources": [],
+  "comments_top_n": 3,
   "site_repo": "~/projects/github.com/kkhys/me"
 }
