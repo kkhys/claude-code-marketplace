@@ -1,7 +1,7 @@
 ---
 name: creating-trend-digest
 description: Collect today's trends from 7 sources (HN, Lobsters, GitHub Trending, dev.to, Hatena, Zenn, Qiita), score them against a personal interest profile, and publish the digest to trends.kkhys.me
-argument-hint: "[今日の関心・調整指示 (省略可)]"
+argument-hint: "[今日の関心・調整指示、または遡る日付 (省略可)]"
 disable-model-invocation: true
 allowed-tools:
   - Read
@@ -57,6 +57,30 @@ engagement percentile × freshness — see `references/scoring.md`), marks
 `seen_before` for URLs already shown on previous days, and writes
 `runs/<date>/raw.json`. Failed sources appear with `status: "error"` — never
 abort the run for them; their note is shown on the site instead.
+
+#### Backfilling a past date
+
+When the user asks for a past date ("8/5の分も作って"), add `--date`:
+
+```bash
+python3 "${CLAUDE_SKILL_DIR}/scripts/fetch_trends.py" --skill-dir "${CLAUDE_SKILL_DIR}" --date 2026-08-05
+```
+
+Only Hacker News can be queried historically, via the Algolia index. The
+other six sources expose no archive and come back `skipped` with a note,
+which renders as a notice on the site — carry it through like any other
+skipped service. Tell the user up front that a backfilled digest covers
+1 source, not 7.
+
+- Freshness is scored against the end of the target day, so `base_score` is
+  comparable to a live run.
+- `seen.json` is left untouched — a past date written out of order would
+  rewrite "first seen" for URLs later runs already claimed.
+- An existing `raw.json` is never overwritten without `--force`, so a
+  backfill cannot clobber a full 7-source run by accident.
+
+Everything downstream (scoring, digest, publish) is unchanged: write
+`<date>.json` for the target date and let it deploy alongside the rest.
 
 ### 2. Score and summarize
 
