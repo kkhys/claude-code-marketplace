@@ -102,15 +102,33 @@ list (top `items_per_service` per service after filtering):
   "Show HN: エレベーター制御の可視化"). `""` when the title is already
   Japanese. The site shows `title_ja` as the linked title with the original
   beneath it.
-- **summary**: one Japanese sentence (≤60 chars): what it is and why it is
-  relevant to the profile. Write from title/excerpt and your own knowledge —
-  do not fetch each article.
+- **summary**: 1-2 Japanese sentences (60-120 chars): what it is, plus the
+  concrete detail that makes it relevant to the profile. Write from
+  title/excerpt/`content` and your own knowledge — do not fetch articles
+  yourself.
 - **discussion_summary**: only for items whose raw.json entry has a
   `comments` array (the fetch script attaches top comments to the top
-  `comments_top_n` items of HN / Lobsters / はてなブックマーク): summarize
-  the discussion in 2-3 Japanese sentences — the main points raised and, when
-  visible, the split of opinion. Facts only, no editorializing. Items without
-  `comments` get `""`.
+  `comments_top_n` items of HN / Lobsters / はてなブックマーク — with the
+  default of 10 that is every displayed item of those services): 2-3 short
+  Japanese paragraphs, 300-450 chars total, separated by a blank line
+  (`\n\n` inside the JSON string; the site renders one `<p>` per paragraph
+  in a fold). First paragraph: what the article/story actually is, adding
+  context the title alone doesn't carry. Remaining paragraph(s): the main
+  points raised in the comments and, when visible, the split of opinion —
+  attribute claims to the commenters (「〜という指摘」「〜との報告」), not
+  to yourself. Facts only, no editorializing. Items without `comments` get
+  `""`.
+- **article_summary**: only for items whose raw.json entry has a `content`
+  field (the fetch script attaches the article body / README to the top
+  `articles_top_n` items of the sources that have no comment fetcher:
+  GitHub Trending / dev.to / Zenn / Qiita): 2-3 short Japanese paragraphs,
+  300-450 chars total, separated by a blank line, summarizing the article
+  itself — what it covers, the concrete approach or claims, and any results
+  or numbers it reports. Summarize only what `content` actually says; the
+  body is clipped, so never guess beyond it. Facts only, same paragraph
+  format as discussion_summary. Items without `content` get `""` (an item
+  never has both — comment sources get discussion_summary, the rest get
+  this).
 
 ### 3. Write the digest
 
@@ -156,8 +174,8 @@ Write `$REPO/apps/trends/src/content/runs/<date>.json` in this shape:
       {"id": "hatena", "label": "はてなブックマーク", "status": "ok", "note": "",
        "items": [{"title": "...", "title_ja": "", "url": "...", "comments_url": "...", "score": 87,
                   "engagement_label": "313 users", "category": "AI/開発", "interest": 3,
-                  "summary": "...", "discussion_summary": "", "seen_before": false,
-                  "extra": ""}]}
+                  "summary": "...", "discussion_summary": "", "article_summary": "",
+                  "seen_before": false, "extra": ""}]}
     ]},
     {"id": "global", "label": "グローバル", "services": ["... hackernews, lobsters, github, devto ..."]}
   ]

@@ -365,17 +365,16 @@ COMMENT_FETCHERS = {
 }
 
 
-def attach_comments(services, cfg):
-    """Fetch discussion comments for the top items of comment-capable
-    services. Failures leave the item without a comments field; the digest
-    simply renders no discussion summary for it."""
-    top_n = cfg.get("comments_top_n", 3)
+def _attach(services, fetchers, top_n, key):
+    """Run per-item fetchers over the top items of matching services and
+    store truthy results under `key`. Failures leave the item untouched;
+    enrichment is best-effort by design."""
     if top_n <= 0:
         return
 
     jobs = []
     for svc in services:
-        fetcher = COMMENT_FETCHERS.get(svc["id"])
+        fetcher = fetchers.get(svc["id"])
         if fetcher is None or svc["status"] != "ok":
             continue
         jobs.extend((fetcher, item) for item in svc["items"][:top_n])
@@ -384,14 +383,73 @@ def attach_comments(services, cfg):
         fetcher, item = job
         try:
             return fetcher(item)
-        except Exception:  # noqa: BLE001 - comments are best-effort
-            return []
+        except Exception:  # noqa: BLE001 - enrichment is best-effort
+            return None
 
     with cf.ThreadPoolExecutor(max_workers=8) as pool:
         results = list(pool.map(run_job, jobs))
-    for (_, item), comments in zip(jobs, results):
-        if comments:
-            item["comments"] = comments
+    for (_, item), value in zip(jobs, results):
+        if value:
+            item[key] = value
+
+
+def attach_comments(services, cfg):
+    _attach(services, COMMENT_FETCHERS, cfg.get("comments_top_n", 10), "comments")
+
+
+# --- article content --------------------------------------------------------
+
+# Sources without a comment fetcher get the article body instead, so the
+# digest can summarize the article itself at the same depth.
+
+CONTENT_CLIP = 2000
+
+
+def fetch_github_content(item):
+    m = re.search(r"github\.com/([^/?#]+/[^/?#]+)", item["url"] or "")
+    if not m:
+        return ""
+    text = http_get(f"https://api.github.com/repos/{m.group(1)}/readme",
+                    headers={"Accept": "application/vnd.github.raw+json"})
+    return clip(text, CONTENT_CLIP)
+
+
+def fetch_devto_content(item):
+    m = re.search(r"dev\.to/([^/?#]+/[^/?#]+)", item["url"] or "")
+    if not m:
+        return ""
+    data = get_json(f"https://dev.to/api/articles/{m.group(1)}")
+    return clip(data.get("body_markdown") or "", CONTENT_CLIP)
+
+
+def fetch_zenn_content(item):
+    m = re.search(r"zenn\.dev/[^/]+/articles/([^/?#]+)", item["url"] or "")
+    if not m:
+        return ""
+    data = get_json(f"https://zenn.dev/api/articles/{m.group(1)}")
+    return clip((data.get("article") or {}).get("body_html") or "", CONTENT_CLIP)
+
+
+def fetch_qiita_content(item):
+    m = re.search(r"/items/([0-9a-f]+)", item["url"] or "")
+    if not m:
+        return ""
+    token = os.environ.get("QIITA_ACCESS_TOKEN")
+    headers = {"Authorization": f"Bearer {token}"} if token else None
+    data = get_json(f"https://qiita.com/api/v2/items/{m.group(1)}", headers)
+    return clip(data.get("body") or "", CONTENT_CLIP)
+
+
+CONTENT_FETCHERS = {
+    "github": fetch_github_content,
+    "devto": fetch_devto_content,
+    "zenn": fetch_zenn_content,
+    "qiita": fetch_qiita_content,
+}
+
+
+def attach_article_content(services, cfg):
+    _attach(services, CONTENT_FETCHERS, cfg.get("articles_top_n", 10), "content")
 
 
 # --- scoring / state --------------------------------------------------------
@@ -502,6 +560,7 @@ def main():
         })
 
     attach_comments(services, cfg)
+    attach_article_content(services, cfg)
 
     raw_path.write_text(json.dumps({
         "date": target,
