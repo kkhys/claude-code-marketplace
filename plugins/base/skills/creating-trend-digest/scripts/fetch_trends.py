@@ -7,6 +7,10 @@ Zenn, Qiita. Stdlib only.
 Each source failure is isolated: the service is reported with status
 "error" and the rest of the run continues, so one flaky API never kills
 the digest.
+
+--date switches the run to backfill mode, which reaches only the sources
+in BACKFILL_FETCHERS; the rest expose no historical query and are reported
+as skipped.
 """
 
 import argparse
@@ -20,7 +24,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from html import unescape
 from pathlib import Path
 
@@ -79,9 +83,7 @@ def make_item(title, url, engagement, label, published=None, comments_url=None, 
 # --- fetchers ---------------------------------------------------------------
 
 
-def fetch_hackernews(cfg):
-    limit = cfg.get("fetch_limit", 30)
-    data = get_json(f"https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage={limit}")
+def _hn_items(data):
     items = []
     for h in data.get("hits", []):
         comments = f"https://news.ycombinator.com/item?id={h['objectID']}"
@@ -92,7 +94,13 @@ def fetch_hackernews(cfg):
             h.get("created_at"), comments,
             excerpt=clip(h.get("story_text", ""), 150),
         ))
-    return {"status": "ok", "items": items}
+    return items
+
+
+def fetch_hackernews(cfg):
+    limit = cfg.get("fetch_limit", 30)
+    data = get_json(f"https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage={limit}")
+    return {"status": "ok", "items": _hn_items(data)}
 
 
 def fetch_lobsters(cfg):
@@ -249,6 +257,45 @@ def fetch_qiita(cfg):
     return {"status": "ok", "items": items}
 
 
+# --- backfill (--date) ------------------------------------------------------
+
+BACKFILL_NOTE = "過去日付を照会できるAPIがないため取得不可"
+
+
+def day_window(date_str):
+    """Local-day [start, end) for date_str, as timezone-aware datetimes.
+
+    A naive datetime's .astimezone() resolves the local offset in effect on
+    that date, so this stays correct across a DST boundary.
+    """
+    start = datetime.strptime(date_str, "%Y-%m-%d").astimezone()
+    return start, start + timedelta(days=1)
+
+
+def fetch_hackernews_at(cfg, start, end):
+    """Top stories submitted during the window.
+
+    An empty query on /search ranks by Algolia's custom ranking, which for
+    the HN index is points — the same popularity order as the front page.
+    """
+    query = urllib.parse.urlencode({
+        "tags": "story",
+        "numericFilters": (f"created_at_i>={int(start.timestamp())},"
+                           f"created_at_i<{int(end.timestamp())}"),
+        "hitsPerPage": cfg.get("fetch_limit", 30),
+    })
+    data = get_json(f"https://hn.algolia.com/api/v1/search?{query}")
+    items = _hn_items(data)
+    if not items:
+        raise RuntimeError("該当期間の記事が0件")
+    return {"status": "ok", "items": items}
+
+
+BACKFILL_FETCHERS = {
+    "hackernews": fetch_hackernews_at,
+}
+
+
 SERVICES = [
     {"id": "hackernews", "label": "Hacker News", "market": "global", "fetch": fetch_hackernews},
     {"id": "lobsters", "label": "Lobsters", "market": "global", "fetch": fetch_lobsters},
@@ -391,6 +438,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--skill-dir", required=True, type=Path)
     parser.add_argument("--state-dir", default=STATE_DIR_DEFAULT, type=Path)
+    parser.add_argument("--date", help="過去日付を遡って取得 (YYYY-MM-DD)")
+    parser.add_argument("--force", action="store_true",
+                        help="--date で既存の raw.json を上書きする")
     args = parser.parse_args()
 
     created = bootstrap(args.state_dir, args.skill_dir)
@@ -401,9 +451,24 @@ def main():
         return f"config.json が不正な JSON です ({config_path}): {e}"
     disabled = set(cfg.get("disabled_sources", []))
 
-    now = datetime.now(timezone.utc)
     today = datetime.now().astimezone().strftime("%Y-%m-%d")
-    run_dir = args.state_dir / "runs" / today
+    target = args.date or today
+    try:
+        window = day_window(target)
+    except ValueError:
+        return f"--date は YYYY-MM-DD 形式で指定してください: {args.date}"
+    # Asking for today by date is just a normal run; only the past needs the
+    # reduced source set.
+    backfill = target < today
+
+    # Freshness is measured against the end of the target day so that a
+    # backfilled run scores the same way the live run would have.
+    now = window[1] if backfill else datetime.now(timezone.utc)
+    run_dir = args.state_dir / "runs" / target
+    raw_path = run_dir / "raw.json"
+    if backfill and raw_path.exists() and not args.force:
+        return (f"{raw_path} が既に存在します。全ソース揃った実行結果を"
+                "縮小版で潰さないよう中断しました。上書きするには --force を付けてください")
     run_dir.mkdir(parents=True, exist_ok=True)
 
     seen_path = args.state_dir / "seen.json"
@@ -412,8 +477,11 @@ def main():
     def run(svc):
         if svc["id"] in disabled:
             return {"status": "skipped", "note": "config.json の disabled_sources で無効化", "items": []}
+        fetch = BACKFILL_FETCHERS.get(svc["id"]) if backfill else svc["fetch"]
+        if fetch is None:
+            return {"status": "skipped", "note": BACKFILL_NOTE, "items": []}
         try:
-            return svc["fetch"](cfg)
+            return fetch(cfg, *window) if backfill else fetch(cfg)
         except Exception as e:  # noqa: BLE001 - isolate any source failure
             return {"status": "error", "note": f"{type(e).__name__}: {e}", "items": []}
 
@@ -427,7 +495,7 @@ def main():
         add_base_scores(items, now)
         items.sort(key=lambda x: x.get("base_score", 0), reverse=True)
         items = items[:keep]
-        apply_seen(items, seen, today)
+        apply_seen(items, seen, target)
         services.append({
             "id": svc["id"], "label": svc["label"], "market": svc["market"],
             "status": res["status"], "note": res.get("note", ""), "items": items,
@@ -435,31 +503,38 @@ def main():
 
     attach_comments(services, cfg)
 
-    raw_path = run_dir / "raw.json"
     raw_path.write_text(json.dumps({
-        "date": today,
+        "date": target,
         "fetched_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "backfill": backfill,
         "items_per_service": cfg.get("items_per_service", 10),
         "services": services,
     }, ensure_ascii=False, indent=1), encoding="utf-8")
 
     # seen.json is written only after raw.json succeeds: URLs marked seen
-    # without a surviving raw file would never surface in any digest.
-    if len(seen) > 8000:
-        seen = dict(sorted(seen.items(), key=lambda kv: kv[1], reverse=True)[:6000])
-    seen_path.write_text(json.dumps(seen, ensure_ascii=False), encoding="utf-8")
+    # without a surviving raw file would never surface in any digest. A
+    # backfill never writes it — recording a past date out of order would
+    # rewrite "first seen" for URLs later runs already claimed.
+    if not backfill:
+        if len(seen) > 8000:
+            seen = dict(sorted(seen.items(), key=lambda kv: kv[1], reverse=True)[:6000])
+        seen_path.write_text(json.dumps(seen, ensure_ascii=False), encoding="utf-8")
 
     if created:
         print(f"BOOTSTRAPPED: {', '.join(created)} を {args.state_dir} に作成 (要ユーザー確認)")
+    if backfill:
+        print(f"BACKFILL: {target} を遡って取得 (対応ソースのみ。他は skipped)")
     for s in services:
         note = f" — {s['note']}" if s["note"] else ""
         print(f"{s['id']:<11} {s['status']:<8} {len(s['items']):>3} items{note}")
     print(f"raw: {raw_path}")
     print(f"run_dir: {run_dir}")
 
-    # Partial failures are tolerated by design, but a run where every source
-    # failed produced nothing to digest and must fail loudly.
-    if all(s["status"] == "error" for s in services):
+    # Partial failures are tolerated by design, but a run that produced
+    # nothing to digest must fail loudly. Backfill deliberately skips most
+    # sources, so judge it on the ones it actually attempted.
+    attempted = [s for s in services if s["status"] != "skipped"]
+    if not attempted or all(s["status"] == "error" for s in attempted):
         return 1
     return 0
 
