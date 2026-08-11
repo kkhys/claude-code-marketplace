@@ -96,6 +96,12 @@ list (top `items_per_service` per service after filtering):
 - **score** = `base_score` unchanged. Sort descending.
 - **category**: short label derived from the profile themes (e.g. "AI/開発",
   "セキュリティ", "キャリア"). Leave empty if nothing fits.
+- **title_ja**: natural Japanese translation of the title when the original
+  is not Japanese (translate the meaning; keep product/project names and
+  established technical terms as-is, e.g. "Show HN: Elevators" →
+  "Show HN: エレベーター制御の可視化"). `""` when the title is already
+  Japanese. The site shows `title_ja` as the linked title with the original
+  beneath it.
 - **summary**: one Japanese sentence (≤60 chars): what it is and why it is
   relevant to the profile. Write from title/excerpt and your own knowledge —
   do not fetch each article.
@@ -115,7 +121,8 @@ Compose the digest for the top of the page:
 - `highlights`: 3-5 cross-service picks, each with a one-line `reason`
   stating the observed signal (e.g. appears on multiple services, unusually
   high engagement, direct hit on a high-interest theme). Prefer items
-  appearing in multiple services and high-interest matches.
+  appearing in multiple services and high-interest matches. Carry the item's
+  `title_ja` through (same rule: `""` for Japanese titles).
 
 ### 4. Publish
 
@@ -142,12 +149,12 @@ Write `$REPO/apps/trends/src/content/runs/<date>.json` in this shape:
   "generated_at": "2026-08-08T09:30:00+09:00",
   "digest": {
     "headline": "...", "lead": "...",
-    "highlights": [{"title": "...", "url": "...", "service_label": "Hacker News", "reason": "..."}]
+    "highlights": [{"title": "...", "title_ja": "...", "url": "...", "service_label": "Hacker News", "reason": "..."}]
   },
   "markets": [
     {"id": "japan", "label": "日本", "services": [
       {"id": "hatena", "label": "はてなブックマーク", "status": "ok", "note": "",
-       "items": [{"title": "...", "url": "...", "comments_url": "...", "score": 87,
+       "items": [{"title": "...", "title_ja": "", "url": "...", "comments_url": "...", "score": 87,
                   "engagement_label": "313 users", "category": "AI/開発", "interest": 3,
                   "summary": "...", "discussion_summary": "", "seen_before": false,
                   "extra": ""}]}
