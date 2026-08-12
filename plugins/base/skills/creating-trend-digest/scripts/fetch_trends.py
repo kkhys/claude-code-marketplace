@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Fetch trending items for the creating-trend-digest skill.
 
-Sources: Hacker News, Lobsters, GitHub Trending, dev.to, Hatena Bookmark,
-Zenn, Qiita. Stdlib only.
+Sources: Hacker News, Lobsters, Reddit, GitHub Trending, dev.to, Techmeme,
+Hugging Face Daily Papers, Hatena Bookmark, Zenn, Qiita. Stdlib only.
 
 Each source failure is isolated: the service is reported with status
 "error" and the rest of the run continues, so one flaky API never kills
@@ -20,11 +20,14 @@ import os
 import re
 import shutil
 import sys
+import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from html import unescape
 from pathlib import Path
 
@@ -160,6 +163,181 @@ def fetch_devto(cfg):
     return {"status": "ok", "items": items}
 
 
+ATOM_NS = {"a": "http://www.w3.org/2005/Atom"}
+
+TECHMEME_PML = re.compile(r'pml="(\d{6}p\d+)"')
+
+
+def _techmeme_items(html, dates=None):
+    """Parse the Techmeme front page. Page order is the editorial ranking
+    and the site exposes no counts, so position becomes the engagement
+    signal. `dates` maps permalink ids to ISO datetimes (from the RSS feed)."""
+    dates = dates or {}
+    chunks = TECHMEME_PML.split(html)
+    stories = []
+    for k in range(1, len(chunks) - 1, 2):
+        pml, body = chunks[k], chunks[k + 1]
+        m = re.search(r'<A[^>]*CLASS="ourh"[^>]*HREF="([^"]+)"[^>]*>(.*?)</A>',
+                      body, re.S | re.I)
+        if not m:
+            continue  # pml spans without an ourh headline are cluster sub-links
+        cites = re.findall(r"<CITE>(.*?)</CITE>", chunks[k - 1], re.S | re.I)
+        # byline reads "Author / Outlet:"; keep the outlet as the chip
+        outlet = clip(cites[-1], 120).rstrip(":").split("/")[-1].strip() if cites else ""
+        # clip() collapses whitespace before unescaping, so the leading
+        # "&nbsp; &mdash;" separator survives as "\xa0 —" — strip it here
+        excerpt = clip(body[m.end():].split("</DIV>")[0], 200).lstrip("—– \xa0")
+        stories.append((pml, m.group(1), m.group(2), outlet, excerpt))
+    items = []
+    for pos, (pml, url, headline, outlet, excerpt) in enumerate(stories):
+        items.append(make_item(
+            headline, url, len(stories) - pos, "",
+            dates.get(pml),
+            f"https://www.techmeme.com/{pml[:6]}/{pml[6:]}#a{pml}",
+            excerpt=excerpt, extra=outlet,
+        ))
+    return items
+
+
+def fetch_techmeme(cfg):
+    html = http_get("https://www.techmeme.com/")
+    dates = {}
+    try:
+        for f in _rss_items(http_get("https://www.techmeme.com/feed.xml")):
+            m = re.search(r"/(\d{6})/(p\d+)", f.get("guid") or f.get("link") or "")
+            if m and f.get("pubDate"):
+                dates[m.group(1) + m.group(2)] = parsedate_to_datetime(f["pubDate"]).isoformat()
+    except Exception:  # noqa: BLE001 - dates only affect freshness; the page suffices
+        pass
+    items = _techmeme_items(html, dates)
+    if not items:
+        raise RuntimeError("Techmeme のHTML解析が0件 (ページ構造変更の可能性)")
+    return {"status": "ok", "items": items[: cfg.get("fetch_limit", 30)]}
+
+
+def _hf_items(data, limit):
+    items = []
+    for p in data[:limit]:
+        paper = p.get("paper") or {}
+        pid = paper.get("id") or ""
+        if not pid:
+            continue
+        url = f"https://huggingface.co/papers/{pid}"
+        upvotes = paper.get("upvotes") or 0
+        comments = p.get("numComments") or 0
+        items.append(make_item(
+            p.get("title") or paper.get("title", ""), url,
+            upvotes + comments // 2,
+            f"▲{upvotes} / {comments}コメント",
+            paper.get("submittedOnDailyAt") or p.get("publishedAt"),
+            url,
+            excerpt=clip(paper.get("ai_summary") or paper.get("summary") or "", 200),
+        ))
+    return items
+
+
+def fetch_hfpapers(cfg):
+    limit = cfg.get("fetch_limit", 30)
+    data = get_json(f"https://huggingface.co/api/daily_papers?limit={limit}")
+    items = _hf_items(data, limit)
+    if not items:
+        # The daily list flips at UTC midnight and can be briefly empty;
+        # fall back to the previous UTC day instead of failing the source.
+        yday = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
+        data = get_json(f"https://huggingface.co/api/daily_papers?date={yday}&limit={limit}")
+        items = _hf_items(data, limit)
+    if not items:
+        raise RuntimeError("Daily Papers が0件")
+    return {"status": "ok", "items": items}
+
+
+# The unauthenticated RSS endpoint enforces a small per-window quota and
+# reports it on every response (x-ratelimit-remaining / -reset), so all
+# reddit.com requests are serialized through one gate that waits out the
+# window once the quota is spent — even though callers run in thread pools.
+_REDDIT_GATE = threading.Lock()
+_REDDIT_SPACING = 5.0
+_REDDIT_MAX_WAIT = 90.0
+_reddit_next = [0.0]
+
+
+def _reddit_schedule(headers):
+    """Set the earliest time for the next reddit request from the response's
+    quota headers; falls back to steady spacing when they are absent."""
+    delay = _REDDIT_SPACING
+    try:
+        if headers is not None and float(headers.get("x-ratelimit-remaining") or 1) < 1:
+            delay = max(delay, min(float(headers.get("x-ratelimit-reset") or 0) + 1,
+                                   _REDDIT_MAX_WAIT))
+    except ValueError:
+        pass
+    _reddit_next[0] = time.monotonic() + delay
+
+
+def _reddit_get(url):
+    """GET a reddit.com URL, or return "" if the quota stays exhausted."""
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    for _ in range(3):
+        with _REDDIT_GATE:
+            wait = _reddit_next[0] - time.monotonic()
+            if wait > 0:
+                time.sleep(wait)
+            try:
+                with urllib.request.urlopen(req, timeout=TIMEOUT) as res:
+                    body = res.read().decode("utf-8", errors="replace")
+                    _reddit_schedule(res.headers)
+                    return body
+            except urllib.error.HTTPError as e:
+                if e.code != 429:
+                    raise
+                _reddit_schedule(e.headers)
+    return ""
+
+
+def _reddit_items(xml_text, sub):
+    """Parse a subreddit top listing (Atom). The RSS carries no scores;
+    entry order is Reddit's own top-of-day ranking, so position becomes
+    the engagement signal."""
+    root = safe_xml(xml_text)
+    entries = root.findall("a:entry", ATOM_NS)
+    items = []
+    for rank, e in enumerate(entries):
+        link = e.find("a:link", ATOM_NS)
+        permalink = link.get("href") if link is not None else ""
+        if not permalink:
+            continue
+        content = e.findtext("a:content", "", ATOM_NS)
+        m = re.search(r'<a href="([^"]+)">\s*\[link\]', content)
+        url = unescape(m.group(1)) if m else permalink
+        # self-posts carry their body before the "submitted by" boilerplate
+        body = re.sub(r"submitted by\s.*", "", content, flags=re.S)
+        items.append(make_item(
+            e.findtext("a:title", "", ATOM_NS), url,
+            len(entries) - rank, "",
+            e.findtext("a:published", "", ATOM_NS) or None,
+            permalink,
+            excerpt=clip(body, 200),
+            extra=f"r/{sub}",
+        ))
+    return items
+
+
+def fetch_reddit(cfg):
+    limit = min(cfg.get("fetch_limit", 30), 25)
+    items, seen_urls = [], set()
+    for sub in cfg.get("subreddits", ["programming"]):
+        feed = _reddit_get(f"https://www.reddit.com/r/{sub}/top/.rss?t=day&limit={limit}")
+        if not feed:
+            raise RuntimeError(f"r/{sub} のRSSが429続き (rate limit)")
+        for it in _reddit_items(feed, sub):
+            if it["comments_url"] in seen_urls:
+                continue
+            seen_urls.add(it["comments_url"])
+            items.append(it)
+    items.sort(key=lambda x: x["engagement"], reverse=True)
+    return {"status": "ok", "items": items[: cfg.get("fetch_limit", 30)]}
+
+
 def safe_xml(xml_text):
     # Entity-expansion (billion laughs) and XXE both require a DTD; feeds
     # from these services never legitimately contain one, so reject outright
@@ -291,16 +469,32 @@ def fetch_hackernews_at(cfg, start, end):
     return {"status": "ok", "items": items}
 
 
+def fetch_hfpapers_at(cfg, start, end):
+    """The daily_papers API accepts a date filter, so past days are exact."""
+    limit = cfg.get("fetch_limit", 30)
+    date_str = start.strftime("%Y-%m-%d")
+    data = get_json(f"https://huggingface.co/api/daily_papers?date={date_str}&limit={limit}")
+    items = _hf_items(data, limit)
+    if not items:
+        return {"status": "skipped",
+                "note": "この日のDaily Papersは0件 (土日祝は掲載なし)", "items": []}
+    return {"status": "ok", "items": items}
+
+
 BACKFILL_FETCHERS = {
     "hackernews": fetch_hackernews_at,
+    "hfpapers": fetch_hfpapers_at,
 }
 
 
 SERVICES = [
     {"id": "hackernews", "label": "Hacker News", "market": "global", "fetch": fetch_hackernews},
     {"id": "lobsters", "label": "Lobsters", "market": "global", "fetch": fetch_lobsters},
+    {"id": "reddit", "label": "Reddit", "market": "global", "fetch": fetch_reddit},
     {"id": "github", "label": "GitHub Trending", "market": "global", "fetch": fetch_github_trending},
     {"id": "devto", "label": "dev.to", "market": "global", "fetch": fetch_devto},
+    {"id": "techmeme", "label": "Techmeme", "market": "global", "fetch": fetch_techmeme},
+    {"id": "hfpapers", "label": "Hugging Face Daily Papers", "market": "global", "fetch": fetch_hfpapers},
     {"id": "hatena", "label": "はてなブックマーク", "market": "japan", "fetch": fetch_hatena},
     {"id": "zenn", "label": "Zenn", "market": "japan", "fetch": fetch_zenn},
     {"id": "qiita", "label": "Qiita", "market": "japan", "fetch": fetch_qiita},
@@ -358,10 +552,31 @@ def fetch_hatena_comments(item):
     return out
 
 
+def fetch_reddit_comments(item):
+    url = (item.get("comments_url") or "").rstrip("/")
+    if "reddit.com" not in url:
+        return []
+    feed = _reddit_get(f"{url}/.rss?limit={COMMENT_LIMIT * 2}")
+    if not feed:
+        return []
+    out = []
+    for e in safe_xml(feed).findall("a:entry", ATOM_NS):
+        # entries mix the post itself (t3_) with comments (t1_)
+        if not e.findtext("a:id", "", ATOM_NS).startswith("t1_"):
+            continue
+        text = clip(e.findtext("a:content", "", ATOM_NS), COMMENT_CLIP)
+        if text:
+            out.append(text)
+        if len(out) >= COMMENT_LIMIT:
+            break
+    return out
+
+
 COMMENT_FETCHERS = {
     "hackernews": fetch_hn_comments,
     "lobsters": fetch_lobsters_comments,
     "hatena": fetch_hatena_comments,
+    "reddit": fetch_reddit_comments,
 }
 
 
@@ -440,11 +655,20 @@ def fetch_qiita_content(item):
     return clip(data.get("body") or "", CONTENT_CLIP)
 
 
+def fetch_hfpapers_content(item):
+    m = re.search(r"papers/([^/?#]+)", item["url"] or "")
+    if not m:
+        return ""
+    data = get_json(f"https://huggingface.co/api/papers/{m.group(1)}")
+    return clip(data.get("summary") or "", CONTENT_CLIP)
+
+
 CONTENT_FETCHERS = {
     "github": fetch_github_content,
     "devto": fetch_devto_content,
     "zenn": fetch_zenn_content,
     "qiita": fetch_qiita_content,
+    "hfpapers": fetch_hfpapers_content,
 }
 
 
@@ -457,19 +681,27 @@ def attach_article_content(services, cfg):
 
 def add_base_scores(items, now):
     """base_score = engagement percentile within the service batch (75%)
-    + freshness decay (25%), on a 0-100 scale. Interest weighting is applied
-    later by Claude using the profile."""
+    + freshness decay (25%), on a 0-100 scale. Tied engagements share the
+    mean percentile of their rank range so ties (common on low-count
+    sources) cannot arbitrarily invert the source's own ordering. Interest
+    weighting is applied later by Claude using the profile."""
     n = len(items)
     if n == 0:
         return
     order = sorted(range(n), key=lambda i: items[i]["engagement"])
-    for rank, idx in enumerate(order):
-        pct = rank / (n - 1) if n > 1 else 1.0
-        h = hours_ago(items[idx].get("published_at"), now)
-        fresh = (0.75 if h is None else
-                 1.0 if h < 6 else 0.9 if h < 12 else
-                 0.75 if h < 24 else 0.55 if h < 48 else 0.35)
-        items[idx]["base_score"] = round(100 * (0.75 * pct + 0.25 * fresh))
+    i = 0
+    while i < n:
+        j = i
+        while j + 1 < n and items[order[j + 1]]["engagement"] == items[order[i]]["engagement"]:
+            j += 1
+        pct = ((i + j) / 2) / (n - 1) if n > 1 else 1.0
+        for idx in (order[k] for k in range(i, j + 1)):
+            h = hours_ago(items[idx].get("published_at"), now)
+            fresh = (0.75 if h is None else
+                     1.0 if h < 6 else 0.9 if h < 12 else
+                     0.75 if h < 24 else 0.55 if h < 48 else 0.35)
+            items[idx]["base_score"] = round(100 * (0.75 * pct + 0.25 * fresh))
+        i = j + 1
 
 
 def apply_seen(items, seen, today):
