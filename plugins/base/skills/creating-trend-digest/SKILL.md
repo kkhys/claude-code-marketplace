@@ -1,6 +1,6 @@
 ---
 name: creating-trend-digest
-description: Collect today's trends from 7 sources (HN, Lobsters, GitHub Trending, dev.to, Hatena, Zenn, Qiita), score them against a personal interest profile, and publish the digest to trends.kkhys.me
+description: Collect today's trends from 10 sources (HN, Lobsters, Reddit, GitHub Trending, dev.to, Techmeme, Hugging Face Daily Papers, Hatena, Zenn, Qiita), score them against a personal interest profile, and publish the digest to trends.kkhys.me
 argument-hint: "[今日の関心・調整指示、または遡る日付 (省略可)]"
 disable-model-invocation: true
 allowed-tools:
@@ -66,11 +66,12 @@ When the user asks for a past date ("8/5の分も作って"), add `--date`:
 python3 "${CLAUDE_SKILL_DIR}/scripts/fetch_trends.py" --skill-dir "${CLAUDE_SKILL_DIR}" --date 2026-08-05
 ```
 
-Only Hacker News can be queried historically, via the Algolia index. The
-other six sources expose no archive and come back `skipped` with a note,
-which renders as a notice on the site — carry it through like any other
-skipped service. Tell the user up front that a backfilled digest covers
-1 source, not 7.
+Only Hacker News (via the Algolia index) and Hugging Face Daily Papers
+(via the API's date filter) can be queried historically. The other eight
+sources expose no archive and come back `skipped` with a note, which
+renders as a notice on the site — carry it through like any other skipped
+service. Tell the user up front that a backfilled digest covers 2 sources,
+not 10.
 
 - Freshness is scored against the end of the target day, so `base_score` is
   comparable to a live run.
@@ -108,8 +109,9 @@ list (top `items_per_service` per service after filtering):
   yourself.
 - **discussion_summary**: only for items whose raw.json entry has a
   `comments` array (the fetch script attaches top comments to the top
-  `comments_top_n` items of HN / Lobsters / はてなブックマーク — with the
-  default of 10 that is every displayed item of those services): 2-3 short
+  `comments_top_n` items of HN / Lobsters / Reddit / はてなブックマーク —
+  with the default of 10 that is every displayed item of those services):
+  2-3 short
   Japanese paragraphs, 300-450 chars total, separated by a blank line
   (`\n\n` inside the JSON string; the site renders one `<p>` per paragraph
   in a fold). First paragraph: what the article/story actually is, adding
@@ -119,16 +121,18 @@ list (top `items_per_service` per service after filtering):
   to yourself. Facts only, no editorializing. Items without `comments` get
   `""`.
 - **article_summary**: only for items whose raw.json entry has a `content`
-  field (the fetch script attaches the article body / README to the top
-  `articles_top_n` items of the sources that have no comment fetcher:
-  GitHub Trending / dev.to / Zenn / Qiita): 2-3 short Japanese paragraphs,
-  300-450 chars total, separated by a blank line, summarizing the article
-  itself — what it covers, the concrete approach or claims, and any results
-  or numbers it reports. Summarize only what `content` actually says; the
-  body is clipped, so never guess beyond it. Facts only, same paragraph
-  format as discussion_summary. Items without `content` get `""` (an item
-  never has both — comment sources get discussion_summary, the rest get
-  this).
+  field (the fetch script attaches the article body / README / abstract to
+  the top `articles_top_n` items of the sources that have no comment
+  fetcher: GitHub Trending / dev.to / Zenn / Qiita / Hugging Face Daily
+  Papers): 2-3 short Japanese paragraphs, 300-450 chars total, separated by
+  a blank line, summarizing the article itself — what it covers, the
+  concrete approach or claims, and any results or numbers it reports.
+  Summarize only what `content` actually says; the body is clipped, so
+  never guess beyond it. Facts only, same paragraph format as
+  discussion_summary. Items without `content` get `""` (an item never has
+  both — comment sources get discussion_summary, the rest get this).
+  Techmeme items have neither `comments` nor `content` — their headline is
+  already the story in condensed form, so both fields stay `""`.
 
 ### 3. Write the digest
 
@@ -177,7 +181,7 @@ Write `$REPO/apps/trends/src/content/runs/<date>.json` in this shape:
                   "summary": "...", "discussion_summary": "", "article_summary": "",
                   "seen_before": false, "extra": ""}]}
     ]},
-    {"id": "global", "label": "グローバル", "services": ["... hackernews, lobsters, github, devto ..."]}
+    {"id": "global", "label": "グローバル", "services": ["... hackernews, lobsters, reddit, github, devto, techmeme, hfpapers ..."]}
   ]
 }
 ```
@@ -187,7 +191,7 @@ Write `$REPO/apps/trends/src/content/runs/<date>.json` in this shape:
 - Every string field is required — write `""` for missing values, never null.
 - Carry `status`/`note` from raw.json through unchanged (skipped/error
   services render as a notice). Japan services: hatena, zenn, qiita.
-  Global: hackernews, lobsters, github, devto.
+  Global: hackernews, lobsters, reddit, github, devto, techmeme, hfpapers.
 - The site's zod schema (`apps/trends/src/content.config.ts`) is strict:
   unknown or retired fields (e.g. `action_note`) fail the build. When the
   schema changes, update it, this JSON example, and the existing files in

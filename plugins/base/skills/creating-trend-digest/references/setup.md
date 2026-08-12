@@ -1,7 +1,8 @@
 # セットアップ
 
-認証不要の7ソース (Hacker News, Lobsters, GitHub Trending, dev.to,
-はてなブックマーク, Zenn, Qiita) のみで動作する。追加設定なしで使い始められる。
+認証不要の10ソース (Hacker News, Lobsters, Reddit, GitHub Trending, dev.to,
+Techmeme, Hugging Face Daily Papers, はてなブックマーク, Zenn, Qiita) のみで
+動作する。追加設定なしで使い始められる。
 
 ## Qiita トークン (任意)
 
@@ -12,11 +13,14 @@ https://qiita.com/settings/applications で read_qiita スコープのトーク�
 
 ## Reddit について
 
-2026年時点、Reddit Data API はアプリ作成が Responsible Builder Policy への
-同意・承認制でゲートされており、個人利用でも「Data Access Request」の申請が
-必要になったため導入を見送った。将来追加する場合は `fetch_trends.py` に
-OAuth client_credentials (script アプリ) を使う fetcher を実装し、`SERVICES`
-に登録する。
+Reddit Data API (JSON) はアプリ作成が Responsible Builder Policy への同意・
+承認制でゲートされているため使わず、認証不要で公式提供されている RSS
+(`/r/<sub>/top/.rss?t=day` と記事単位の `.rss`) から取得している。対象
+subreddit は config.json の `subreddits` (デフォルト `["programming"]`) で
+変更できる。RSS にはスコアが載らないため、順位は Reddit 自身の top
+ランキング順をそのまま使う。コメント取得はバースト時に 429 が返ることが
+あり、リトライしても失敗した記事は discussion_summary なしで載る
+(ベストエフォート)。
 
 ## X (Twitter) について
 
@@ -33,7 +37,7 @@ chat completions + search_parameters を使う fetcher を足し、`SERVICES` �
 | ファイル | 役割 |
 |---|---|
 | `profile.md` | 興味プロフィール。フィードバックで育つ |
-| `config.json` | ソース設定 (hatena_categories, 表示件数, comments_top_n など) と `site_repo` (公開先リポジトリのパス) |
+| `config.json` | ソース設定 (hatena_categories, subreddits, 表示件数, comments_top_n など) と `site_repo` (公開先リポジトリのパス) |
 | `seen.json` | 既出URL履歴 (「既出」バッジ用、自動管理) |
 | `runs/<date>/` | raw.json (取得結果) |
 
