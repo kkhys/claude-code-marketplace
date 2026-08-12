@@ -1,7 +1,7 @@
 {
   "items_per_service": 10,
   "fetch_limit": 30,
-  "hatena_categories": ["it", "all"],
+  "hatena_categories": ["it"],
   "disabled_sources": [],
   "comments_top_n": 10,
   "articles_top_n": 10,
