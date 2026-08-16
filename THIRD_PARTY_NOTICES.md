@@ -39,3 +39,42 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## openai/codex
+
+- Source: https://github.com/openai/codex (commit `a770e5b`), skill `.codex/skills/babysit-pr`
+- License: Apache-2.0 — Copyright 2025 OpenAI
+- Derived files (all modified from the originals):
+  - `plugins/base/skills/babysitting-pr/SKILL.md` — from `.codex/skills/babysit-pr/SKILL.md`. Keeps the babysitting loop, the fix-vs-rerun ordering, review-comment handling, and the git-safety and final-report checklists; the terminal conditions, the Copilot review loop, and the long-poll watcher model are this project's own.
+  - `plugins/base/skills/babysitting-pr/references/ci-heuristics.md` — from `.codex/skills/babysit-pr/references/heuristics.md` (branch-related vs flaky classification, decision tree, stop-and-ask conditions)
+  - `plugins/base/skills/babysitting-pr/references/watcher-output.md` — from `.codex/skills/babysit-pr/references/github-api-notes.md` (the `gh` calls behind the snapshot)
+  - `plugins/base/skills/babysitting-pr/scripts/pr-watch.sh`, `scripts/snapshot.jq` — snapshot/`actions` model from `.codex/skills/babysit-pr/scripts/gh_pr_watch.py`, reimplemented in bash + jq with long-polling instead of a streaming watch process
+
+The upstream `NOTICE` file reads:
+
+```
+OpenAI Codex
+Copyright 2025 OpenAI
+
+This project includes code derived from [Ratatui](https://github.com/ratatui/ratatui), licensed under the MIT license.
+Copyright (c) 2016-2022 Florian Dehau
+Copyright (c) 2023-2025 The Ratatui Developers
+```
+
+The Apache-2.0 boilerplate notice that upstream applies to its sources:
+
+```
+Copyright 2025 OpenAI
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
