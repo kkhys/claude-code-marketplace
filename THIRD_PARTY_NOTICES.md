@@ -78,3 +78,47 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ```
+
+## k16shikano gists (Japanese writing skills)
+
+- Sources:
+  - https://gist.github.com/k16shikano/fd287c3133457c4fd8f5601d34aa817d — `japanese-tech-writing/SKILL.md`, plus `argument-gap-edit` posted in that gist's comments
+  - https://gist.github.com/k16shikano/eb2929f13ed19c97188393d297be8432 — `cognitive-rhythm-writing/SKILL.md`
+- License: Unlicense (public domain dedication). The author applies it to all
+  their public gists — see https://gist.github.com/k16shikano/67625f2a7d96e3bbdfae8d571a936063
+- Derived files (all restructured for this marketplace; the norms themselves are
+  kept close to the originals):
+  - `plugins/base/skills/japanese-tech-writing/SKILL.md` — the always-applicable core (一文一行, 話題テスト, LLM 口調, 段落は論証の一歩, 未回収の緊張, 断定の境界) drawn from all three upstream skills. The two-mode workflow, the agent dispatch, and the consolidation format are this project's own
+  - `plugins/base/skills/japanese-tech-writing/references/argument.md` — 「段落と論証の構成」「論証の厳密さ」「読者への誠実さ」 from `japanese-tech-writing`, merged with the detection types, inspection procedure, and repair policy from `argument-gap-edit`
+  - `plugins/base/skills/japanese-tech-writing/references/rhythm.md` — from `cognitive-rhythm-writing`, plus 「読み手の負荷の管理」 from `japanese-tech-writing`
+  - `plugins/base/skills/japanese-tech-writing/references/prose.md` — 「整形」「見出しの付け方」「視点と語り」「演出の抑制」「冗長の排除」 from `japanese-tech-writing`
+  - `plugins/base/agents/argument-auditor.md`, `rhythm-designer.md`, `prose-auditor.md` — agent definitions written for this project, scoped to the reference above each one reads
+
+The Unlicense text the author applies:
+
+```
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any
+means.
+
+In jurisdictions that recognize copyright laws, the author or authors
+of this software dedicate any and all copyright interest in the
+software to the public domain. We make this dedication for the benefit
+of the public at large and to the detriment of our heirs and
+successors. We intend this dedication to be an overt act of
+relinquishment in perpetuity of all present and future rights to this
+software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <https://unlicense.org/>
+```
