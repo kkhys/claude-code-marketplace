@@ -14,6 +14,7 @@ their licenses. Each entry lists the upstream source and the derived files here.
   - `plugins/base/skills/creating-handoff/SKILL.md` — from `skills/productivity/handoff/SKILL.md`
   - `plugins/base/skills/writing-for-agents/SKILL.md` — from `skills/productivity/writing-for-agents/SKILL.md`
   - `plugins/base/skills/writing-for-agents/references/skill-mechanics.md` — from `skills/productivity/writing-for-agents/SKILL-MECHANICS.md`
+  - `plugins/base/skills/digging/SKILL.md` — interview mechanics (design tree, frontier, facts vs decisions, completion gate) adapted from `skills/productivity/grilling/SKILL.md`
 
 ```
 MIT License
