@@ -81,7 +81,6 @@ claude plugin validate . --strict
 
 # Validate each plugin manifest — the marketplace check does not cover these
 claude plugin validate ./plugins/base --strict
-claude plugin validate ./plugins/writing --strict
 
 # Within Claude Code
 /plugin validate .
@@ -166,7 +165,7 @@ Slash commands are merged into skills — do not create `commands/*.md` files. F
 
 ### Modifying Base Plugin
 
-The `base` plugin (`plugins/base/`) is the primary plugin containing core workflows:
+The `base` plugin (`plugins/base/`) is the only plugin in this marketplace, and holds every workflow:
 
 **User-driven skills** (`disable-model-invocation: true`, invoked via `/skill-name`):
 - `creating-memo` - Timestamped memo with ULID in `~/projects/github.com/kkhys/me/apps/memo/memo-content/memo/`
@@ -200,9 +199,16 @@ Other:
 - `summarizing-release-notes` - Summarize recent Claude Code release notes
 - `diagnosing-bugs` - Six-phase diagnosis loop for hard bugs and performance regressions: tight red-capable feedback loop first (HITL template in `scripts/`), then reproduce/minimise, ranked hypotheses, tagged instrumentation, fix behind a regression test, cleanup
 - `writing-for-agents` - Levers for writing documents an agent consumes (skills, CLAUDE.md, references): context pointers, the two loads, information hierarchy, completion criteria, leading words, pruning; `references/skill-mechanics.md` covers invocation choice and router skills
+- `japanese-tech-writing` - Norms for Japanese technical prose (book chapters, articles, explainers), covering both drafting and revision. `SKILL.md` carries the always-applicable core (一文一行, 話題テスト, LLM 口調, 段落は論証の一歩, 未回収の緊張, 断定の境界) plus the agent dispatch and consolidation format; the full rule sets live in `references/argument.md`, `references/rhythm.md`, and `references/prose.md`. Adapted from k16shikano's gists — see `THIRD_PARTY_NOTICES.md`
 
 **Agents**:
 - `general-purpose-assistant` - Fallback agent for broad inquiries and cross-domain tasks
+
+Prose auditors dispatched by `japanese-tech-writing`. Each reads the skill's core section plus its own norm file, both passed as absolute paths in the dispatch prompt:
+- `argument-auditor` - Paragraph order, logical gaps between paragraphs, argumentative rigour, honesty toward the reader (`references/argument.md`)
+- `rhythm-designer` - Cognitive rhythm, sentence beat, unrecovered tension, self-narrating filler, reader load (`references/rhythm.md`)
+- `prose-auditor` - Formatting and punctuation, headings, voice and terminology, restraint on rhetoric, redundancy (`references/prose.md`)
+- `technical-accuracy-checker` - Technical claims, code samples, numbers, API references; carries its own verification procedure and has web access
 
 **MCP Servers** (`plugins/base/.mcp.json`):
 - `astro-docs` - Astro documentation search (HTTP)
@@ -210,19 +216,6 @@ Other:
 - `chrome-devtools` - Chrome DevTools automation
 
 When modifying, maintain consistency with existing patterns and update version in `.claude-plugin/plugin.json`.
-
-### Writing Plugin
-
-The `writing` plugin (`plugins/writing/`) provides specialized writing agents:
-
-**Skills**:
-- `reviewing-content` - Orchestrate the four writing agents below, select the relevant ones per article, and consolidate their feedback into one prioritized report
-
-**Agents**:
-- `content-reviewer` - Review content quality
-- `language-editor` - Edit language and grammar
-- `readability-enhancer` - Improve readability
-- `technical-writer` - Technical writing assistance
 
 ## Important Patterns
 

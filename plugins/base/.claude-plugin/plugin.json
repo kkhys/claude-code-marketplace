@@ -3,7 +3,7 @@
   "name": "base",
   "displayName": "Base",
   "description": "Personal development workflow utilities for efficient knowledge management and automation",
-  "version": "0.0.48",
+  "version": "0.0.49",
   "author": {
     "name": "Keisuke Hayashi",
     "email": "hi@kkhys.me",
@@ -12,7 +12,7 @@
   "homepage": "https://github.com/kkhys/claude-code-marketplace",
   "repository": "https://github.com/kkhys/claude-code-marketplace",
   "license": "MIT",
-  "keywords": ["git", "pull-request", "code-review", "memo", "automation"],
+  "keywords": ["git", "pull-request", "code-review", "memo", "automation", "writing", "japanese"],
   "userConfig": {
     "google_project_id": {
       "type": "string",
