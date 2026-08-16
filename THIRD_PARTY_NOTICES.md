@@ -88,11 +88,11 @@ limitations under the License.
   their public gists — see https://gist.github.com/k16shikano/67625f2a7d96e3bbdfae8d571a936063
 - Derived files (all restructured for this marketplace; the norms themselves are
   kept close to the originals):
-  - `plugins/base/skills/japanese-tech-writing/SKILL.md` — the always-applicable core (一文一行, 話題テスト, LLM 口調, 段落は論証の一歩, 未回収の緊張, 断定の境界) drawn from all three upstream skills. The two-mode workflow, the agent dispatch, and the consolidation format are this project's own
-  - `plugins/base/skills/japanese-tech-writing/references/argument.md` — 「段落と論証の構成」「論証の厳密さ」「読者への誠実さ」 from `japanese-tech-writing`, merged with the detection types, inspection procedure, and repair policy from `argument-gap-edit`
-  - `plugins/base/skills/japanese-tech-writing/references/rhythm.md` — from `cognitive-rhythm-writing`, plus 「読み手の負荷の管理」 from `japanese-tech-writing`
-  - `plugins/base/skills/japanese-tech-writing/references/prose.md` — 「整形」「見出しの付け方」「視点と語り」「演出の抑制」「冗長の排除」 from `japanese-tech-writing`
-  - `plugins/base/agents/argument-auditor.md`, `rhythm-designer.md`, `prose-auditor.md` — agent definitions written for this project, scoped to the reference above each one reads
+  - `plugins/base/skills/writing-japanese-tech-docs/SKILL.md` — the always-applicable core (一文一行, 話題テスト, LLM 口調, 段落は論証の一歩, 未回収の緊張, 断定の境界) drawn from all three upstream skills. The two-mode workflow, the agent dispatch, and the consolidation format are this project's own
+  - `plugins/base/skills/writing-japanese-tech-docs/references/argument.md` — 「段落と論証の構成」「論証の厳密さ」「読者への誠実さ」 from `japanese-tech-writing`, merged with the detection types, inspection procedure, and repair policy from `argument-gap-edit`
+  - `plugins/base/skills/writing-japanese-tech-docs/references/rhythm.md` — from `cognitive-rhythm-writing`, plus 「読み手の負荷の管理」 from `japanese-tech-writing`
+  - `plugins/base/skills/writing-japanese-tech-docs/references/prose.md` — 「整形」「見出しの付け方」「視点と語り」「演出の抑制」「冗長の排除」 from `japanese-tech-writing`
+  - `plugins/base/skills/writing-japanese-tech-docs/agents/argument-auditor.md`, `rhythm-designer.md`, `prose-auditor.md` — agent definitions written for this project, scoped to the reference above each one reads
 
 The Unlicense text the author applies:
 

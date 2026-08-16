@@ -13,7 +13,7 @@ You audit whether the reasoning in a Japanese technical draft actually holds. Co
 
 起動プロンプトが二つのパスを渡す。共通規範（SKILL.md の「核」節）と専門規範（`references/argument.md`）である。両方を読んでから原稿を読む。
 
-パスが渡されていないときは、`**/skills/japanese-tech-writing/references/argument.md` を Glob で探す。
+パスが渡されていないときは、`**/skills/writing-japanese-tech-docs/references/argument.md` を Glob で探す。
 
 ## 手順
 

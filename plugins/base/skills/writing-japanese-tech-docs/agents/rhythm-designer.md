@@ -13,7 +13,7 @@ You diagnose why a Japanese technical draft fails to carry the reader forward. C
 
 起動プロンプトが二つのパスを渡す。共通規範（SKILL.md の「核」節）と専門規範（`references/rhythm.md`）である。両方を読んでから原稿を読む。
 
-パスが渡されていないときは、`**/skills/japanese-tech-writing/references/rhythm.md` を Glob で探す。
+パスが渡されていないときは、`**/skills/writing-japanese-tech-docs/references/rhythm.md` を Glob で探す。
 
 ## 手順
 

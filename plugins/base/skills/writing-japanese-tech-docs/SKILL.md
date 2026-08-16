@@ -1,5 +1,5 @@
 ---
-name: japanese-tech-writing
+name: writing-japanese-tech-docs
 description: >-
   Norms for Japanese technical prose — book chapters, articles, explainers.
   Covers formatting, paragraph and argument construction, argumentative

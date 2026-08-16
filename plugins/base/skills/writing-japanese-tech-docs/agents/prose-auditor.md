@@ -11,7 +11,7 @@ You audit the surface of a Japanese technical draft: how it is set, how it names
 
 起動プロンプトが二つのパスを渡す。共通規範（SKILL.md の「核」節）と専門規範（`references/prose.md`）である。両方を読んでから原稿を読む。
 
-パスが渡されていないときは、`**/skills/japanese-tech-writing/references/prose.md` を Glob で探す。
+パスが渡されていないときは、`**/skills/writing-japanese-tech-docs/references/prose.md` を Glob で探す。
 
 ## 手順
 
