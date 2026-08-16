@@ -10,6 +10,7 @@ their licenses. Each entry lists the upstream source and the derived files here.
 - Derived files:
   - `plugins/base/skills/diagnosing-bugs/SKILL.md` — from `skills/engineering/diagnosing-bugs/SKILL.md`
   - `plugins/base/skills/diagnosing-bugs/scripts/hitl-loop.template.sh` — from `skills/engineering/diagnosing-bugs/scripts/hitl-loop.template.sh`
+  - `plugins/base/skills/resolving-merge-conflicts/SKILL.md` — from `skills/engineering/resolving-merge-conflicts/SKILL.md`
 
 ```
 MIT License

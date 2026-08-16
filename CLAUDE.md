@@ -186,6 +186,7 @@ Git workflow:
 - `creating-branch-name` - Create branch with appropriate naming
 - `creating-pr` - GitHub PR creation
 - `creating-stacked-pr` - Verify whether a task should be split into stacked PRs, design layers, build the stack with gh-stack
+- `resolving-merge-conflicts` - Resolve in-progress merge/rebase conflicts by intent — trace each hunk to its commit/PR/issue, preserve both sides, run the project's checks, finish the merge or rebase
 
 PR review:
 - `reading-unresolved-pr-comments` - Fetch unresolved PR review comments and create fix plan
