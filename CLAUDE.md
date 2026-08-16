@@ -19,10 +19,10 @@ plugins/
   {plugin-name}/
     .claude-plugin/
       plugin.json          # Plugin metadata, userConfig, component paths
-    skills/                # Skills (SKILL.md + references/ + scripts/)
+    skills/                # Skills (SKILL.md + references/ + scripts/ + agents/)
     hooks/                 # Event hooks (hooks.json)
     scripts/               # Shell scripts for automation
-    agents/                # Custom subagent definitions (.md files)
+    agents/                # Subagent definitions shared across skills (.md files)
     .mcp.json             # MCP server configuration
 ```
 
@@ -55,7 +55,8 @@ Both manifests carry a `$schema` for editor autocomplete; `claude plugin validat
 **Agents** (`agents/*.md`): Custom subagent definitions
 - Frontmatter: `name`, `description`, `model`, `effort`, `maxTurns`, `tools`, `disallowedTools`, `skills`, `memory`, `background`, `isolation` (only valid value: `worktree`)
 - `hooks`, `mcpServers`, and `permissionMode` are not supported in plugin-shipped agents for security reasons
-- Specialized agents for specific task domains
+- Agents used by exactly one skill live under that skill (`skills/{skill}/agents/*.md`) and are registered by listing each file in the manifest's `agents` array (plugin-root-relative paths, additive to `agents/`). Keeps the agent next to the skill that dispatches it; `agents/` stays for agents any skill may use
+- Whatever the file's location, the agent is addressed as `{plugin}:{agent-name}` — the directory does not scope the name, so names must stay unique across the plugin
 
 **MCP Servers** (`.mcp.json`): External tool integrations
 - HTTP servers: `type: "http"`, `url`
@@ -81,7 +82,6 @@ claude plugin validate . --strict
 
 # Validate each plugin manifest — the marketplace check does not cover these
 claude plugin validate ./plugins/base --strict
-claude plugin validate ./plugins/writing --strict
 
 # Within Claude Code
 /plugin validate .
@@ -166,7 +166,7 @@ Slash commands are merged into skills — do not create `commands/*.md` files. F
 
 ### Modifying Base Plugin
 
-The `base` plugin (`plugins/base/`) is the primary plugin containing core workflows:
+The `base` plugin (`plugins/base/`) is the only plugin in this marketplace, and holds every workflow:
 
 **User-driven skills** (`disable-model-invocation: true`, invoked via `/skill-name`):
 - `creating-memo` - Timestamped memo with ULID in `~/projects/github.com/kkhys/me/apps/memo/memo-content/memo/`
@@ -200,9 +200,16 @@ Other:
 - `summarizing-release-notes` - Summarize recent Claude Code release notes
 - `diagnosing-bugs` - Six-phase diagnosis loop for hard bugs and performance regressions: tight red-capable feedback loop first (HITL template in `scripts/`), then reproduce/minimise, ranked hypotheses, tagged instrumentation, fix behind a regression test, cleanup
 - `writing-for-agents` - Levers for writing documents an agent consumes (skills, CLAUDE.md, references): context pointers, the two loads, information hierarchy, completion criteria, leading words, pruning; `references/skill-mechanics.md` covers invocation choice and router skills
+- `writing-japanese-tech-docs` - Norms for Japanese technical prose (book chapters, articles, explainers), covering both drafting and revision. `SKILL.md` carries the always-applicable core (一文一行, 話題テスト, LLM 口調, 段落は論証の一歩, 未回収の緊張, 断定の境界) plus the agent dispatch and consolidation format; the full rule sets live in `references/argument.md`, `references/rhythm.md`, and `references/prose.md`. Adapted from k16shikano's gists — see `THIRD_PARTY_NOTICES.md`
 
-**Agents**:
+**Agents** (`plugins/base/agents/`):
 - `general-purpose-assistant` - Fallback agent for broad inquiries and cross-domain tasks
+
+**Skill-owned agents** (`plugins/base/skills/writing-japanese-tech-docs/agents/`, registered through the manifest's `agents` array). Dispatched only by `writing-japanese-tech-docs`; each reads the skill's core section plus its own norm file, both passed as absolute paths in the dispatch prompt:
+- `argument-auditor` - Paragraph order, logical gaps between paragraphs, argumentative rigour, honesty toward the reader (`references/argument.md`)
+- `rhythm-designer` - Cognitive rhythm, sentence beat, unrecovered tension, self-narrating filler, reader load (`references/rhythm.md`)
+- `prose-auditor` - Formatting and punctuation, headings, voice and terminology, restraint on rhetoric, redundancy (`references/prose.md`)
+- `technical-accuracy-checker` - Technical claims, code samples, numbers, API references; carries its own verification procedure and has web access
 
 **MCP Servers** (`plugins/base/.mcp.json`):
 - `astro-docs` - Astro documentation search (HTTP)
@@ -210,19 +217,6 @@ Other:
 - `chrome-devtools` - Chrome DevTools automation
 
 When modifying, maintain consistency with existing patterns and update version in `.claude-plugin/plugin.json`.
-
-### Writing Plugin
-
-The `writing` plugin (`plugins/writing/`) provides specialized writing agents:
-
-**Skills**:
-- `reviewing-content` - Orchestrate the four writing agents below, select the relevant ones per article, and consolidate their feedback into one prioritized report
-
-**Agents**:
-- `content-reviewer` - Review content quality
-- `language-editor` - Edit language and grammar
-- `readability-enhancer` - Improve readability
-- `technical-writer` - Technical writing assistance
 
 ## Important Patterns
 

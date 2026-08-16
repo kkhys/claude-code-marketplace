@@ -78,7 +78,7 @@ The scope identifies the area of the codebase affected. In this marketplace, use
 
 ```
 feat(base): add memo command
-fix(writing): correct language-editor agent prompt
+fix(base): correct prose-auditor agent prompt
 chore(base): bump version to 0.0.19
 ```
 
