@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a Claude Code plugin marketplace that provides custom skills and workflows. The marketplace enables installation of plugins containing skills (knowledge bundles, also invocable as `/skill-name`), hooks (event automation), and MCP server configurations. Custom slash commands have been merged into skills — this marketplace no longer uses `commands/` directories.
+This is a Claude Code plugin marketplace that provides custom skills and workflows. The marketplace enables installation of plugins containing skills (knowledge bundles, also invocable as `/skill-name`), hooks (event automation), output styles (system-prompt personas), and MCP server configurations. Custom slash commands have been merged into skills — this marketplace no longer uses `commands/` directories.
 
 ## Architecture
 
@@ -23,6 +23,7 @@ plugins/
     hooks/                 # Event hooks (hooks.json)
     scripts/               # Shell scripts for automation
     agents/                # Subagent definitions shared across skills (.md files)
+    output-styles/         # Output styles (.md files with frontmatter)
     .mcp.json             # MCP server configuration
 ```
 
@@ -57,6 +58,15 @@ Both manifests carry a `$schema` for editor autocomplete; `claude plugin validat
 - `hooks`, `mcpServers`, and `permissionMode` are not supported in plugin-shipped agents for security reasons
 - Agents used by exactly one skill live under that skill (`skills/{skill}/agents/*.md`) and are registered by listing each file in the manifest's `agents` array (plugin-root-relative paths, additive to `agents/`). Keeps the agent next to the skill that dispatches it; `agents/` stays for agents any skill may use
 - Whatever the file's location, the agent is addressed as `{plugin}:{agent-name}` — the directory does not scope the name, so names must stay unique across the plugin
+
+**Output Styles** (`output-styles/*.md`): Persona and register changes applied to the whole session
+- Frontmatter: `name` (defaults to the filename), `description` (shown in the `/config` picker), `keep-coding-instructions`, `force-for-plugin`
+- A plugin style is registered as `{plugin}:{name}` — that full string is what `/config` shows and what `settings.json` `outputStyle` must match. Omit `name` so the filename carries it and the two stay in sync
+- The body is appended to the system prompt verbatim, so every line costs tokens on every session — keep it to rules Claude would not otherwise follow
+- `keep-coding-instructions: true` is the default choice here: an output style that only changes register must not drop Claude Code's built-in software-engineering instructions (scoping, comments, verification). Omit it only for a style where Claude is not doing engineering at all
+- Leave `force-for-plugin` unset. Setting it applies the style automatically whenever the plugin is enabled and overrides the user's own `outputStyle` setting — never what a personal always-on plugin wants
+- `output-styles/` is the default path, so no `outputStyles` entry in `plugin.json` is needed
+- Styles are cached per process and the cache is only cleared by plugin lifecycle operations (install/enable/disable, marketplace update). Editing one takes effect in a new session — `/clear` does not reload it
 
 **MCP Servers** (`.mcp.json`): External tool integrations
 - HTTP servers: `type: "http"`, `url`
@@ -210,6 +220,9 @@ Other:
 - `rhythm-designer` - Cognitive rhythm, sentence beat, unrecovered tension, self-narrating filler, reader load (`references/rhythm.md`)
 - `prose-auditor` - Formatting and punctuation, headings, voice and terminology, restraint on rhetoric, redundancy (`references/prose.md`)
 - `technical-accuracy-checker` - Technical claims, code samples, numbers, API references; carries its own verification procedure and has web access
+
+**Output Styles** (`plugins/base/output-styles/`), selected from `/config` → Output style:
+- `terse-japanese` - Terse Japanese replies: politeness, filler, and tool-call narration dropped; technical substance, negations, numbers, identifiers, and code blocks kept verbatim. Compresses the chat prose only — investigation depth, verification, and anything written to a file or GitHub stay normal
 
 **MCP Servers** (`plugins/base/.mcp.json`):
 - `astro-docs` - Astro documentation search (HTTP)

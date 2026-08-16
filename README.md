@@ -6,7 +6,7 @@
 
 | Plugin | Description |
 |---|---|
-| `base` | Git/PR workflow skills (commit conventions, PR creation, review handling, PR babysitting), norms for Japanese technical prose with four specialist audit agents, memo and knowledge management, event hooks, and MCP server configs |
+| `base` | Git/PR workflow skills (commit conventions, PR creation, review handling, PR babysitting), norms for Japanese technical prose with four specialist audit agents, memo and knowledge management, a terse Japanese output style, event hooks, and MCP server configs |
 
 ## Installation
 
@@ -45,7 +45,7 @@ bash plugins/base/skills/fixing-review-comments/scripts/test-reply-to-review-thr
 
 The same checks run in CI via `.github/workflows/validate.yml`.
 
-See [CLAUDE.md](./CLAUDE.md) for the repository layout, plugin anatomy, and conventions for adding skills, hooks, agents, and new plugins.
+See [CLAUDE.md](./CLAUDE.md) for the repository layout, plugin anatomy, and conventions for adding skills, hooks, agents, output styles, and new plugins.
 
 ## License
 
