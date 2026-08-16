@@ -199,6 +199,7 @@ PR review:
 Other:
 - `summarizing-release-notes` - Summarize recent Claude Code release notes
 - `diagnosing-bugs` - Six-phase diagnosis loop for hard bugs and performance regressions: tight red-capable feedback loop first (HITL template in `scripts/`), then reproduce/minimise, ranked hypotheses, tagged instrumentation, fix behind a regression test, cleanup
+- `writing-for-agents` - Levers for writing documents an agent consumes (skills, CLAUDE.md, references): context pointers, the two loads, information hierarchy, completion criteria, leading words, pruning; `references/skill-mechanics.md` covers invocation choice and router skills
 
 **Agents**:
 - `general-purpose-assistant` - Fallback agent for broad inquiries and cross-domain tasks
