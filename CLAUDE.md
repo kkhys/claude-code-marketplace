@@ -140,6 +140,7 @@ Note: Individual git operations (formatting-commit, splitting-commit, creating-b
 3. Keep main content under 500 lines, move details to `references/*.md` (1 level only)
 4. Test with different models (Haiku, Sonnet, Opus)
 5. Skills are directly discoverable by Claude — no wrapper command needed
+6. If the skill is ported or adapted from another project, record the source, its license, and the derived paths in `THIRD_PARTY_NOTICES.md`
 
 ### Adding User-Driven Workflow Skills
 
@@ -176,6 +177,7 @@ The `base` plugin (`plugins/base/`) is the primary plugin containing core workfl
 - `digging` - Interrogate a plan, design, or decision one question at a time until shared understanding is reached
 - `creating-trend-digest` - Collect today's trends from 10 sources (HN, Hatena, Zenn, Qiita, Lobsters, Reddit, GitHub Trending, dev.to, Techmeme, Hugging Face Daily Papers), score by personal interest profile in `~/.claude/trend-digest/`, and publish the digest to trends.kkhys.me (JSON commit → deploy → push in the me repo)
 - `explaining-like-doraemon` - Re-explain a hard answer from the current session as a のび太/ドラえもん dialogue, then restate it with the precise terms and file paths
+- `creating-handoff` - Compact the current conversation into a handoff document in `~/.claude/handoffs/<YYYYMMDD-HHmm>-<slug>.md` (state, decisions, artifact links, suggested skills, secrets redacted) so a fresh session can continue the work
 
 **Model-invocable skills** (discovered by Claude, also invocable via `/skill-name`):
 
@@ -185,6 +187,7 @@ Git workflow:
 - `creating-branch-name` - Create branch with appropriate naming
 - `creating-pr` - GitHub PR creation
 - `creating-stacked-pr` - Verify whether a task should be split into stacked PRs, design layers, build the stack with gh-stack
+- `resolving-merge-conflicts` - Resolve in-progress merge/rebase conflicts by intent — trace each hunk to its commit/PR/issue, preserve both sides, run the project's checks, finish the merge or rebase
 
 PR review:
 - `reading-unresolved-pr-comments` - Fetch unresolved PR review comments and create fix plan
@@ -195,6 +198,8 @@ PR review:
 
 Other:
 - `summarizing-release-notes` - Summarize recent Claude Code release notes
+- `diagnosing-bugs` - Six-phase diagnosis loop for hard bugs and performance regressions: tight red-capable feedback loop first (HITL template in `scripts/`), then reproduce/minimise, ranked hypotheses, tagged instrumentation, fix behind a regression test, cleanup
+- `writing-for-agents` - Levers for writing documents an agent consumes (skills, CLAUDE.md, references): context pointers, the two loads, information hierarchy, completion criteria, leading words, pruning; `references/skill-mechanics.md` covers invocation choice and router skills
 
 **Agents**:
 - `general-purpose-assistant` - Fallback agent for broad inquiries and cross-domain tasks
