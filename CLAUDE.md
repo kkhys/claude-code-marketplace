@@ -140,6 +140,7 @@ Note: Individual git operations (formatting-commit, splitting-commit, creating-b
 3. Keep main content under 500 lines, move details to `references/*.md` (1 level only)
 4. Test with different models (Haiku, Sonnet, Opus)
 5. Skills are directly discoverable by Claude — no wrapper command needed
+6. If the skill is ported or adapted from another project, record the source, its license, and the derived paths in `THIRD_PARTY_NOTICES.md`
 
 ### Adding User-Driven Workflow Skills
 
@@ -195,6 +196,7 @@ PR review:
 
 Other:
 - `summarizing-release-notes` - Summarize recent Claude Code release notes
+- `diagnosing-bugs` - Six-phase diagnosis loop for hard bugs and performance regressions: tight red-capable feedback loop first (HITL template in `scripts/`), then reproduce/minimise, ranked hypotheses, tagged instrumentation, fix behind a regression test, cleanup
 
 **Agents**:
 - `general-purpose-assistant` - Fallback agent for broad inquiries and cross-domain tasks

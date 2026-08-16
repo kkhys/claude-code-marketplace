@@ -53,3 +53,5 @@ See [CLAUDE.md](./CLAUDE.md) for the repository layout, plugin anatomy, and conv
 ## License
 
 This marketplace and its included plugins are intended for personal use.
+
+Some `base` skills are adapted from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT) — see [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
