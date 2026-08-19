@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "my-marketplace",
   "description": "Keisuke Hayashi's personal Claude Code plugin marketplace for custom toolsets and development integrations",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "owner": {
     "name": "Keisuke Hayashi",
     "email": "hi@kkhys.me",
@@ -15,6 +15,13 @@
       "description": "Base toolset for personal development workflow and utilities",
       "category": "workflow",
       "tags": ["git", "pull-request", "code-review", "memo", "automation", "writing"]
+    },
+    {
+      "name": "mcp",
+      "source": "./plugins/mcp",
+      "description": "MCP server configurations shared across coding agents (context7, serena, playwright, chrome-devtools, astro-docs, analytics-mcp)",
+      "category": "integration",
+      "tags": ["mcp", "context7", "serena", "playwright", "chrome-devtools", "astro", "analytics"]
     }
   ]
 }
