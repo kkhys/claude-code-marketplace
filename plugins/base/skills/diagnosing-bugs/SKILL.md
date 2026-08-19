@@ -61,7 +61,9 @@ give up.
    (or two configs) and diff outputs.
 10. HITL script. Last resort. If a human must click, drive them with the
     bundled template so the loop is still structured: copy
-    `${CLAUDE_SKILL_DIR}/scripts/hitl-loop.template.sh` to a scratch path,
+    `${CLAUDE_SKILL_DIR}/scripts/hitl-loop.template.sh` to a scratch path
+    (`${CLAUDE_SKILL_DIR}` is this skill's directory; when the variable
+    reaches you unexpanded, use the directory that holds this SKILL.md),
     edit the `step` / `capture` lines in the copy, then ask the user to run it
     in their own terminal — the Bash tool has no TTY for their answers — and
     paste the `--- Captured ---` block back. Its `KEY=VALUE` lines are the

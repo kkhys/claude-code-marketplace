@@ -75,7 +75,7 @@ Get the commit URL:
 COMMIT_URL="$(gh api "repos/$(gh repo view --json nameWithOwner -q '.nameWithOwner')/commits/$(git rev-parse HEAD)" --jq '.html_url')"
 ```
 
-Build a JSON payload and post all replies at once:
+Build a JSON payload and post all replies at once (`${CLAUDE_SKILL_DIR}` is this skill's directory; when the variable reaches you unexpanded, use the directory that holds this SKILL.md):
 
 ```bash
 bash "${CLAUDE_SKILL_DIR}/scripts/reply-to-review-threads.sh" /path/to/replies.json
