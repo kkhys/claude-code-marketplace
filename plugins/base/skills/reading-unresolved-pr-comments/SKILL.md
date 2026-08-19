@@ -34,6 +34,8 @@ Fetch unresolved review comments from the current PR and produce a fix plan that
 bash "${CLAUDE_SKILL_DIR}/scripts/read-unresolved-pr-comments.sh"
 ```
 
+`${CLAUDE_SKILL_DIR}` is this skill's directory; when the variable reaches you unexpanded, use the directory that holds this SKILL.md.
+
 Prerequisite: the current branch must have an open PR (`gh pr view` must succeed).
 
 The script returns JSON with PR metadata and all unresolved threads. Each thread includes `thread_id`, `path`, `line`, `start_line`, `is_outdated`, and the full comment history.

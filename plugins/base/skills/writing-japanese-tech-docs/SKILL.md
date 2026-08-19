@@ -91,6 +91,8 @@ disclosed through the pointers under [規範の所在](#規範の所在).
 
 ## 規範の所在
 
+`${CLAUDE_SKILL_DIR}` はこのスキルのディレクトリである。変数が展開されずに届いたときは、この SKILL.md を含むディレクトリを使う。
+
 | Reference | 扱う範囲 | 読むとき |
 |---|---|---|
 | `${CLAUDE_SKILL_DIR}/references/argument.md` | 段落と論証の構成、論証の厳密さ、論証ギャップの検出と修正、読者への誠実さ | 論証を組む・点検するとき（ほぼ常時） |

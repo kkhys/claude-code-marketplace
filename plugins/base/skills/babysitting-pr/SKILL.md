@@ -66,7 +66,9 @@ run. Never emit a final summary because a snapshot happened to look calm.
 `pr-watch.sh` turns PR state into one JSON snapshot with a `terminal` verdict,
 a `blockers` list, and an `actions` list. Trust those derived fields instead of
 re-deriving mergeability from raw fields — they encode the terminal rules above
-and are covered by `scripts/test-pr-watch.sh`.
+and are covered by `scripts/test-pr-watch.sh`. `${CLAUDE_SKILL_DIR}` is this
+skill's directory; when the variable reaches you unexpanded, use the directory
+that holds this SKILL.md.
 
 ```bash
 # One snapshot (start here to learn the current state)

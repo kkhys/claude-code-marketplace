@@ -17,7 +17,7 @@ $ARGUMENTS
 
 ## Instructions
 
-Parse `$ARGUMENTS` yourself: if it starts with `--tag TAG` and/or `--comment MEMO_ID`, extract those values and treat the rest as the memo content. Then execute the bundled shell script, passing each part as its own quoted argument (never forward `$ARGUMENTS` unquoted — the content may contain shell metacharacters):
+Parse `$ARGUMENTS` yourself: if it starts with `--tag TAG` and/or `--comment MEMO_ID`, extract those values and treat the rest as the memo content. Then execute the bundled shell script, passing each part as its own quoted argument (never forward `$ARGUMENTS` unquoted — the content may contain shell metacharacters). `${CLAUDE_SKILL_DIR}` is this skill's directory; when the variable reaches you unexpanded, use the directory that holds this SKILL.md:
 
 ```bash
 bash "${CLAUDE_SKILL_DIR}/scripts/creating-memo.sh" "<memo content>"

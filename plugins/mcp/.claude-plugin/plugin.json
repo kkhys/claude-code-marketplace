@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "mcp",
+  "displayName": "MCP",
+  "description": "MCP server configurations shared across coding agents: context7, serena, playwright, chrome-devtools, astro-docs, analytics-mcp",
+  "version": "0.0.1",
+  "author": {
+    "name": "Keisuke Hayashi",
+    "email": "hi@kkhys.me",
+    "url": "https://github.com/kkhys"
+  },
+  "homepage": "https://github.com/kkhys/claude-code-marketplace",
+  "repository": "https://github.com/kkhys/claude-code-marketplace",
+  "license": "MIT",
+  "keywords": ["mcp", "context7", "serena", "playwright", "chrome-devtools", "astro", "analytics"]
+}

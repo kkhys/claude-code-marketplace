@@ -12,7 +12,10 @@ set -euo pipefail
 # Exits non-zero when any thread failed to resolve, so a caller can tell a
 # clean run from a partial one.
 
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# Physical path on purpose: other agents reach this script through a
+# ~/.agents/skills symlink, and ../../../scripts/lib only exists from the
+# real location.
+SCRIPT_DIR="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly SCRIPT_DIR
 LIB_DIR="$(cd -- "${SCRIPT_DIR}/../../../scripts/lib" && pwd)"
 readonly LIB_DIR

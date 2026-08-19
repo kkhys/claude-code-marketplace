@@ -94,7 +94,7 @@ Handling lines outside the diff:
 
 ### 2. Post PENDING Review
 
-Create a payload JSON and pass it to the script:
+Create a payload JSON and pass it to the script (`${CLAUDE_SKILL_DIR}` is this skill's directory; when the variable reaches you unexpanded, use the directory that holds this SKILL.md):
 
 ```bash
 bash "${CLAUDE_SKILL_DIR}/scripts/post-pr-review.sh" /path/to/payload.json

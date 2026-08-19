@@ -3,7 +3,7 @@
   "name": "base",
   "displayName": "Base",
   "description": "Personal development workflow utilities for efficient knowledge management and automation",
-  "version": "0.0.51",
+  "version": "0.0.52",
   "author": {
     "name": "Keisuke Hayashi",
     "email": "hi@kkhys.me",
@@ -18,13 +18,5 @@
     "./skills/writing-japanese-tech-docs/agents/prose-auditor.md",
     "./skills/writing-japanese-tech-docs/agents/rhythm-designer.md",
     "./skills/writing-japanese-tech-docs/agents/technical-accuracy-checker.md"
-  ],
-  "userConfig": {
-    "google_project_id": {
-      "type": "string",
-      "title": "Google Cloud project ID",
-      "description": "Project ID used by the analytics MCP server. Authentication uses gcloud application default credentials; run `gcloud auth application-default login` if the server fails to start.",
-      "default": "just-advice-489808-d2"
-    }
-  }
+  ]
 }

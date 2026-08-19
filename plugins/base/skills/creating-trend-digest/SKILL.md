@@ -44,6 +44,9 @@ changed. No recommendations, no calls to action, no addressing the reader
 
 ### 1. Fetch
 
+`${CLAUDE_SKILL_DIR}` is this skill's directory; when the variable reaches you
+unexpanded, use the directory that holds this SKILL.md.
+
 ```bash
 python3 "${CLAUDE_SKILL_DIR}/scripts/fetch_trends.py" --skill-dir "${CLAUDE_SKILL_DIR}"
 ```
