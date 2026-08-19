@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Claude Code plugin marketplace that provides custom skills and workflows. The marketplace enables installation of plugins containing skills (knowledge bundles, also invocable as `/skill-name`), hooks (event automation), output styles (system-prompt personas), and MCP server configurations. Custom slash commands have been merged into skills — this marketplace no longer uses `commands/` directories.
 
+Claude Code is not the only consumer. The skills are symlinked into `~/.agents/skills` (by the dotfiles nix activation) and read by Codex, Gemini CLI, Cursor, Devin and Copilot CLI from the working tree, and the `mcp` plugin is installed into Codex / Devin / Copilot through the same marketplace format. See "Skills shared with other agents" below for what that constrains.
+
 ## Architecture
 
 ### Marketplace Structure
@@ -16,15 +18,18 @@ This is a Claude Code plugin marketplace that provides custom skills and workflo
 .github/workflows/
   validate.yml              # CI: manifest validation + shellcheck
 plugins/
-  {plugin-name}/
+  base/                    # Skills, hooks, agents, output styles
     .claude-plugin/
-      plugin.json          # Plugin metadata, userConfig, component paths
+      plugin.json          # Plugin metadata, component paths
     skills/                # Skills (SKILL.md + references/ + scripts/ + agents/)
     hooks/                 # Event hooks (hooks.json)
     scripts/               # Shell scripts for automation
     agents/                # Subagent definitions shared across skills (.md files)
     output-styles/         # Output styles (.md files with frontmatter)
-    .mcp.json             # MCP server configuration
+  mcp/                     # MCP server configurations only
+    .claude-plugin/
+      plugin.json
+    .mcp.json              # The one canonical MCP server list
 ```
 
 Components that exist in the plugin spec but are unused here: `workflows/` (Workflow scripts), `monitors/`, `themes/`, `.lsp.json`, and `dependencies`. Add them only when there is a concrete need.
@@ -68,11 +73,11 @@ Both manifests carry a `$schema` for editor autocomplete; `claude plugin validat
 - `output-styles/` is the default path, so no `outputStyles` entry in `plugin.json` is needed
 - Styles are cached per process and the cache is only cleared by plugin lifecycle operations (install/enable/disable, marketplace update). Editing one takes effect in a new session — `/clear` does not reload it
 
-**MCP Servers** (`.mcp.json`): External tool integrations
+**MCP Servers** (`plugins/mcp/.mcp.json`): External tool integrations, kept in a plugin of their own so that Codex, Devin and Copilot can install the same file and the dotfiles activation can generate Gemini / Cursor configs from it
 - HTTP servers: `type: "http"`, `url`
 - Stdio/command servers: `command`, `args`
-- Never hardcode machine-specific paths or secrets — declare them in `plugin.json` `userConfig` and reference as `${user_config.KEY}`
-- Hooks targeting a bundled server use the scoped tool name `mcp__plugin_<plugin>_<server>__<tool>`
+- Never hardcode machine-specific paths or secrets. Non-secret values (a Google Cloud project ID) are written literally: `${user_config.KEY}` and `userConfig` are expanded by Claude Code only, and every other consumer would see the placeholder
+- Hooks and `settings.json` permissions address a bundled server by the scoped tool name `mcp__plugin_<plugin>_<server>__<tool>` — for this plugin, `mcp__plugin_mcp_<server>__*`. Renaming a server or moving it between plugins renames its tools
 
 ### Key Design Principles
 
@@ -92,6 +97,7 @@ claude plugin validate . --strict
 
 # Validate each plugin manifest — the marketplace check does not cover these
 claude plugin validate ./plugins/base --strict
+claude plugin validate ./plugins/mcp --strict
 
 # Within Claude Code
 /plugin validate .
@@ -125,8 +131,9 @@ CI (`.github/workflows/validate.yml`) runs manifest validation, ShellCheck, Pyth
 # Add marketplace locally
 /plugin marketplace add ./path/to/claude-code-marketplace
 
-# Install plugin
+# Install plugins
 /plugin install base@my-marketplace
+/plugin install mcp@my-marketplace
 
 # Test a user-invoked skill
 /creating-memo "Test memo content"
@@ -145,8 +152,8 @@ Note: Individual git operations (formatting-commit, splitting-commit, creating-b
 
 ### Adding New Skills
 
-1. Create directory: `plugins/{plugin}/skills/{skill-name}/`
-2. Create `SKILL.md` with frontmatter (`name`, `description`)
+1. Create directory: `plugins/{plugin}/skills/{skill-name}/` — `SKILL.md` sits directly in it, never nested deeper
+2. Create `SKILL.md` with frontmatter (`name` equal to the directory name, `description`) — both mandatory, see "Skills shared with other agents"
 3. Keep main content under 500 lines, move details to `references/*.md` (1 level only)
 4. Test with different models (Haiku, Sonnet, Opus)
 5. Skills are directly discoverable by Claude — no wrapper command needed
@@ -159,14 +166,14 @@ Slash commands are merged into skills — do not create `commands/*.md` files. F
 1. Create a normal skill directory: `plugins/{plugin}/skills/{skill-name}/`
 2. Set `disable-model-invocation: true` so only the user can invoke it via `/skill-name`
 3. Use `argument-hint` and `$ARGUMENTS` for input, `` !`cmd` `` for dynamic context
-4. Bundle scripts under the skill (`scripts/`) and reference them via `${CLAUDE_SKILL_DIR}`
+4. Bundle scripts under the skill (`scripts/`) and reference them via `${CLAUDE_SKILL_DIR}`, with the fallback line from "Skills shared with other agents"
 5. If the skill uses `context: fork`, decide `background` deliberately — `false` when a caller needs the result in the same turn
 6. Validate: `/plugin validate .`
 
 ### Adding New Scripts
 
 1. Create scripts used by a single skill in `plugins/{plugin}/skills/{skill-name}/scripts/` (reference via `${CLAUDE_SKILL_DIR}`); create scripts shared by hooks in `plugins/{plugin}/scripts/` (reference via `${CLAUDE_PLUGIN_ROOT}`)
-2. Helpers shared across skills live in `plugins/{plugin}/scripts/lib/`: bash files are sourced, jq modules load via `jq -L`, GraphQL fragments via `cat`. Skill scripts resolve the lib dir relative to their own path (`"${SCRIPT_DIR}/../../../scripts/lib"`)
+2. Helpers shared across skills live in `plugins/{plugin}/scripts/lib/`: bash files are sourced, jq modules load via `jq -L`, GraphQL fragments via `cat`. Skill scripts resolve the lib dir relative to their own physical path — `SCRIPT_DIR="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"` then `"${SCRIPT_DIR}/../../../scripts/lib"` — because other agents run them through a `~/.agents/skills/<skill>` symlink, where the logical `../../..` leaves the marketplace
 3. Use bash shebang: `#!/usr/bin/env bash`
 4. Set strict mode: `set -euo pipefail` (executable scripts only — sourced libs leave options to the caller)
 5. Quote all variables: `"${var}"`
@@ -176,7 +183,7 @@ Slash commands are merged into skills — do not create `commands/*.md` files. F
 
 ### Modifying Base Plugin
 
-The `base` plugin (`plugins/base/`) is the only plugin in this marketplace, and holds every workflow:
+The `base` plugin (`plugins/base/`) holds every workflow (skills, hooks, agents, output styles); MCP servers live in the `mcp` plugin below:
 
 **User-driven skills** (`disable-model-invocation: true`, invoked via `/skill-name`):
 - `creating-memo` - Timestamped memo with ULID in `~/projects/github.com/kkhys/me/apps/memo/memo-content/memo/`
@@ -224,12 +231,21 @@ Other:
 **Output Styles** (`plugins/base/output-styles/`), selected from `/config` → Output style:
 - `terse-japanese` - Terse Japanese replies: politeness, filler, and tool-call narration dropped; technical substance, negations, numbers, identifiers, and code blocks kept verbatim. Compresses the chat prose only — investigation depth, verification, and anything written to a file or GitHub stay normal
 
-**MCP Servers** (`plugins/base/.mcp.json`):
-- `astro-docs` - Astro documentation search (HTTP)
-- `analytics-mcp` - Google Analytics queries. Project ID comes from `userConfig.google_project_id`; auth uses gcloud application default credentials (`gcloud auth application-default login`)
-- `chrome-devtools` - Chrome DevTools automation
-
 When modifying, maintain consistency with existing patterns and update version in `.claude-plugin/plugin.json`.
+
+### Modifying MCP Plugin
+
+The `mcp` plugin (`plugins/mcp/`) is a manifest plus `.mcp.json`, no skills. It exists so the same server list reaches every agent: Claude Code and Codex install it from the marketplace, Devin links the directory, Copilot installs it and runs `copilot plugin update`, and the dotfiles activation generates Gemini `mcpServers` (HTTP → `httpUrl`) and Cursor `~/.cursor/mcp.json` from the file.
+
+**MCP Servers** (`plugins/mcp/.mcp.json`):
+- `context7` - Library documentation lookup (HTTP, no API key)
+- `serena` - Symbol-level code navigation and editing via `uvx`
+- `playwright` - Browser automation via `@playwright/mcp`
+- `chrome-devtools` - Chrome DevTools automation
+- `astro-docs` - Astro documentation search (HTTP)
+- `analytics-mcp` - Google Analytics queries. `GOOGLE_PROJECT_ID` is literal in the file; auth uses gcloud application default credentials (`gcloud auth application-default login`)
+
+Adding or renaming a server changes its tool names (`mcp__plugin_mcp_<server>__*`), so update the permission entries in `dotfiles/.config/claude/settings.json` in the same change. Bump `plugins/mcp/.claude-plugin/plugin.json` on every edit — Claude Code's marketplace auto-update only picks up a new version.
 
 ## Important Patterns
 
@@ -239,6 +255,17 @@ Skills cover both auto-discovery by Claude and explicit `/skill-name` invocation
 - Model + user invocable (default): knowledge and conventions Claude should apply when relevant (e.g., `formatting-commit`)
 - `disable-model-invocation: true`: side-effectful or user-timed workflows (e.g., `/creating-memo`, `/publishing-pr`)
 - `user-invocable: false`: background knowledge that is not a meaningful user action
+
+### Skills shared with other agents
+
+Every `plugins/*/skills/<name>/` is symlinked to `~/.agents/skills/<name>` by the dotfiles nix activation, and Codex, Gemini CLI, Cursor, Devin and Copilot CLI read that directory. Claude Code does not read `~/.agents/skills`, so each skill is listed once per agent. The other readers are stricter and substitute less than Claude Code:
+
+- `name` and `description` are mandatory — Gemini drops a skill that lacks either, silently. `name` must equal the directory name (Cursor requires it; Codex lists the skill as `base:<name>` from the canonical path)
+- `SKILL.md` sits directly in `skills/<name>/` — Gemini only globs `SKILL.md` and `*/SKILL.md` under each root, so a deeper layout is invisible
+- Nothing but Claude Code substitutes `${CLAUDE_SKILL_DIR}`, `$ARGUMENTS`, or runs `` !`cmd` `` injection. A skill that references its own files adds one line next to the first reference: "`${CLAUDE_SKILL_DIR}` is this skill's directory; when the variable reaches you unexpanded, use the directory that holds this SKILL.md." Treat `$ARGUMENTS` and `` !`cmd` `` output as possibly absent
+- Scripts that reach `scripts/lib` resolve their own physical path (see "Adding New Scripts") — a logical `../../..` from the symlink leaves the marketplace
+- `disable-model-invocation` is Claude-only; a side-effect skill's `description` must therefore already scope it to explicit requests, because other agents can pick it by description alone
+- Only `SKILL.md` and the files it points at travel: the other readers look for `SKILL.md` alone, so skill-owned `agents/`, plugin `hooks/`, and `output-styles/` stay Claude Code features
 
 ### Skill Description Format
 
