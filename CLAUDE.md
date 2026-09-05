@@ -192,7 +192,6 @@ The `base` plugin (`plugins/base/`) holds every workflow (skills, hooks, agents,
 - `creating-task-summary` - Create weekly task summaries
 - `uploading-knowledge-gist` - Upload session knowledge to secret GitHub Gist
 - `digging` - Interrogate a plan, design, or decision one question at a time until shared understanding is reached
-- `creating-trend-digest` - Collect today's trends from 10 sources (HN, Hatena, Zenn, Qiita, Lobsters, Reddit, GitHub Trending, dev.to, Techmeme, Hugging Face Daily Papers), score by personal interest profile in `~/.claude/trend-digest/`, and publish the digest to trends.kkhys.me (JSON commit → deploy → push in the me repo)
 - `explaining-like-doraemon` - Re-explain a hard answer from the current session as a のび太/ドラえもん dialogue, then restate it with the precise terms and file paths
 - `creating-handoff` - Compact the current conversation into a handoff document in `~/.claude/handoffs/<YYYYMMDD-HHmm>-<slug>.md` (state, decisions, artifact links, suggested skills, secrets redacted) so a fresh session can continue the work
 
