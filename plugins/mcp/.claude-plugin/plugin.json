@@ -3,7 +3,7 @@
   "name": "mcp",
   "displayName": "MCP",
   "description": "MCP server configurations shared across coding agents: context7, serena, playwright, chrome-devtools, astro-docs, analytics-mcp",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": {
     "name": "Keisuke Hayashi",
     "email": "hi@kkhys.me",

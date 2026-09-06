@@ -21,8 +21,8 @@
       "url": "https://mcp.docs.astro.build/mcp"
     },
     "analytics-mcp": {
-      "command": "pipx",
-      "args": ["run", "analytics-mcp"],
+      "command": "uvx",
+      "args": ["analytics-mcp"],
       "env": {
         "GOOGLE_PROJECT_ID": "just-advice-489808-d2"
       }
