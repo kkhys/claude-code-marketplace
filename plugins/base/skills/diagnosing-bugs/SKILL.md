@@ -1,18 +1,8 @@
 ---
 name: diagnosing-bugs
-description: >-
-  Six-phase diagnosis loop for hard bugs and performance regressions: build a
-  tight, red-capable feedback loop first, then reproduce and minimise, rank
-  falsifiable hypotheses, instrument one variable at a time, fix behind a
-  regression test, and clean up.
-when_to_use: >-
-  Always consult before investigating a bug the user reports as broken,
-  throwing, failing, intermittent, or slow — "デバッグして", "原因を調べて",
-  "なんで落ちる", "時々落ちる", "直らない", "遅くなった", "diagnose", "debug
-  this", "root-cause this", "flaky", "regression". Especially a bug that
-  resisted a first look, a flake, or a regression between two known-good
-  states. Skip only for a typo or an error whose fix is already evident.
+description: Six-phase discipline for a hard bug or performance regression — build a red-capable feedback loop, reproduce and minimise, rank hypotheses, instrument, fix behind a regression test, clean up
 argument-hint: "[symptom or bug report]"
+disable-model-invocation: true
 ---
 
 # Diagnosing Bugs

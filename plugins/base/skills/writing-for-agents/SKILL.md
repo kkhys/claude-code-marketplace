@@ -7,14 +7,13 @@ description: >-
   leading words, pruning.
 when_to_use: >-
   Always consult before creating or editing a SKILL.md, CLAUDE.md, AGENTS.md,
-  an agent definition, or any reference file an agent will read — "write a
-  skill", "improve this skill", "スキルを書いて", "スキルを改善", "CLAUDE.md
-  を直して", "description を直して", "発火しない", "エージェント向けドキュメント".
-  Also when a skill fires unreliably or too often (its pointer needs
-  sharpening), or when a document has grown long and needs pruning or
-  splitting. Complements skill-creator (drafting and evals) — this skill
-  covers the writing itself.
+  an agent definition, or a reference file an agent will read — "スキルを
+  書いて", "スキルを改善", "CLAUDE.md を直して", "description を直して",
+  "発火しない", "write a skill", "improve this skill". Also when a skill
+  fires unreliably or too often, or a document needs pruning or splitting.
+  Complements skill-creator (drafting and evals).
 argument-hint: "[path of a document to audit (optional)]"
+paths: "**/SKILL.md,**/CLAUDE.md,**/AGENTS.md,**/agents/*.md"
 ---
 
 # Writing for Agents

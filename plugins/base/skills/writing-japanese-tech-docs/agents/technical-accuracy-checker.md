@@ -1,6 +1,6 @@
 ---
 name: technical-accuracy-checker
-description: Verify the technical claims, code samples, commands, numbers, and API references in a Japanese technical draft, and check that concepts are introduced in a runnable order. Use when a draft contains code blocks, API references, or claims about behaviour, performance, or specifications.
+description: Verifies the technical claims and code in a Japanese technical draft. Dispatched by writing-japanese-tech-docs only.
 tools: Read, Grep, Glob, WebSearch, WebFetch
 memory: user
 ---
