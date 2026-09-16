@@ -14,7 +14,7 @@
       "source": "./plugins/base",
       "description": "Base toolset for personal development workflow and utilities",
       "category": "workflow",
-      "tags": ["git", "pull-request", "code-review", "memo", "automation", "writing"]
+      "tags": ["git", "pull-request", "code-review", "automation", "writing"]
     },
     {
       "name": "mcp",
