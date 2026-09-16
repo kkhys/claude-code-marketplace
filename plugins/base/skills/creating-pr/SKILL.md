@@ -37,7 +37,7 @@ base-branch instruction from the user must arrive through the argument above.
 [base-branch] type: description
 ```
 
-The base branch name goes in brackets, followed by a Conventional Commits type and a lowercase description. This format makes it immediately clear where the PR targets and what kind of change it is when scanning a PR list.
+The base branch name goes in brackets, followed by a Conventional Commits type and a lowercase English description — the title is English whatever language the body uses. This format makes it immediately clear where the PR targets and what kind of change it is when scanning a PR list.
 
 **Examples:**
 - `[main] feat: add user authentication system`
@@ -58,7 +58,9 @@ Before generating a description, check if the repository has a PR template (`.gi
 
 ## Body
 
-When no template exists, write a flat bullet-point list in English. Each bullet uses imperative mood ("Add", "Fix", "Remove", "Update") and describes one concrete change. No headings, no "Summary" / "Test plan" sections, no sub-bullets — just a plain list. Aim for 3-5 bullets that capture the meaningful changes; omit trivial ones.
+The body's language follows the repository: the PR template's language when one exists, otherwise the language of its recent merged PRs (`gh pr list --state merged --limit 5 --json body --jq '.[].body'`). A repository with no history gets English.
+
+When no template exists, write a flat bullet-point list. Each bullet uses imperative mood ("Add", "Fix", "Remove", "Update") and describes one concrete change. No headings, no "Summary" / "Test plan" sections, no sub-bullets — just a plain list. Aim for 3-5 bullets that capture the meaningful changes; omit trivial ones.
 
 Good:
 ```
