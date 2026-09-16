@@ -152,10 +152,8 @@ For each round of feedback:
    intent behind each comment, which is what keeps a fix from bouncing back in
    the next review round.
 2. Invoke `fixing-review-comments` to implement, verify, commit, push, and reply
-   to each thread. It runs the project's tests and linter before pushing —
-   pushing red code to a PR under review wastes the reviewer's time. Tell it to
-   land a **new commit and a plain push**, overriding its default of amending
-   review-feedback fixes: see Git safety below for why.
+   to each thread. It runs the project's tests and linter before pushing and
+   lands a new commit with a plain push.
 3. Invoke `resolving-pr-comments` with the thread IDs you addressed — always the
    explicit list, never a bulk resolve. Resolving every unresolved thread would
    also close ones you deliberately left alone.
@@ -229,11 +227,10 @@ Report the conflicting files and stop.
 ## Git safety
 
 - Work only on the PR head branch.
-- Add new commits; never amend or rebase during babysitting. This overrides the
-  usual "amend when addressing review feedback" preference from
-  `formatting-commit`: mid-review, a force-push detaches existing review comments
-  from their lines and erases the per-round diff a reviewer uses to check that
-  their feedback was applied. Between rounds, that history *is* the answer.
+- Add new commits; never amend or rebase during babysitting — the rule
+  `formatting-commit` sets for anything under review. A force-push detaches
+  existing review comments from their lines and erases the per-round diff a
+  reviewer uses to check that their feedback was applied.
 - Follow `formatting-commit` for message format. One commit per fix round, scoped
   to what that round fixed.
 - Push with plain `git push`. If it is rejected, someone else pushed — fetch,

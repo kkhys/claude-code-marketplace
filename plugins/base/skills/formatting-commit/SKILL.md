@@ -1,10 +1,10 @@
 ---
 name: formatting-commit
-description: Enforce Conventional Commits format for git commits, including project-specific type/scope conventions (plugin name as scope) and squash-vs-new-commit strategy selection.
+description: Enforce Conventional Commits format for git commits, including project-specific scope conventions (plugin name as scope in this marketplace) and the new-commit-versus-amend decision — new commit by default, always under review.
 when_to_use: >-
   Always consult when committing code changes — "commit", "コミット",
   "コミットして", "変更を記録", "save changes", "stage and commit", choosing
-  between feat and fix, deciding between squash and new commit, or any
+  between feat and fix, deciding between amend and new commit, or any
   request to record, amend, or finalize changes in git. These conventions
   differ from defaults and cannot be inferred without this skill.
 allowed-tools:
@@ -20,92 +20,43 @@ allowed-tools:
 - Status: !`git status --short`
 - Recent commits: !`git log --oneline -10`
 
-## Strategy Selection
+## New commit or amend
 
-The goal is a clean, reviewable commit history. Two strategies:
+New commit by default. Amend only when all of these hold: the previous
+commit is not pushed, the change is a fixup of that commit (typo, forgotten
+file), and a separate commit would be noise.
 
-### New Commit (default)
+Under review the answer is always a new commit — one per fix round, scoped
+to what that round changed — and a plain push. Amending a pushed commit
+force-pushes, which detaches existing review comments from their lines and
+erases the per-round diff the reviewer uses to check that their feedback
+landed.
 
-Create a new commit when:
-- It's the first commit on the branch
-- The change is logically independent from existing commits
-- You're building incrementally (model -> API -> UI)
+Reorganising several existing commits is `splitting-commit`'s job, not a
+manual rebase here.
 
-A new commit preserves the narrative of how the work evolved. Each commit should be a self-contained, meaningful unit — something a reviewer can understand in isolation.
-
-### Squash (amend)
-
-Amend the previous commit when:
-- The change directly extends or fixes the same work (e.g., addressing review feedback)
-- A separate commit would be noise rather than signal (typo fix, forgotten file)
-
-Squashing keeps the history focused on intent rather than process. After amending a pushed commit, use `git push --force-with-lease` — never `--force`.
-
-If the branch has multiple commits that need reorganizing, use the `splitting-commit` skill instead of manual rebase.
-
-## Commit Message Format
+## Message
 
 ```
 <type>(<scope>): <description>
-
-[body]
-
-[footer]
 ```
 
-### Type
+Type by dominant intent, one of `feat` `fix` `refactor` `perf` `test`
+`docs` `style` `build` `ci` `chore`. A feature with its tests is `feat`; a
+bug fix with incidental refactoring is `fix`.
 
-Select by the primary intent of the change:
+Scope is the area of the codebase. In this marketplace it is the plugin name
+(`feat(base): …`, `chore(mcp): …`); omit it only for cross-cutting root
+changes. Other repositories keep their own scope convention — read the
+recent log.
 
-| Type | When to use |
-|------|-------------|
-| `feat` | New user-facing capability |
-| `fix` | Correcting broken behavior |
-| `refactor` | Restructuring without behavior change |
-| `perf` | Performance improvement |
-| `test` | Adding or modifying tests |
-| `docs` | Documentation only |
-| `style` | Code formatting, whitespace |
-| `build` | Build system, dependencies |
-| `ci` | CI/CD configuration |
-| `chore` | Everything else (version bumps, config) |
-
-When changes span multiple types, pick the dominant one. A feature that includes its tests is `feat`, not `test`.
-
-### Scope
-
-The scope identifies the area of the codebase affected. In this marketplace, use the plugin name:
-
-```
-feat(base): add memo command
-fix(base): correct prose-auditor agent prompt
-chore(base): bump version to 0.0.19
-```
-
-Omit scope only when the change is truly cross-cutting (e.g., root-level config).
-
-### Subject Line
-
-- Imperative mood, lowercase, no trailing period
-- Under 50 characters — if it doesn't fit, the commit may be doing too much
-- Describe what the commit does, not how
-
-Good: `add OAuth2 login flow`
-Bad: `Added the OAuth2 login flow implementation`
-
-### Body
-
-Optional but valuable for non-trivial changes. Explain why the change was needed — the subject already says what. Wrap at 72 characters.
-
-### Footer
-
-- `Closes #123` to auto-close issues
-- `BREAKING CHANGE:` or `!` after type for breaking changes: `feat(api)!: remove legacy endpoint`
+Subject: imperative, lowercase, no trailing period, under 50 characters. A
+body, when the change is non-trivial, says why — the subject already says
+what. `!` after the type marks a breaking change.
 
 ## Process
 
-1. Review the injected state above; run `git log --oneline origin/main..HEAD` if you need branch-only commits
-2. Decide strategy: new commit or squash
-3. Stage specific files — be deliberate about what goes in
-4. Compose the message and commit
-5. Verify with `git log -1 --stat`
+1. Review the injected state; `git log --oneline origin/main..HEAD` shows
+   branch-only commits when you need them
+2. Stage specific files — be deliberate about what goes in
+3. Commit, then verify with `git log -1 --stat`
