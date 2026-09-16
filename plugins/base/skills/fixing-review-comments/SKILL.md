@@ -10,6 +10,7 @@ when_to_use: >-
   "レビューコメント直して", "fix the review comments", "address the feedback",
   "review 対応して", "レビュー指摘を修正". This is the primary skill for
   closing the PR review feedback loop.
+argument-hint: "[PR URL or number, or a #discussion_r<id> thread URL]"
 allowed-tools:
   - Bash(gh:*)
   - Bash(git:*)
@@ -30,16 +31,30 @@ Close the PR review feedback loop: read what reviewers asked for, implement the 
 
 !`gh pr view --json number,title,url,state 2>/dev/null || echo "No open PR found for the current branch"`
 
+## Target
+
+$ARGUMENTS
+
+A PR URL or number, optionally narrowed to one thread (`#discussion_r<id>` — match it against the comment `url` fields in the fetched threads and handle only that one). Blank means the current branch's PR.
+
+When the PR's head branch is not the one checked out, or the user is working elsewhere in this checkout (「worktreeで」), use a worktree so their tree stays untouched, and run every later step from that directory — the scripts resolve the PR from the current branch:
+
+```bash
+git fetch origin <head>
+git worktree add .claude/worktrees/<head-slug> <head> 2>/dev/null \
+  || git worktree add --track -b <head> .claude/worktrees/<head-slug> origin/<head>
+```
+
 ## Phase 1: Understand the Feedback
 
-Invoke the `reading-unresolved-pr-comments` skill. It fetches all unresolved threads via GraphQL and produces a structured fix plan.
+Invoke `reading-unresolved-pr-comments`. It fetches every unresolved thread and returns a fix plan with the reviewer's underlying intent, outdated flags, and grouping.
 
-Before jumping into code, review the plan carefully:
+Then check each item against the code before changing anything. A comment can be wrong, already addressed, or a judgment call:
 
-- What is each reviewer actually asking for? A comment like "rename this variable" often means "this name is misleading because it implies X when the value is Y." Catching the deeper intent avoids a second round of review.
-- Are any threads marked `is_outdated`? The referenced lines may have shifted or been rewritten. Verify the current code state before planning a fix for these.
-- Which fixes touch the same file or function? Group them so coordinated changes stay consistent.
-- Which fixes are truly independent? Those can run in parallel later.
+- Wrong or already handled → no code change; the reply carries the evidence (the line that already does it, the reason the concern does not apply)
+- A product or design decision → surface it with a suggested reply and wait
+
+Only the remaining items go to Phase 2.
 
 ## Phase 2: Implement Fixes
 
@@ -53,21 +68,13 @@ When a reviewer suggests an approach but leaves room for alternatives, make the 
 
 ## Phase 3: Verify and Commit
 
-Run the project's test suite and linter. Pushing broken code to a PR wastes the reviewer's time and erodes trust in the review process — catching failures at this stage is essential.
-
-- If any check fails, fix the issues before proceeding
-- Once all checks pass, invoke the `formatting-commit` skill to commit all fixes together
-- Push with `git push --force-with-lease` (the branch has existing history, so a regular push will be rejected)
-
-All fixes go in a single commit. Splitting them across multiple commits creates noise in the review thread and makes it harder for the reviewer to see the full picture of what changed.
+Run the project's test suite and linter; fix what fails before going on. Then commit every fix of this round as one new commit via `formatting-commit` — never amend under review — and push with plain `git push`. One commit per round keeps the reviewer's per-round diff intact.
 
 ## Phase 4: Close the Loop
 
-Reviewers need to know their feedback was heard. A generic "修正しました" tells them nothing — they'd have to dig through the diff to verify each point. Specific replies save everyone's time.
-
-For each unresolved thread, compose a reply that includes:
-1. What was changed (specific enough that the reviewer can confirm without reading the diff)
-2. A link to the commit for verification
+For each thread handled, reply with:
+1. What was changed — specific enough that the reviewer can confirm without reading the diff — or, for a comment that needed no change, the evidence
+2. A link to the commit, when there is one
 
 Get the commit URL:
 

@@ -17,7 +17,7 @@ when_to_use: >-
   has conflicts that must be resolved" — and when a git command the agent
   itself ran (merge, rebase, pull, cherry-pick, gh stack sync) stopped on
   conflicts.
-argument-hint: "[goal of this merge/rebase (optional)]"
+argument-hint: "[PR URL(s) or the goal of this merge/rebase (optional)]"
 allowed-tools:
   - Bash(git:*)
   - Bash(gh:*)
@@ -51,8 +51,23 @@ and state the inference before resolving anything.
 Already mid-merge or mid-rebase (unmerged paths above): go straight to
 Process.
 
-Clean tree and a PR that GitHub reports as conflicting: the branch to resolve
-on follows the PR's base (`gh pr view --json baseRefName,headRefName`).
+Clean tree and a PR that GitHub reports as conflicting — named by URL or
+number, or several at once (「一連の stacked pr」 walks the stack from the
+bottom; 「<prefix> で始まる PR 全て」 is `gh pr list --state open --search
+'<prefix> in:title' --json number,headRefName,baseRefName,mergeable`), one
+PR at a time: fetch its head branch first. When the user is working on
+another branch in this checkout (「worktreeで」), resolve inside a worktree
+instead of switching their branch — a worktree of the head branch, or of
+develop on the develop path:
+
+```sh
+git fetch origin <branch>
+git worktree add .claude/worktrees/<slug> <branch> 2>/dev/null \
+  || git worktree add --track -b <branch> .claude/worktrees/<slug> origin/<branch>
+```
+
+The branch to resolve on follows the PR's base
+(`gh pr view --json baseRefName,headRefName`).
 
 - Base `develop`: resolve on develop itself. Bring local develop up to date,
   merge the head branch into it, and land the PR by pushing develop — GitHub
