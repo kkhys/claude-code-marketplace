@@ -25,17 +25,11 @@ Resolve review threads on the current GitHub PR via the GraphQL API — all unre
 
 !`gh pr view --json number,title,url 2>/dev/null || echo "No open PR found for the current branch"`
 
-## Why This Exists
-
-Manually clicking "Resolve conversation" on every thread in the GitHub UI is tedious after addressing a batch of review comments. This turns that into a single action.
-
 ## Before Running
 
-Resolving threads signals to reviewers that their feedback has been addressed. If a reviewer disagrees, they have to unresolve the thread or leave a new comment — that creates friction and can feel dismissive. Only resolve threads when the underlying concerns have genuinely been handled.
+Resolving a thread tells the reviewer their point was handled; resolving one that was not forces them to reopen it. Confirm with the user first: show how many threads will be resolved and wait for a go-ahead.
 
-Confirm with the user before proceeding. Show how many threads will be resolved and ask for a go-ahead. Don't skip this step — this is an action that directly affects the reviewer's workflow.
-
-The exception is a caller that already knows exactly which threads it fixed and replied to (`babysitting-pr` runs this way). Resolving that explicit list is a bookkeeping step in a workflow the user already authorized, so it needs no separate confirmation.
+The exception is a caller that already knows exactly which threads it fixed and replied to (`babysitting-pr` runs this way): resolving that explicit list is bookkeeping inside a workflow the user already authorized.
 
 ## Run the Script
 
