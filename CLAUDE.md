@@ -24,7 +24,6 @@ plugins/
     skills/                # Skills (SKILL.md + references/ + scripts/ + agents/)
     hooks/                 # Event hooks (hooks.json)
     scripts/               # Shell scripts for automation
-    agents/                # Subagent definitions shared across skills (.md files)
     output-styles/         # Output styles (.md files with frontmatter)
   mcp/                     # MCP server configurations only
     .claude-plugin/
@@ -136,7 +135,7 @@ CI (`.github/workflows/validate.yml`) runs manifest validation, ShellCheck, Pyth
 /plugin install mcp@my-marketplace
 
 # Test a user-invoked skill
-/creating-memo "Test memo content"
+/creating-handoff "continue the skill refactor"
 ```
 
 ### Git Workflow
@@ -183,52 +182,16 @@ Slash commands are merged into skills — do not create `commands/*.md` files. F
 
 ### Modifying Base Plugin
 
-The `base` plugin (`plugins/base/`) holds every workflow (skills, hooks, agents, output styles); MCP servers live in the `mcp` plugin below:
+The `base` plugin (`plugins/base/`) holds every workflow (skills, hooks, agents, output styles); MCP servers live in the `mcp` plugin below. The skill catalog is the directory itself: each `plugins/base/skills/*/SKILL.md` frontmatter carries the description and the invocation mode (`disable-model-invocation` marks the user-driven ones), so nothing is listed twice here. What the frontmatter does not say:
 
-**User-driven skills** (`disable-model-invocation: true`, invoked via `/skill-name`):
-- `creating-memo` - Timestamped memo with ULID in `~/projects/github.com/kkhys/me/apps/memo/memo-content/memo/`
-- `publishing-pr` - Complete git workflow: branch creation → commit split → PR creation
-- `creating-codepen-demo` - Create CodePen demos
-- `creating-task-summary` - Create weekly task summaries
-- `uploading-knowledge-gist` - Upload session knowledge to secret GitHub Gist
-- `digging` - Interrogate a plan, design, or decision one question at a time until shared understanding is reached
-- `explaining-like-doraemon` - Re-explain a hard answer from the current session as a のび太/ドラえもん dialogue, then restate it with the precise terms and file paths
-- `creating-handoff` - Compact the current conversation into a handoff document in `~/.claude/handoffs/<YYYYMMDD-HHmm>-<slug>.md` (state, decisions, artifact links, suggested skills, secrets redacted) so a fresh session can continue the work
-
-**Model-invocable skills** (discovered by Claude, also invocable via `/skill-name`):
-
-Git workflow:
-- `formatting-commit` - Conventional Commits format
-- `splitting-commit` - Split commits by semantic meaning
-- `creating-branch-name` - Create branch with appropriate naming
-- `creating-pr` - GitHub PR creation
-- `creating-stacked-pr` - Verify whether a task should be split into stacked PRs, design layers, build the stack with gh-stack
-- `resolving-merge-conflicts` - Resolve in-progress merge/rebase conflicts by intent — trace each hunk to its commit/PR/issue, preserve both sides, run the project's checks, finish the merge or rebase. A conflicting PR into `develop` is landed by merging the head branch into local develop and pushing develop after confirmation; PRs into any other base resolve on the head branch
-
-PR review:
-- `reading-unresolved-pr-comments` - Fetch unresolved PR review comments and create fix plan
-- `resolving-pr-comments` - Resolve review threads on the current PR (all unresolved, or a specific thread ID list)
-- `fixing-review-comments` - Address unresolved review comments on the current branch
-- `posting-pr-review` - Post review comments to a GitHub PR as a PENDING review
-- `babysitting-pr` - Monitor a PR until it is mergeable (draft: until review comments are resolved): long-poll CI/review/merge state via `pr-watch.sh`, autonomously fix branch-caused CI failures and actionable review comments, and re-request Copilot review after each fix round until Copilot stops commenting
-
-Other:
-- `summarizing-release-notes` - Summarize recent Claude Code release notes
-- `diagnosing-bugs` - Six-phase diagnosis loop for hard bugs and performance regressions: tight red-capable feedback loop first (HITL template in `scripts/`), then reproduce/minimise, ranked hypotheses, tagged instrumentation, fix behind a regression test, cleanup
-- `writing-for-agents` - Levers for writing documents an agent consumes (skills, CLAUDE.md, references): context pointers, the two loads, information hierarchy, completion criteria, leading words, pruning; `references/skill-mechanics.md` covers invocation choice and router skills
-- `writing-japanese-tech-docs` - Norms for Japanese technical prose (book chapters, articles, explainers), covering both drafting and revision. `SKILL.md` carries the always-applicable core (一文一行, 話題テスト, LLM 口調, 段落は論証の一歩, 未回収の緊張, 断定の境界) plus the agent dispatch and consolidation format; the full rule sets live in `references/argument.md`, `references/rhythm.md`, and `references/prose.md`. Adapted from k16shikano's gists — see `THIRD_PARTY_NOTICES.md`
-
-**Agents** (`plugins/base/agents/`):
-- `general-purpose-assistant` - Fallback agent for broad inquiries and cross-domain tasks
-
-**Skill-owned agents** (`plugins/base/skills/writing-japanese-tech-docs/agents/`, registered through the manifest's `agents` array). Dispatched only by `writing-japanese-tech-docs`; each reads the skill's core section plus its own norm file, both passed as absolute paths in the dispatch prompt:
-- `argument-auditor` - Paragraph order, logical gaps between paragraphs, argumentative rigour, honesty toward the reader (`references/argument.md`)
-- `rhythm-designer` - Cognitive rhythm, sentence beat, unrecovered tension, self-narrating filler, reader load (`references/rhythm.md`)
-- `prose-auditor` - Formatting and punctuation, headings, voice and terminology, restraint on rhetoric, redundancy (`references/prose.md`)
-- `technical-accuracy-checker` - Technical claims, code samples, numbers, API references; carries its own verification procedure and has web access
-
-**Output Styles** (`plugins/base/output-styles/`), selected from `/config` → Output style:
-- `terse-japanese` - Terse Japanese replies: politeness, filler, and tool-call narration dropped; technical substance, negations, numbers, identifiers, and code blocks kept verbatim. Compresses the chat prose only — investigation depth, verification, and anything written to a file or GitHub stay normal
+- `publishing-pr` orchestrates `creating-branch-name` → `splitting-commit` → `creating-pr`; `splitting-commit` calls `formatting-commit` per group
+- `formatting-commit` sets the new-commit-not-amend rule for anything under review; `fixing-review-comments`, `diagnosing-ci-failure`, and `babysitting-pr` rely on it
+- `fixing-review-comments` starts with `reading-unresolved-pr-comments` and ends by replying; `babysitting-pr` wraps that cycle and is the one caller allowed to run `resolving-pr-comments` without confirmation
+- `reviewing-pr` delegates the review to `pr-review-toolkit:review-pr` and owns only the verdict block; `posting-pr-review` posts what the user vetted
+- `diagnosing-ci-failure` reuses `babysitting-pr`'s `scripts/pr-watch.sh --failed-logs` and `references/ci-heuristics.md` through `${CLAUDE_SKILL_DIR}/../babysitting-pr/` — keep those two paths stable
+- `creating-stacked-pr` owns the stack-or-not verdict and the project conventions; command mechanics come from the external `gh-stack` skill, which the skills CLI installs into `~/.agents/skills`
+- `writing-japanese-tech-docs` dispatches the four agents under its own `agents/`, registered through the manifest's `agents` array; their descriptions say so, and they are not for general use
+- `terse-japanese` (output style, selected from `/config` → Output style) compresses chat prose only — investigation depth, verification, and anything written to a file or GitHub stay normal
 
 When modifying, maintain consistency with existing patterns and update version in `.claude-plugin/plugin.json`.
 
@@ -252,7 +215,7 @@ Adding or renaming a server changes its tool names (`mcp__plugin_mcp_<server>__*
 
 Skills cover both auto-discovery by Claude and explicit `/skill-name` invocation — there is no separate command layer. Choose the invocation mode per skill:
 - Model + user invocable (default): knowledge and conventions Claude should apply when relevant (e.g., `formatting-commit`)
-- `disable-model-invocation: true`: side-effectful or user-timed workflows (e.g., `/creating-memo`, `/publishing-pr`)
+- `disable-model-invocation: true`: side-effectful or user-timed workflows (e.g., `/creating-handoff`, `/publishing-pr`)
 - `user-invocable: false`: background knowledge that is not a meaningful user action
 
 ### Skills shared with other agents

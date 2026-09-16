@@ -6,7 +6,7 @@
 
 | Plugin | Description |
 |---|---|
-| `base` | Git/PR workflow skills (commit conventions, PR creation, review handling, PR babysitting), norms for Japanese technical prose with four specialist audit agents, memo and knowledge management, a terse Japanese output style, and event hooks |
+| `base` | Git/PR workflow skills (commit conventions, PR creation, review with a fixed verdict, review-comment handling, PR babysitting, CI diagnosis, conflict resolution, stacked PRs), message drafting, norms for Japanese technical prose with four specialist audit agents, a terse Japanese output style, and event hooks |
 | `mcp` | MCP server configurations only: context7, serena, playwright, chrome-devtools, astro-docs, analytics-mcp |
 
 ## Installation
