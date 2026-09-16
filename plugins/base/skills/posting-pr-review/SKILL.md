@@ -1,6 +1,6 @@
 ---
 name: posting-pr-review
-description: Post review comments to a GitHub PR as a PENDING review using the post-pr-review.sh workflow script and a 6-level severity tag system ([critical]/[warning]/[suggestion]/[nit]/[question]/[praise]).
+description: Post review comments to a GitHub PR as a PENDING review using the post-pr-review.sh workflow script — severity-tagged ([critical]/[warning]/[question]/[suggestion]), one or two lines each, substantive findings only.
 when_to_use: >-
   Use after completing code review (pr-review-toolkit:review-pr,
   code-reviewer, silent-failure-hunter, or any review agent) to submit
@@ -35,20 +35,20 @@ This skill requires review results from the current session. Acceptable sources:
 If no review data exists in the current session, prompt the user:
 > セッション内にレビュー結果が見つかりません。先にレビューを実行するか、レビュー内容を提供してください。
 
+## What gets posted
+
+Only findings that change behaviour, correctness, security, or performance for a user. Naming, style, comment wording, optional refactors, and praise stay out unless the user asks for exhaustive feedback — then `[nit]` and `[praise]` tags are available.
+
 ## Severity Tags
 
-Every comment must start with a severity tag on its own line. This gives the PR author a quick way to scan the comment list and know what action is needed.
+Every comment starts with a severity tag on its own line, then a body of one or two lines in a reviewer's plain Japanese — no preamble, no restating the diff.
 
 | Tag | Meaning |
 |---|---|
 | `[critical]` | Bugs, security, data loss — must fix before merge |
 | `[warning]` | Logic errors, performance, edge cases — should fix |
-| `[suggestion]` | Better approaches, readability — consider |
-| `[nit]` | Style, naming — optional |
 | `[question]` | Unclear intent — reply needed |
-| `[praise]` | Good pattern — no action needed |
-
-Format: tag alone on the first line, body starting on the next line (1-3 sentences).
+| `[suggestion]` | A concrete better approach, usually with a suggestion block |
 
 ```
 [warning]

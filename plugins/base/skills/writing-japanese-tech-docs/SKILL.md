@@ -1,19 +1,8 @@
 ---
 name: writing-japanese-tech-docs
-description: >-
-  Norms for Japanese technical prose — book chapters, articles, explainers.
-  Covers formatting, paragraph and argument construction, argumentative
-  rigour, reader load, voice and narration, restraint on rhetoric, the empty
-  LLM register, redundancy, and headings. Writes to the norms, and dispatches
-  four specialist auditors over a draft.
-when_to_use: >-
-  Always consult when writing or revising Japanese technical prose —
-  「記事を書いて」「章の草稿」「解説を書いて」「この原稿を推敲して」「リライトして」
-  「文章をレビューして」, "write a Japanese technical article", "review this
-  draft", or when a Japanese draft is shared for feedback. Also when a
-  Japanese draft reads flat, LLM-ish, padded, or logically loose. Not for
-  emails, chat messages, commit messages, or short transactional text.
+description: Write or revise Japanese technical prose (articles, book chapters, explainers) to the bundled norms, and audit a draft with four specialist agents
 argument-hint: "[draft path, or the topic to write about]"
+disable-model-invocation: true
 allowed-tools:
   - Agent
   - Read

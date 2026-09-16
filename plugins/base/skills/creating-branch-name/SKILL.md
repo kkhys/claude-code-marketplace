@@ -11,7 +11,7 @@ allowed-tools:
 
 # Branch Naming
 
-Analyze the current git state — uncommitted changes, staged files, and recent commits — to generate a branch name that communicates the intent of the work at a glance.
+Derive a branch name from the current changes.
 
 ## Current Git State
 
@@ -20,46 +20,22 @@ Analyze the current git state — uncommitted changes, staged files, and recent 
 - Diff summary: !`git diff HEAD --stat`
 - Recent commits: !`git log --oneline -5`
 
-## Why naming matters
-
-A branch name is a communication tool. When a teammate sees `feature/add-oauth-login` in a PR list, they immediately know what it's about without opening it. The name should answer "what kind of change is this?" (the type prefix) and "what does it do?" (the description).
-
 ## Convention
 
 Format: `<type>/<description>`
 
-Types:
-- `feature/` — New capability or user-facing behavior
-- `fix/` — Correcting broken behavior
-- `refactor/` — Restructuring without changing behavior
-- `docs/` — Documentation only
-- `style/` — Visual or formatting changes (CSS, code style)
-- `chore/` — Tooling, config, dependencies, CI
+Types, as full words: `feature/`, `fix/`, `refactor/`, `docs/`, `style/`
+(visual or formatting), `chore/` (tooling, config, dependencies, CI).
 
-Description: English, kebab-case, 2-4 words that capture the main intent. Prefer starting with a verb (add, update, remove, implement, extract) when it reads naturally — but for `fix/` branches, describing the problem (e.g., `pagination-off-by-one`) is often clearer than repeating the verb.
-
-**Example 1:**
-Changes: New login form component + auth API integration
-Branch: `feature/add-login-authentication`
-
-**Example 2:**
-Changes: Fix off-by-one error in pagination
-Branch: `fix/pagination-off-by-one`
-
-**Example 3:**
-Changes: Move utility functions into shared module
-Branch: `refactor/extract-shared-utils`
-
-**Example 4:**
-Changes: Update ESLint config + reorder imports + add README section
-Branch: `chore/update-eslint-and-cleanup` (mixed changes — name for the dominant intent)
+Description: English, kebab-case, 2–4 words for the main intent. Start with
+a verb when it reads naturally (`feature/add-login-authentication`,
+`refactor/extract-shared-utils`); for `fix/` the problem itself is often
+clearer (`fix/pagination-off-by-one`). Mixed changes are named for the
+dominant intent.
 
 ## Process
 
-1. Review the injected git state above; run additional git commands (`git diff`, `git log`) only if more detail is needed
-2. Identify the dominant intent — if changes span multiple concerns, name for the primary one
-3. Pick the type that best fits, generate a clear description
-4. If the intent is ambiguous, propose 2-3 candidates with brief reasoning and let the user choose
-5. Create the branch with `git checkout -b <name>`
-
-After creation, briefly state the branch name and the reasoning behind it.
+1. Read the injected state; run `git diff` only if it is not enough
+2. Pick the type and description; when the intent is genuinely ambiguous,
+   propose two or three candidates and let the user choose
+3. `git checkout -b <name>`, then state the name and the reasoning in one line

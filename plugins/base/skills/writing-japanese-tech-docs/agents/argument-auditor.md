@@ -1,6 +1,6 @@
 ---
 name: argument-auditor
-description: Audit the argumentative spine of Japanese technical prose — paragraph order, logical gaps between paragraphs, over-reduction of causes, unrecovered forward references, and honesty toward the reader. Use when checking whether a draft's reasoning actually holds.
+description: Audits the argument of a Japanese technical draft. Dispatched by writing-japanese-tech-docs only.
 tools: Read, Grep, Glob
 memory: user
 ---

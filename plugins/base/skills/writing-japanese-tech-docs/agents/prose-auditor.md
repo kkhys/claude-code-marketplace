@@ -1,6 +1,6 @@
 ---
 name: prose-auditor
-description: Audit the surface of Japanese technical prose — formatting and punctuation, headings, voice and terminology, restraint on rhetoric, the empty LLM register, and redundancy. Use when a draft reads padded, ornamental, or machine-generated.
+description: Audits formatting, voice, and redundancy in a Japanese technical draft. Dispatched by writing-japanese-tech-docs only.
 tools: Read, Grep, Glob
 memory: user
 ---

@@ -1,6 +1,6 @@
 ---
 name: rhythm-designer
-description: Diagnose and repair the cognitive rhythm of Japanese technical prose — sentence beat, paragraph density, openings, unrecovered tension, self-narrating filler, and reader memory load. Use when a draft is dense and correct but flat, or when readers stop partway.
+description: Diagnoses the reading rhythm of a Japanese technical draft. Dispatched by writing-japanese-tech-docs only.
 tools: Read, Grep, Glob
 memory: user
 ---

@@ -1,9 +1,10 @@
 ---
 name: creating-handoff
-description: Compact the current conversation into a handoff document under ~/.claude/handoffs/ so a fresh session can continue the work
-argument-hint: "[what the next session will do]"
+description: Compact the current conversation into a handoff document — a file under ~/.claude/handoffs/, or appended to a Notion page — so a fresh session can continue the work
+argument-hint: "[what the next session will do] [Notion page URL]"
 disable-model-invocation: true
 allowed-tools:
+  - mcp__plugin_Notion_notion__*
   - Read
   - Write
   - Glob
@@ -26,6 +27,11 @@ $ARGUMENTS
 If blank, the next session continues the current task. Otherwise tailor the
 whole document to that focus — what it needs to know, in the order it needs
 it.
+
+A Notion page URL among the arguments changes the destination: append the
+document to the bottom of that page with the Notion MCP tools instead of
+writing a file — that is how work crosses sessions in a shared workspace —
+and skip the file unless the user asks for both.
 
 ## Session context
 
@@ -93,9 +99,10 @@ whether something is sensitive, flag it and ask the user before writing.
 
 ## Report
 
-Reply in Japanese with the absolute path, a one-line summary of what the
-document covers, what was redacted (or 「秘匿情報なし」), and how to resume:
+Reply in Japanese with the absolute path or the page URL, a one-line summary
+of what the document covers, what was redacted (or 「秘匿情報なし」), and how
+to resume:
 
 ```
-新しいセッションで「~/.claude/handoffs/<file> を読んで続きをやって」と伝えてください。
+新しいセッションで「~/.claude/handoffs/<file> を読んで続きをやって」（Notion なら「<page URL> の末尾を読んで続きをやって」）と伝えてください。
 ```
