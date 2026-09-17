@@ -188,7 +188,8 @@ The `base` plugin (`plugins/base/`) holds every workflow (skills, hooks, agents,
 - `formatting-commit` sets the new-commit-not-amend rule for anything under review; `fixing-review-comments`, `diagnosing-ci-failure`, and `babysitting-pr` rely on it
 - `fixing-review-comments` starts with `reading-unresolved-pr-comments` and ends by replying; `babysitting-pr` wraps that cycle and is the one caller allowed to run `resolving-pr-comments` without confirmation
 - `reviewing-pr` delegates the review to `pr-review-toolkit:review-pr` and owns only the verdict block; `posting-pr-review` posts what the user vetted
-- `diagnosing-ci-failure` reuses `babysitting-pr`'s `scripts/pr-watch.sh --failed-logs` and `references/ci-heuristics.md` through `${CLAUDE_SKILL_DIR}/../babysitting-pr/` — keep those two paths stable
+- `diagnosing-ci-failure` reuses `babysitting-pr`'s `scripts/pr-watch.sh --failed-logs` and `references/ci-heuristics.md`, and `merging-renovate-prs` reuses `scripts/pr-watch.sh --pr` (`--once`, `--wait`, `--failed-logs`), all through `${CLAUDE_SKILL_DIR}/../babysitting-pr/` — keep those paths stable
+- `merging-renovate-prs` merges only in repositories owned by `kkhys` and only PRs authored by `app/renovate`; the owner check is the first step and is not negotiable from the prompt. It hands CI failures to `diagnosing-ci-failure`
 - `creating-stacked-pr` owns the stack-or-not verdict and the project conventions; command mechanics come from the external `gh-stack` skill, which the skills CLI installs into `~/.agents/skills`
 - `writing-japanese-tech-docs` dispatches the four agents under its own `agents/`, registered through the manifest's `agents` array; their descriptions say so, and they are not for general use
 - `terse-japanese` (output style, selected from `/config` → Output style) compresses chat prose only — investigation depth, verification, and anything written to a file or GitHub stay normal
