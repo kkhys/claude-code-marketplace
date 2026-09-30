@@ -62,16 +62,10 @@ that show it, and the verdict — 修正 or 再実行.
 
 ## Act
 
-- Branch-caused: fix on the PR head branch. When that branch is not checked
-  out, or the user is working elsewhere in this checkout (「worktreeで」),
-  use a worktree so their tree stays untouched:
-
-  ```bash
-  git fetch origin <head>
-  git worktree add .claude/worktrees/<head-slug> <head> 2>/dev/null \
-    || git worktree add --track -b <head> .claude/worktrees/<head-slug> origin/<head>
-  ```
-
+- Branch-caused: fix on the PR head branch, in a checkout that already has
+  it. When this one is on another branch, neither switch it nor add a
+  worktree — worktrees are opened in Orca: name the head branch, and the
+  path from `git worktree list` if another worktree has it, and stop.
   Commit as a new commit (`formatting-commit`), plain push, and name the
   run to watch. Never amend under review.
 - Flaky or unrelated: once every job on that SHA has finished,
