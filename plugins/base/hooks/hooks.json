@@ -15,18 +15,6 @@
         ]
       }
     ],
-    "WorktreeCreate": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/setup-worktree-env.sh",
-            "timeout": 120,
-            "statusMessage": "Setting up worktree environment..."
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "hooks": [
