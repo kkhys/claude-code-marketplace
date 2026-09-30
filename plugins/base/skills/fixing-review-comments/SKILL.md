@@ -37,13 +37,7 @@ $ARGUMENTS
 
 A PR URL or number, optionally narrowed to one thread (`#discussion_r<id>` — match it against the comment `url` fields in the fetched threads and handle only that one). Blank means the current branch's PR.
 
-When the PR's head branch is not the one checked out, or the user is working elsewhere in this checkout (「worktreeで」), use a worktree so their tree stays untouched, and run every later step from that directory — the scripts resolve the PR from the current branch:
-
-```bash
-git fetch origin <head>
-git worktree add .claude/worktrees/<head-slug> <head> 2>/dev/null \
-  || git worktree add --track -b <head> .claude/worktrees/<head-slug> origin/<head>
-```
+Run every step from a checkout that has the PR's head branch — the scripts resolve the PR from the current branch. When this one is on another branch, neither switch it nor add a worktree — worktrees are opened in Orca: name the head branch, and the path from `git worktree list` if another worktree has it, and stop.
 
 ## Phase 1: Understand the Feedback
 

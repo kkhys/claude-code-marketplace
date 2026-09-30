@@ -56,15 +56,10 @@ number, or several at once (「一連の stacked pr」 walks the stack from the
 bottom; 「<prefix> で始まる PR 全て」 is `gh pr list --state open --search
 '<prefix> in:title' --json number,headRefName,baseRefName,mergeable`), one
 PR at a time: fetch its head branch first. When the user is working on
-another branch in this checkout (「worktreeで」), resolve inside a worktree
-instead of switching their branch — a worktree of the head branch, or of
-develop on the develop path:
-
-```sh
-git fetch origin <branch>
-git worktree add .claude/worktrees/<slug> <branch> 2>/dev/null \
-  || git worktree add --track -b <branch> .claude/worktrees/<slug> origin/<branch>
-```
+another branch in this checkout, or another worktree has the branch to
+resolve on, neither switch branches nor add a worktree — worktrees are
+opened in Orca: name that branch, and the path from `git worktree list` if
+another worktree has it, and stop.
 
 The branch to resolve on follows the PR's base
 (`gh pr view --json baseRefName,headRefName`).
