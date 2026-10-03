@@ -122,3 +122,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 For more information, please refer to <https://unlicense.org/>
 ```
+
+## anthropics/claude-plugins-community
+
+- Source: https://github.com/anthropics/claude-plugins-community (commit `863e70d`), plugin `eli5` by Thariq Shihipar
+- License: Apache-2.0. The repository ships the bare license text and no `NOTICE` file
+- Derived files:
+  - `plugins/base/skills/explaining-visually/SKILL.md` — from `eli5/skills/eli5/SKILL.md`. Same shape and length; the reader is a smart fifteen-year-old instead of a five-year-old, and the real term is named once the picture has explained it
