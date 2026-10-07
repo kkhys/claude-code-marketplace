@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="ja" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>panel</title>
+<style>
+  /* Fixed 1600x900 canvas, captured at 2x. GitHub shows the PNG at roughly
+     55% of its CSS size, so every size below is chosen for that scale.
+
+     Colours mirror @kkhys/styles (design.kkhys.me): the uchu OKLCH palette
+     underneath, --c-* semantics resolved with light-dark(), hairlines and
+     whitespace instead of cards and shadows. Copied rather than imported so
+     a panel renders offline from file://; keep the values in step with
+     packages/styles/uchu.css and tokens.css in kkhys/me by hand. The render
+     script sets data-theme on <html>, which picks the colour scheme. */
+  :root {
+    color-scheme: light;
+
+    --uchu-yang: oklch(99.4% 0 0);
+    --uchu-yin: oklch(14.38% 0.007 256.88);
+    --uchu-yin-4: oklch(69.17% 0.004 247.88);
+    --uchu-yin-6: oklch(52.79% 0.005 271.32);
+    --uchu-yin-8: oklch(35.02% 0.005 236.66);
+    --uchu-yin-9: oklch(25.11% 0.006 258.36);
+    --uchu-gray-1: oklch(95.57% 0.003 286.35);
+    --uchu-gray-2: oklch(92.04% 0.002 197.12);
+    --uchu-gray-3: oklch(88.28% 0.003 286.34);
+    --uchu-blue-3: oklch(70.94% 0.136 258.06);
+    --uchu-blue-5: oklch(54.87% 0.222 260.33);
+    --uchu-red-4: oklch(62.73% 0.209 12.37);
+    --uchu-red-6: oklch(54.41% 0.214 19.06);
+    --uchu-green-5: oklch(75.23% 0.209 144.64);
+    --uchu-green-6: oklch(70.03% 0.194 144.71);
+    --uchu-orange-5: oklch(74.61% 0.171 51.56);
+    --uchu-orange-9: oklch(52.49% 0.113 51.98);
+
+    --c-bg: light-dark(var(--uchu-yang), var(--uchu-yin));
+    --c-text: light-dark(var(--uchu-yin), var(--uchu-gray-1));
+    --c-sub: light-dark(var(--uchu-yin-6), var(--uchu-yin-4));
+    --c-border: light-dark(var(--uchu-gray-2), oklch(99.4% 0 0 / 10%));
+    --c-surface: light-dark(var(--uchu-gray-1), var(--uchu-yin-9));
+    --c-primary: light-dark(var(--uchu-yin-8), var(--uchu-gray-3));
+    --c-primary-text: light-dark(var(--uchu-yang), var(--uchu-yin-9));
+    --c-link: light-dark(var(--uchu-blue-5), var(--uchu-blue-3));
+    --c-danger: light-dark(var(--uchu-red-6), var(--uchu-red-4));
+
+    /* Panel-only semantics. uchu carries no success or warning token, and
+       its greens stop at the bright end, so the light-scheme green is
+       green-6 pulled down to a readable lightness. */
+    --c-new: light-dark(oklch(from var(--uchu-green-6) 0.5 c h), var(--uchu-green-5));
+    --c-warn: light-dark(var(--uchu-orange-9), var(--uchu-orange-5));
+    --c-on-color: light-dark(var(--uchu-yang), var(--uchu-yin));
+
+    --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+    --hairline: 2px;
+    --radius-sm: 6px;
+    --radius-md: 12px;
+  }
+  html[data-theme="dark"] { color-scheme: dark; }
+
+  * { box-sizing: border-box; border-color: var(--c-border); }
+  html, body {
+    margin: 0;
+    width: 1600px;
+    height: 900px;
+    overflow: hidden;
+    background: var(--c-bg);
+    color: var(--c-text);
+    font: 400 30px/1.5 system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .canvas {
+    width: 1600px;
+    height: 900px;
+    padding: 56px 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+  h1 {
+    margin: 0;
+    font-size: 48px;
+    line-height: 1.25;
+    font-weight: 600;
+    font-feature-settings: "palt";
+    text-wrap: balance;
+  }
+  h1 small {
+    display: block;
+    margin-top: 12px;
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--c-sub);
+  }
+  p { margin: 0; }
+  strong { font-weight: 600; }
+  .fill { flex: 1; min-height: 0; }
+  .row { display: flex; align-items: center; gap: 28px; }
+  .col { display: flex; flex-direction: column; gap: 20px; }
+  .grow { flex: 1; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px; }
+  .center { justify-content: center; align-items: center; text-align: center; }
+
+  /* Boxes keep their size: a squeezed box wraps one character per line,
+     while one that pushes past the edge trips the overflow probe. */
+  .box {
+    flex-shrink: 0;
+    max-width: 640px;
+    background: var(--c-bg);
+    border: var(--hairline) solid var(--c-border);
+    border-radius: var(--radius-md);
+    padding: 18px 26px;
+  }
+  .box .label {
+    display: block;
+    font-size: 24px;
+    color: var(--c-sub);
+    margin-bottom: 4px;
+  }
+  .box.new { border-color: var(--c-new); background: oklch(from var(--c-new) l c h / 8%); }
+  .box.old { border-color: var(--c-danger); border-style: dashed; background: oklch(from var(--c-danger) l c h / 6%); }
+  .box.dim { background: var(--c-surface); color: var(--c-sub); }
+  .box.focus { border-color: var(--c-link); background: oklch(from var(--c-link) l c h / 8%); }
+  .box.warn { border-color: var(--c-warn); background: oklch(from var(--c-warn) l c h / 10%); }
+
+  .arrow {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 24px;
+    color: var(--c-sub);
+    white-space: nowrap;
+  }
+  .arrow::after { content: "⟶"; font-size: 56px; line-height: 1; color: var(--c-sub); }
+  .arrow.new { color: var(--c-new); }
+  .arrow.new::after { color: var(--c-new); }
+  .arrow.old { color: var(--c-danger); }
+  .arrow.old::after { color: var(--c-danger); opacity: 0.5; }
+  .arrow.down::after { content: "↓"; }
+  .arrow.back::after { content: "⟵"; }
+
+  code, .code {
+    font: 26px/1.4 var(--font-mono);
+    background: var(--c-surface);
+    border-radius: var(--radius-sm);
+    padding: 2px 10px;
+    white-space: nowrap;
+  }
+  .box.new code, .box.old code, .box.focus code, .box.warn code { background: oklch(from var(--c-text) l c h / 8%); }
+
+  .badge {
+    display: inline-block;
+    align-self: flex-start;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 8px 14px;
+    border-radius: 9999px;
+    color: var(--c-primary-text);
+    background: var(--c-primary);
+    vertical-align: middle;
+  }
+  .badge.new { background: var(--c-new); color: var(--c-on-color); }
+  .badge.old { background: var(--c-danger); color: var(--c-on-color); }
+  .badge.focus { background: var(--c-link); color: var(--c-on-color); }
+  .badge.warn { background: var(--c-warn); color: var(--c-on-color); }
+
+  .note {
+    border-left: 6px solid var(--c-link);
+    background: var(--c-surface);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 16px 24px;
+    font-size: 28px;
+  }
+  .note.warn { border-left-color: var(--c-warn); }
+
+  /* A step is normal inline flow with the number beside it: a flex or grid
+     item would split the text around an inline <code> into separate items
+     that wrap on their own. */
+  ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 18px; }
+  ol.steps li { position: relative; padding-left: 68px; min-height: 48px; }
+  ol.steps li::before {
+    counter-increment: step;
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: -2px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--c-primary);
+    color: var(--c-primary-text);
+    font-size: 26px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  ol.steps li.new::before { background: var(--c-new); color: var(--c-on-color); }
+
+  .strike { text-decoration: line-through; color: var(--c-sub); }
+  .muted { color: var(--c-sub); }
+  .caption {
+    font-size: 24px;
+    color: var(--c-sub);
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .caption code { font-size: 22px; }
+
+  /* Scenes: inline SVG drawn with the stamps below. Strokes follow
+     currentColor, so a <g class="new"> colours everything inside it. The
+     drawing classes are scoped to `svg`, not `.scene`, because the stamps
+     live in the hidden <defs> and a <use> instance takes the styles the
+     original matched. */
+  .scene { display: block; width: 100%; height: auto; color: var(--c-text); font-size: 26px; overflow: visible; }
+  .scene text { fill: currentColor; font-family: inherit; }
+  svg .ink { stroke: currentColor; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  svg .thick { stroke-width: 7; }
+  svg .thin { stroke-width: 2; }
+  svg .dash { stroke-dasharray: 10 10; }
+  svg .paper { fill: var(--c-bg); stroke: currentColor; stroke-width: 3; stroke-linejoin: round; }
+  svg .soft { fill: var(--c-surface); stroke: var(--c-border); stroke-width: 3; }
+  svg .dot { fill: currentColor; stroke: none; }
+  svg .tint { fill: oklch(from currentColor l c h / 12%); stroke: currentColor; stroke-width: 3; }
+  .scene .new { color: var(--c-new); }
+  .scene .old { color: var(--c-danger); }
+  .scene .focus { color: var(--c-link); }
+  .scene .warn { color: var(--c-warn); }
+  .scene .muted { color: var(--c-sub); }
+  .scene .small { font-size: 22px; }
+  .scene .big { font-size: 32px; font-weight: 600; }
+  .scene .mono { font-family: var(--font-mono); font-size: 24px; }
+
+  /* Set by the probe below; the render script reads it from the DOM and the
+     stripe makes the clipped edge visible in the PNG as well. */
+  html[data-overflow]::after {
+    content: "OVERFLOW " attr(data-overflow);
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    padding: 10px 20px;
+    background: var(--c-danger);
+    color: var(--uchu-yang);
+    font-size: 28px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+    </marker>
+    <!-- Stamps, each on a 100x100 grid (cloud and bubble are wider).
+         Styles are inline because a <use> instance keeps only the styles the
+         original carries. Use with <use href="#person" x y width height class="new">. -->
+    <symbol id="person" viewBox="0 0 100 100">
+      <circle cx="50" cy="28" r="17" style="fill:var(--c-bg);stroke:currentColor;stroke-width:3;stroke-linejoin:round"/>
+      <path d="M16 94 Q16 58 50 58 Q84 58 84 94 Z" style="fill:var(--c-bg);stroke:currentColor;stroke-width:3;stroke-linejoin:round"/>
+    </symbol>
+    <symbol id="robot" viewBox="0 0 100 100">
+      <line x1="50" y1="10" x2="50" y2="20" style="fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round"/>
+      <circle cx="50" cy="7" r="4" style="fill:var(--c-bg);stroke:currentColor;stroke-width:3;stroke-linejoin:round"/>
+      <rect x="12" y="20" width="76" height="60" rx="16" style="fill:var(--c-bg);stroke:currentColor;stroke-width:3;stroke-linejoin:round"/>
+      <circle cx="35" cy="48" r="6" style="fill:currentColor;stroke:none"/>
+      <circle cx="65" cy="48" r="6" style="fill:currentColor;stroke:none"/>
+      <line x1="40" y1="66" x2="60" y2="66" style="fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round"/>
+    </symbol>
+    <symbol id="cloud" viewBox="0 0 120 80">
+      <path d="M30 72 H90 A20 20 0 0 0 96 33 A26 26 0 0 0 48 20 A20 20 0 0 0 20 38 A17 17 0 0 0 30 72 Z" style="fill:var(--c-bg);stroke:currentColor;stroke-width:3;stroke-linejoin:round"/>
+    </symbol>
+    <symbol id="doc" viewBox="0 0 100 100">
+      <path d="M22 8 H62 L80 26 V92 H22 Z" style="fill:var(--c-bg);stroke:currentColor;stroke-width:3;stroke-linejoin:round"/>
+      <path d="M62 8 V26 H80" style="fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round"/>
+      <line x1="34" y1="46" x2="68" y2="46" style="fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round"/>
+      <line x1="34" y1="60" x2="68" y2="60" style="fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round"/>
+      <line x1="34" y1="74" x2="56" y2="74" style="fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round"/>
+    </symbol>
+    <symbol id="wrench" viewBox="0 0 100 100">
+      <path d="M70 12 A24 24 0 0 0 44 44 L14 74 A10 10 0 0 0 26 86 L56 56 A24 24 0 0 0 88 30 L72 46 L58 42 L54 28 Z" style="fill:var(--c-bg);stroke:currentColor;stroke-width:3;stroke-linejoin:round"/>
+    </symbol>
+    <symbol id="check" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="38" style="fill:var(--c-bg);stroke:currentColor;stroke-width:3;stroke-linejoin:round"/>
+      <path d="M30 52 L44 66 L72 36" style="fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round"/>
+    </symbol>
+    <symbol id="button" viewBox="0 0 100 100">
+      <rect x="10" y="26" width="80" height="48" rx="14" style="fill:var(--c-bg);stroke:currentColor;stroke-width:3;stroke-linejoin:round"/>
+      <circle cx="50" cy="50" r="8" style="fill:currentColor;stroke:none"/>
+    </symbol>
+    <symbol id="bubble" viewBox="0 0 160 90">
+      <path d="M14 6 H146 A10 10 0 0 1 156 16 V62 A10 10 0 0 1 146 72 H60 L36 88 V72 H14 A10 10 0 0 1 4 62 V16 A10 10 0 0 1 14 6 Z" style="fill:var(--c-bg);stroke:currentColor;stroke-width:3;stroke-linejoin:round"/>
+    </symbol>
+  </defs>
+</svg>
+<main class="canvas">
+<!-- panel -->
+</main>
+<script>
+  // Overflow probe. The canvas check catches HTML that runs past 1600x900;
+  // the scene check catches SVG content drawn outside its viewBox, which
+  // the canvas never notices because the svg element itself fits.
+  addEventListener('load', () => {
+    const problems = [];
+    const c = document.querySelector('.canvas');
+    const w = c.scrollWidth, h = c.scrollHeight;
+    if (w > 1600 || h > 900) problems.push(w + 'x' + h);
+    for (const svg of document.querySelectorAll('svg.scene')) {
+      const vb = svg.viewBox.baseVal;
+      if (!vb || !vb.width) continue;
+      for (const el of svg.querySelectorAll('text, use, rect, circle, path, line')) {
+        let b;
+        try { b = el.getBBox(); } catch (e) { continue; }
+        if (!b.width && !b.height) continue;
+        if (b.x < vb.x - 1 || b.y < vb.y - 1 || b.x + b.width > vb.x + vb.width + 1 || b.y + b.height > vb.y + vb.height + 1) {
+          const what = (el.textContent.trim() || el.tagName).replace(/["<>]/g, '').slice(0, 18);
+          problems.push('scene:' + what);
+        }
+      }
+    }
+    if (problems.length) {
+      document.documentElement.dataset.overflow = problems.join(' ');
+    }
+  });
+</script>
+</body>
+</html>

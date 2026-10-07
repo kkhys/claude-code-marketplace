@@ -6,7 +6,7 @@
 
 | Plugin | Description |
 |---|---|
-| `base` | Git/PR workflow skills (commit conventions, PR creation, review with a fixed verdict, review-comment handling, PR babysitting, CI diagnosis, conflict resolution, stacked PRs, Renovate PR merging in kkhys-owned repositories), message drafting, norms for Japanese technical prose with four specialist audit agents, a terse Japanese output style, and event hooks |
+| `base` | Git/PR workflow skills (commit conventions, PR creation, review with a fixed verdict, review-comment handling, PR babysitting, CI diagnosis, conflict resolution, stacked PRs, Renovate PR merging in kkhys-owned repositories, picture explainers of a PR posted as a comment), message drafting, norms for Japanese technical prose with four specialist audit agents, a terse Japanese output style, and event hooks |
 | `mcp` | MCP server configurations only: context7, serena, playwright, chrome-devtools, astro-docs, analytics-mcp |
 
 ## Installation
@@ -53,6 +53,8 @@ python3 -m compileall -q plugins
 
 bash plugins/base/skills/babysitting-pr/scripts/test-pr-watch.sh
 bash plugins/base/skills/fixing-review-comments/scripts/test-reply-to-review-threads.sh
+bash plugins/base/skills/illustrating-pr/scripts/test-render-panels.sh
+bash plugins/base/skills/illustrating-pr/scripts/test-attach-explainer.sh
 ```
 
 The same checks run in CI via `.github/workflows/validate.yml`.
