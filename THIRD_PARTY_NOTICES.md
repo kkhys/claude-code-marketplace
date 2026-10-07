@@ -129,3 +129,34 @@ For more information, please refer to <https://unlicense.org/>
 - License: Apache-2.0. The repository ships the bare license text and no `NOTICE` file
 - Derived files:
   - `plugins/base/skills/eli15/SKILL.md` — from `eli5/skills/eli5/SKILL.md`. Same shape and length; the reader is a smart fifteen-year-old instead of a five-year-old, and the real term is named once the picture has explained it
+
+## cathrynlavery/diagram-design
+
+- Source: https://github.com/cathrynlavery/diagram-design (commit `d137637`), skill `skills/diagram-design`
+- License: MIT — Copyright (c) 2025 Cathryn Lavery
+- Derived files:
+  - `plugins/base/skills/illustrating-pr/references/editorial-diagram.md` — the deletion-first philosophy, the node budget and target density, the one-accent rule, and the attribute-only-versus-topology selection rule from `skills/diagram-design/SKILL.md` (§1 Philosophy, §2 When to Use); hairline nodes and the spacing grid from its `references/style-guide.md`. The kind table, the PR-panel colour mapping, and the drawing on this project's own skeleton are this project's own
+
+```
+MIT License
+
+Copyright (c) 2025 Cathryn Lavery
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
