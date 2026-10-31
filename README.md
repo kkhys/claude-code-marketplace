@@ -6,15 +6,13 @@
 
 | Plugin | Description |
 |---|---|
-| `base` | Git/PR workflow skills (commit conventions, PR creation, review with a fixed verdict, review-comment handling, PR babysitting, CI diagnosis, conflict resolution, stacked PRs, Renovate PR merging in kkhys-owned repositories, picture explainers of a PR posted as a comment), message drafting, norms for Japanese technical prose with four specialist audit agents, a terse Japanese output style, and event hooks |
-| `mcp` | MCP server configurations only: context7, serena, playwright, chrome-devtools, astro-docs, analytics-mcp |
+| `base` | Git/PR workflow skills (commit conventions, PR creation, review with a fixed verdict, review-comment handling, PR babysitting, CI diagnosis, conflict resolution, stacked PRs, Renovate PR merging in kkhys-owned repositories, picture explainers of a PR posted as a comment), message drafting, norms for Japanese technical prose with four specialist audit agents, a terse Japanese output style, event hooks, and MCP server configs (context7, serena, playwright, chrome-devtools, astro-docs) |
 
 ## Installation
 
 ```shell
 /plugin marketplace add kkhys/claude-code-marketplace
 /plugin install base@my-marketplace
-/plugin install mcp@my-marketplace
 ```
 
 To share the marketplace with a project, add it to `.claude/settings.json`:
@@ -26,27 +24,17 @@ To share the marketplace with a project, add it to `.claude/settings.json`:
       "source": { "source": "github", "repo": "kkhys/claude-code-marketplace" }
     }
   },
-  "enabledPlugins": { "base@my-marketplace": true, "mcp@my-marketplace": true }
+  "enabledPlugins": { "base@my-marketplace": true }
 }
 ```
 
-## Other agents
-
-The same repository feeds Codex, Gemini CLI, Cursor, Devin and Copilot CLI:
-
-- Skills: every `plugins/*/skills/<name>/` is symlinked into `~/.agents/skills/<name>` (done by the dotfiles nix activation), which all five read. Claude Code does not read that directory, so nothing is listed twice
-- MCP servers: the `mcp` plugin is installed through the marketplace format Codex, Devin and Copilot accept (`codex plugin marketplace add kkhys/claude-code-marketplace && codex plugin add mcp@my-marketplace`, `copilot plugin marketplace add kkhys/claude-code-marketplace && copilot plugin install mcp@my-marketplace`, `devin plugins install <checkout>/plugins/mcp`); Gemini and Cursor configs are generated from `plugins/mcp/.mcp.json`
-
-The constraints this puts on skills (mandatory `name`/`description`, flat layout, `${CLAUDE_SKILL_DIR}` fallback) are listed in [CLAUDE.md](./CLAUDE.md#skills-shared-with-other-agents).
-
 ## Development
 
-Validate and test locally. The marketplace check does not cover individual plugin manifests, so validate those separately:
+Validate and test locally. The marketplace check does not cover the plugin manifest, so validate it separately:
 
 ```bash
 claude plugin validate . --strict
 claude plugin validate ./plugins/base --strict
-claude plugin validate ./plugins/mcp --strict
 
 find plugins -name '*.sh' -print0 | xargs -0 -r shellcheck
 python3 -m compileall -q plugins

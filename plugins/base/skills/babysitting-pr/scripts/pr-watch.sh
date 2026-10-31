@@ -14,10 +14,7 @@ set -euo pipefail
 # Sourcing this file defines its functions without running anything, which is
 # how test-pr-watch.sh exercises them.
 
-# Physical path on purpose: other agents reach this script through a
-# ~/.agents/skills symlink, and ../../../scripts/lib only exists from the
-# real location.
-SCRIPT_DIR="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR
 LIB_DIR="$(cd -- "${SCRIPT_DIR}/../../../scripts/lib" && pwd)"
 readonly LIB_DIR
