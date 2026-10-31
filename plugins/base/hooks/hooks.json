@@ -8,8 +8,7 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-merged-branches.sh",
             "args": [],
-            "async": true,
-            "timeout": 60,
+            "timeout": 15,
             "statusMessage": "Cleaning up merged branches..."
           }
         ]
