@@ -10,8 +10,8 @@ the drawing grammar changes.
 
 The grammar is borrowed from cathrynlavery/diagram-design (MIT): editorial
 diagrams built from deletion, one accent, hairlines, and a 4 px grid. When
-that skill is installed (`~/.agents/skills/diagram-design` or
-`~/.claude/skills/diagram-design`), its `references/type-<kind>.md` gives
+that skill is installed (`~/.claude/skills/diagram-design`), its
+`references/type-<kind>.md` gives
 the layout of each kind in detail; read it for the layout, then draw with
 this skill's skeleton so the panel keeps its theme, size, and offline render.
 

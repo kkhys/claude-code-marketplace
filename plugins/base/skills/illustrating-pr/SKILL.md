@@ -108,8 +108,7 @@ in step 5.
    otherwise or the PR's reviewers evidently work in English; an English
    PR body alone does not decide it.
 
-4. Render (`${CLAUDE_SKILL_DIR}` is this skill's directory; when the variable
-   reaches you unexpanded, use the directory that holds this SKILL.md):
+4. Render:
 
    ```bash
    bash "${CLAUDE_SKILL_DIR}/scripts/render-panels.sh" <dir> <dir>/*.html

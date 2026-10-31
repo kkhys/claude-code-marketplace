@@ -56,9 +56,7 @@ gh pr list --repo <owner/name> --state open --limit 100 \
   --jq '[.[] | select(.author.login == "app/renovate")]'
 ```
 
-Per PR, the babysitting-pr watcher gives CI and merge state in one snapshot.
-`${CLAUDE_SKILL_DIR}` is this skill's directory; when the variable reaches
-you unexpanded, use the directory that holds this SKILL.md:
+Per PR, the babysitting-pr watcher gives CI and merge state in one snapshot:
 
 ```bash
 bash "${CLAUDE_SKILL_DIR}/../babysitting-pr/scripts/pr-watch.sh" --pr <url> --once

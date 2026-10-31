@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Claude Code plugin marketplace that provides custom skills and workflows. The marketplace enables installation of plugins containing skills (knowledge bundles, also invocable as `/skill-name`), hooks (event automation), output styles (system-prompt personas), and MCP server configurations. Custom slash commands have been merged into skills — this marketplace no longer uses `commands/` directories.
 
-Claude Code is not the only consumer. The skills are symlinked into `~/.agents/skills` (by the dotfiles nix activation) and read by Codex, Gemini CLI, Cursor, Devin and Copilot CLI from the working tree, and the `mcp` plugin is installed into Codex / Devin / Copilot through the same marketplace format. See "Skills shared with other agents" below for what that constrains.
+Claude Code is the only consumer. Nothing here is written for another agent: Claude Code's substitutions (`${CLAUDE_SKILL_DIR}`, `$ARGUMENTS`, `${user_config.KEY}`) are relied on without fallbacks.
 
 ## Architecture
 
@@ -155,8 +155,8 @@ Note: Individual git operations (formatting-commit, splitting-commit, creating-b
 
 ### Adding New Skills
 
-1. Create directory: `plugins/{plugin}/skills/{skill-name}/` — `SKILL.md` sits directly in it, never nested deeper
-2. Create `SKILL.md` with frontmatter (`name` equal to the directory name, `description`) — both mandatory, see "Skills shared with other agents"
+1. Create directory: `plugins/{plugin}/skills/{skill-name}/`
+2. Create `SKILL.md` with frontmatter (`name`, `description`)
 3. Keep main content under 500 lines, move details to `references/*.md` (1 level only)
 4. Test with different models (Haiku, Sonnet, Opus)
 5. Skills are directly discoverable by Claude — no wrapper command needed
@@ -169,14 +169,14 @@ Slash commands are merged into skills — do not create `commands/*.md` files. F
 1. Create a normal skill directory: `plugins/{plugin}/skills/{skill-name}/`
 2. Set `disable-model-invocation: true` so only the user can invoke it via `/skill-name`
 3. Use `argument-hint` and `$ARGUMENTS` for input, `` !`cmd` `` for dynamic context
-4. Bundle scripts under the skill (`scripts/`) and reference them via `${CLAUDE_SKILL_DIR}`, with the fallback line from "Skills shared with other agents"
+4. Bundle scripts under the skill (`scripts/`) and reference them via `${CLAUDE_SKILL_DIR}`
 5. If the skill uses `context: fork`, decide `background` deliberately — `false` when a caller needs the result in the same turn
 6. Validate: `/plugin validate .`
 
 ### Adding New Scripts
 
 1. Create scripts used by a single skill in `plugins/{plugin}/skills/{skill-name}/scripts/` (reference via `${CLAUDE_SKILL_DIR}`); create scripts shared by hooks in `plugins/{plugin}/scripts/` (reference via `${CLAUDE_PLUGIN_ROOT}`)
-2. Helpers shared across skills live in `plugins/{plugin}/scripts/lib/`: bash files are sourced, jq modules load via `jq -L`, GraphQL fragments via `cat`. Skill scripts resolve the lib dir relative to their own physical path — `SCRIPT_DIR="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"` then `"${SCRIPT_DIR}/../../../scripts/lib"` — because other agents run them through a `~/.agents/skills/<skill>` symlink, where the logical `../../..` leaves the marketplace
+2. Helpers shared across skills live in `plugins/{plugin}/scripts/lib/`: bash files are sourced, jq modules load via `jq -L`, GraphQL fragments via `cat`. Skill scripts resolve the lib dir relative to their own path (`"${SCRIPT_DIR}/../../../scripts/lib"`)
 3. Use bash shebang: `#!/usr/bin/env bash`
 4. Set strict mode: `set -euo pipefail` (executable scripts only — sourced libs leave options to the caller)
 5. Quote all variables: `"${var}"`
@@ -194,7 +194,7 @@ The `base` plugin (`plugins/base/`) holds every workflow (skills, hooks, agents,
 - `reviewing-pr` delegates the review to `pr-review-toolkit:review-pr` and owns only the verdict block; `posting-pr-review` posts what the user vetted
 - `diagnosing-ci-failure` reuses `babysitting-pr`'s `scripts/pr-watch.sh --failed-logs` and `references/ci-heuristics.md`, and `merging-renovate-prs` reuses `scripts/pr-watch.sh --pr` (`--once`, `--wait`, `--failed-logs`), all through `${CLAUDE_SKILL_DIR}/../babysitting-pr/` — keep those paths stable
 - `merging-renovate-prs` merges only in repositories owned by `kkhys` and only PRs authored by `app/renovate`; the owner check is the first step and is not negotiable from the prompt. It hands CI failures to `diagnosing-ci-failure`
-- `creating-stacked-pr` owns the stack-or-not verdict and the project conventions; command mechanics come from the external `gh-stack` skill, which the skills CLI installs into `~/.agents/skills`
+- `creating-stacked-pr` owns the stack-or-not verdict and the project conventions; command mechanics come from the external `gh-stack` skill, which the skills CLI installs into `~/.claude/skills`
 - `writing-japanese-tech-docs` dispatches the four agents under its own `agents/`, registered through the manifest's `agents` array; their descriptions say so, and they are not for general use
 - `terse-japanese` (output style, selected from `/config` → Output style) compresses chat prose only — investigation depth, verification, and anything written to a file or GitHub stay normal
 - `illustrating-pr` draws a PR as 1600×900 panels: `assets/panel.html` is the one place type sizes, colours, and blocks live, and its colours are a hand-copied mirror of `@kkhys/styles` in `kkhys/me` (uchu palette, `--c-*` semantics, design.kkhys.me) — update them there first, then here; `scripts/render-panels.sh` wraps each fragment in it and captures it with a local Chromium (Chrome, Chromium, Edge, Brave, or a Playwright build — `CHROME_BIN` overrides), exiting non-zero on a panel that overflows the canvas; `scripts/attach-explainer.sh` places the PNGs with `gh --attach` (gh ≥ 2.99) — by default as a fenced `<!-- illustrating-pr:start/end -->` section headed `## In pictures`, appended to the PR description and replaced on rerun, with `--comment` as one comment — then rewrites the stored text through `scripts/theme-images.py` so each light panel and its `.dark.png` twin become one `<picture>` that follows the viewer's theme; gh reads references from markdown only, so this cannot be a single step. Outside the section the description is never touched. Scenes are the default picture; `references/editorial-diagram.md` (grammar borrowed from cathrynlavery/diagram-design) is for a PR whose mechanism is a structure
@@ -223,17 +223,6 @@ Skills cover both auto-discovery by Claude and explicit `/skill-name` invocation
 - Model + user invocable (default): knowledge and conventions Claude should apply when relevant (e.g., `formatting-commit`)
 - `disable-model-invocation: true`: side-effectful or user-timed workflows (e.g., `/creating-handoff`, `/publishing-pr`)
 - `user-invocable: false`: background knowledge that is not a meaningful user action
-
-### Skills shared with other agents
-
-Every `plugins/*/skills/<name>/` is symlinked to `~/.agents/skills/<name>` by the dotfiles nix activation, and Codex, Gemini CLI, Cursor, Devin and Copilot CLI read that directory. Claude Code does not read `~/.agents/skills`, so each skill is listed once per agent. The other readers are stricter and substitute less than Claude Code:
-
-- `name` and `description` are mandatory — Gemini drops a skill that lacks either, silently. `name` must equal the directory name (Cursor requires it; Codex lists the skill as `base:<name>` from the canonical path)
-- `SKILL.md` sits directly in `skills/<name>/` — Gemini only globs `SKILL.md` and `*/SKILL.md` under each root, so a deeper layout is invisible
-- Nothing but Claude Code substitutes `${CLAUDE_SKILL_DIR}`, `$ARGUMENTS`, or runs `` !`cmd` `` injection. A skill that references its own files adds one line next to the first reference: "`${CLAUDE_SKILL_DIR}` is this skill's directory; when the variable reaches you unexpanded, use the directory that holds this SKILL.md." Treat `$ARGUMENTS` and `` !`cmd` `` output as possibly absent
-- Scripts that reach `scripts/lib` resolve their own physical path (see "Adding New Scripts") — a logical `../../..` from the symlink leaves the marketplace
-- `disable-model-invocation` is Claude-only; a side-effect skill's `description` must therefore already scope it to explicit requests, because other agents can pick it by description alone
-- Only `SKILL.md` and the files it points at travel: the other readers look for `SKILL.md` alone, so skill-owned `agents/`, plugin `hooks/`, and `output-styles/` stay Claude Code features
 
 ### Skill Description Format
 

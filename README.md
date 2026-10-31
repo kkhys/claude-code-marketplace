@@ -30,15 +30,6 @@ To share the marketplace with a project, add it to `.claude/settings.json`:
 }
 ```
 
-## Other agents
-
-The same repository feeds Codex, Gemini CLI, Cursor, Devin and Copilot CLI:
-
-- Skills: every `plugins/*/skills/<name>/` is symlinked into `~/.agents/skills/<name>` (done by the dotfiles nix activation), which all five read. Claude Code does not read that directory, so nothing is listed twice
-- MCP servers: the `mcp` plugin is installed through the marketplace format Codex, Devin and Copilot accept (`codex plugin marketplace add kkhys/claude-code-marketplace && codex plugin add mcp@my-marketplace`, `copilot plugin marketplace add kkhys/claude-code-marketplace && copilot plugin install mcp@my-marketplace`, `devin plugins install <checkout>/plugins/mcp`); Gemini and Cursor configs are generated from `plugins/mcp/.mcp.json`
-
-The constraints this puts on skills (mandatory `name`/`description`, flat layout, `${CLAUDE_SKILL_DIR}` fallback) are listed in [CLAUDE.md](./CLAUDE.md#skills-shared-with-other-agents).
-
 ## Development
 
 Validate and test locally. The marketplace check does not cover individual plugin manifests, so validate those separately:

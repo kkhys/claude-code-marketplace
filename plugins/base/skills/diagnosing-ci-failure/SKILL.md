@@ -40,9 +40,7 @@ gh api "repos/{owner}/{repo}/actions/jobs/<job-id>/logs" | tail -n 120
 ```
 
 From a PR, the babysitting-pr watcher already prints the trimmed log of
-every failed job on the head SHA. `${CLAUDE_SKILL_DIR}` is this skill's
-directory; when the variable reaches you unexpanded, use the directory that
-holds this SKILL.md:
+every failed job on the head SHA:
 
 ```bash
 bash "${CLAUDE_SKILL_DIR}/../babysitting-pr/scripts/pr-watch.sh" --pr <number|url> --failed-logs

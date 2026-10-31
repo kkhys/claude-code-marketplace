@@ -33,8 +33,6 @@ The exception is a caller that already knows exactly which threads it fixed and 
 
 ## Run the Script
 
-`${CLAUDE_SKILL_DIR}` is this skill's directory; when the variable reaches you unexpanded, use the directory that holds this SKILL.md.
-
 Every unresolved thread on the current branch's PR:
 
 ```bash

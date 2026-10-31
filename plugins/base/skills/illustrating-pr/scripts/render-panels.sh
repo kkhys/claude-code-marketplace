@@ -25,7 +25,7 @@ readonly SCALE=2
 # Seconds to wait for one panel's PNG and DOM before giving up on it.
 readonly RENDER_TIMEOUT=30
 
-SCRIPT_DIR="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR
 readonly SKELETON="${SCRIPT_DIR}/../assets/panel.html"
 
