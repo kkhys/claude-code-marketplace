@@ -6,7 +6,7 @@
 
 | Plugin | Description |
 |---|---|
-| `base` | Git/PR workflow skills (commit conventions, PR creation, review with a fixed verdict, review-comment handling, PR babysitting, CI diagnosis, conflict resolution, stacked PRs, Renovate PR merging in kkhys-owned repositories, picture explainers of a PR posted as a comment), message drafting, norms for Japanese technical prose with four specialist audit agents, a terse Japanese output style, event hooks, and MCP server configs (context7, serena, playwright, chrome-devtools, astro-docs) |
+| `base` | Git/PR workflow skills (commit conventions, PR creation, review with a fixed verdict, review-comment handling, PR babysitting, CI diagnosis, conflict resolution, stacked PRs, Renovate PR merging in kkhys-owned repositories, picture explainers of a PR posted as a comment), message drafting, norms for Japanese technical prose with four specialist audit agents, a terse Japanese output style, event hooks, and MCP server configs (context7, serena, playwright, chrome-devtools) |
 
 ## Installation
 

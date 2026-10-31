@@ -199,7 +199,6 @@ The `base` plugin (`plugins/base/`) is the only plugin in this marketplace, and 
 - `serena` - Symbol-level code navigation and editing via `uvx`
 - `playwright` - Browser automation via `@playwright/mcp`
 - `chrome-devtools` - Chrome DevTools automation
-- `astro-docs` - Astro documentation search (HTTP)
 
 Adding or renaming a server changes its tool names (`mcp__plugin_base_<server>__*`), so update the permission entries in `dotfiles/.config/claude/settings.json` in the same change.
 
