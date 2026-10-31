@@ -106,10 +106,6 @@ bash plugins/base/skills/babysitting-pr/scripts/test-pr-watch.sh
 
 # Payload validation and attribution-marker tests for the reply script
 bash plugins/base/skills/fixing-review-comments/scripts/test-reply-to-review-threads.sh
-
-# Panel rendering (browser cases skip without a Chromium) and comment posting for illustrating-pr
-bash plugins/base/skills/illustrating-pr/scripts/test-render-panels.sh
-bash plugins/base/skills/illustrating-pr/scripts/test-attach-explainer.sh
 ```
 
 CI (`.github/workflows/validate.yml`) runs manifest validation, ShellCheck, Python syntax checks, and the script tests on pull requests and pushes to `main`. Every `test-*.sh` under `plugins/*/scripts/` and `plugins/*/skills/*/scripts/` is picked up automatically — new test scripts need no CI change.
@@ -180,7 +176,7 @@ The `base` plugin (`plugins/base/`) is the only plugin in this marketplace, and 
 - `diagnosing-ci-failure` reuses `babysitting-pr`'s `scripts/pr-watch.sh --failed-logs` and `references/ci-heuristics.md`, and `merging-renovate-prs` reuses `scripts/pr-watch.sh --pr` (`--once`, `--wait`, `--failed-logs`), all through `${CLAUDE_SKILL_DIR}/../babysitting-pr/` — keep those paths stable
 - `merging-renovate-prs` merges only in repositories owned by `kkhys` and only PRs authored by `app/renovate`; the owner check is the first step and is not negotiable from the prompt. It hands CI failures to `diagnosing-ci-failure`
 - `creating-stacked-pr` owns the stack-or-not verdict and the project conventions; command mechanics come from the external `gh-stack` skill, which the skills CLI installs into `~/.claude/skills`
-- `illustrating-pr` draws a PR as 1600×900 panels: `assets/panel.html` is the one place type sizes, colours, and blocks live, and its colours are a hand-copied mirror of `@kkhys/styles` in `kkhys/me` (uchu palette, `--c-*` semantics, design.kkhys.me) — update them there first, then here; `scripts/render-panels.sh` wraps each fragment in it and captures it with a local Chromium (Chrome, Chromium, Edge, Brave, or a Playwright build — `CHROME_BIN` overrides), exiting non-zero on a panel that overflows the canvas; `scripts/attach-explainer.sh` places the PNGs with `gh --attach` (gh ≥ 2.99) — by default as a fenced `<!-- illustrating-pr:start/end -->` section headed `## In pictures`, appended to the PR description and replaced on rerun, with `--comment` as one comment — then rewrites the stored text through `scripts/theme-images.py` so each light panel and its `.dark.png` twin become one `<picture>` that follows the viewer's theme; gh reads references from markdown only, so this cannot be a single step. Outside the section the description is never touched. Scenes are the default picture; `references/editorial-diagram.md` (grammar borrowed from cathrynlavery/diagram-design) is for a PR whose mechanism is a structure
+- `illustrating-pr` is one file on purpose, in the eli15 register: the drawing is left to the model in a few lines, and the mechanics are two commands written in the skill — a local Chrome screenshot and `gh pr edit --attach` (gh ≥ 2.99). It keeps a `## In pictures` section at the end of the description and replaces it on rerun. No scripts, skeleton, palette, or tests: a wrapper there only fixed the canvas and file names the model should be free to choose
 
 **MCP Servers** (`plugins/base/.mcp.json`):
 - `context7` - Library documentation lookup (HTTP, no API key)
@@ -215,7 +211,7 @@ description: Helps with commits
 
 ### GitHub Comment Attribution
 
-Every comment posted to GitHub from this marketplace starts with `[from Claude Code]`, so reviewers can tell an agent's comment from the user's own. `reply-to-review-threads.sh`, `post-pr-review.sh`, and `attach-explainer.sh` prepend it idempotently — write bodies without it. Add it by hand when posting with plain `gh pr comment`.
+Every comment posted to GitHub from this marketplace starts with `[from Claude Code]`, so reviewers can tell an agent's comment from the user's own. `reply-to-review-threads.sh` and `post-pr-review.sh` prepend it idempotently — write bodies without it. Add it by hand when posting with plain `gh pr comment`. The one exception is `illustrating-pr`'s picture section: it is the author's own explainer, vetted before it is placed, so it carries no marker.
 
 ### Tool Restrictions
 
