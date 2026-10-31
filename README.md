@@ -47,7 +47,7 @@ bash plugins/base/skills/illustrating-pr/scripts/test-attach-explainer.sh
 
 The same checks run in CI via `.github/workflows/validate.yml`.
 
-See [CLAUDE.md](./CLAUDE.md) for the repository layout, plugin anatomy, and conventions for adding skills, hooks, agents, output styles, and new plugins.
+See [CLAUDE.md](./CLAUDE.md) for the repository layout, plugin anatomy, and conventions for adding skills, hooks, agents, and new plugins.
 
 ## License
 

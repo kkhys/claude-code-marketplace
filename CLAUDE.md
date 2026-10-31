@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a Claude Code plugin marketplace that provides custom skills and workflows. The marketplace enables installation of plugins containing skills (knowledge bundles, also invocable as `/skill-name`), hooks (event automation), output styles (system-prompt personas), and MCP server configurations. Custom slash commands have been merged into skills — this marketplace no longer uses `commands/` directories.
+This is a Claude Code plugin marketplace that provides custom skills and workflows. The marketplace enables installation of plugins containing skills (knowledge bundles, also invocable as `/skill-name`), hooks (event automation), and MCP server configurations. Custom slash commands have been merged into skills — this marketplace no longer uses `commands/` directories.
 
 Claude Code is the only consumer. Nothing here is written for another agent: Claude Code's substitutions (`${CLAUDE_SKILL_DIR}`, `$ARGUMENTS`, `${user_config.KEY}`) are relied on without fallbacks.
 
@@ -24,11 +24,10 @@ plugins/
     skills/                # Skills (SKILL.md + references/ + scripts/ + agents/)
     hooks/                 # Event hooks (hooks.json)
     scripts/               # Shell scripts for automation
-    output-styles/         # Output styles (.md files with frontmatter)
     .mcp.json              # MCP server configuration
 ```
 
-Components that exist in the plugin spec but are unused here: `workflows/` (Workflow scripts), `monitors/`, `themes/`, `.lsp.json`, and `dependencies`. Add them only when there is a concrete need.
+Components that exist in the plugin spec but are unused here: `workflows/` (Workflow scripts), `output-styles/` (the chat register comes from Claude Code's built-in `Concise` style, selected through `outputStyle` in `settings.json`), `monitors/`, `themes/`, `.lsp.json`, and `dependencies`. Add them only when there is a concrete need.
 
 Both manifests carry a `$schema` for editor autocomplete; `claude plugin validate` ignores it at load time.
 
@@ -59,15 +58,6 @@ Both manifests carry a `$schema` for editor autocomplete; `claude plugin validat
 - `hooks`, `mcpServers`, and `permissionMode` are not supported in plugin-shipped agents for security reasons
 - Agents used by exactly one skill live under that skill (`skills/{skill}/agents/*.md`) and are registered by listing each file in the manifest's `agents` array (plugin-root-relative paths, additive to `agents/`). Keeps the agent next to the skill that dispatches it; `agents/` stays for agents any skill may use
 - Whatever the file's location, the agent is addressed as `{plugin}:{agent-name}` — the directory does not scope the name, so names must stay unique across the plugin
-
-**Output Styles** (`output-styles/*.md`): Persona and register changes applied to the whole session
-- Frontmatter: `name` (defaults to the filename), `description` (shown in the `/config` picker), `keep-coding-instructions`, `force-for-plugin`
-- A plugin style is registered as `{plugin}:{name}` — that full string is what `/config` shows and what `settings.json` `outputStyle` must match. Omit `name` so the filename carries it and the two stay in sync
-- The body is appended to the system prompt verbatim, so every line costs tokens on every session — keep it to rules Claude would not otherwise follow
-- `keep-coding-instructions: true` is the default choice here: an output style that only changes register must not drop Claude Code's built-in software-engineering instructions (scoping, comments, verification). Omit it only for a style where Claude is not doing engineering at all
-- Leave `force-for-plugin` unset. Setting it applies the style automatically whenever the plugin is enabled and overrides the user's own `outputStyle` setting — never what a personal always-on plugin wants
-- `output-styles/` is the default path, so no `outputStyles` entry in `plugin.json` is needed
-- Styles are cached per process and the cache is only cleared by plugin lifecycle operations (install/enable/disable, marketplace update). Editing one takes effect in a new session — `/clear` does not reload it
 
 **MCP Servers** (`.mcp.json`): External tool integrations
 - HTTP servers: `type: "http"`, `url`
@@ -181,7 +171,7 @@ Slash commands are merged into skills — do not create `commands/*.md` files. F
 
 ### Modifying Base Plugin
 
-The `base` plugin (`plugins/base/`) is the only plugin in this marketplace, and holds every workflow (skills, hooks, agents, output styles, MCP servers). The skill catalog is the directory itself: each `plugins/base/skills/*/SKILL.md` frontmatter carries the description and the invocation mode (`disable-model-invocation` marks the user-driven ones), so nothing is listed twice here. What the frontmatter does not say:
+The `base` plugin (`plugins/base/`) is the only plugin in this marketplace, and holds every workflow (skills, hooks, agents, MCP servers). The skill catalog is the directory itself: each `plugins/base/skills/*/SKILL.md` frontmatter carries the description and the invocation mode (`disable-model-invocation` marks the user-driven ones), so nothing is listed twice here. What the frontmatter does not say:
 
 - `publishing-pr` orchestrates `creating-branch-name` → `splitting-commit` → `creating-pr`; `splitting-commit` calls `formatting-commit` per group
 - `formatting-commit` sets the new-commit-not-amend rule for anything under review; `fixing-review-comments`, `diagnosing-ci-failure`, and `babysitting-pr` rely on it
@@ -191,7 +181,6 @@ The `base` plugin (`plugins/base/`) is the only plugin in this marketplace, and 
 - `merging-renovate-prs` merges only in repositories owned by `kkhys` and only PRs authored by `app/renovate`; the owner check is the first step and is not negotiable from the prompt. It hands CI failures to `diagnosing-ci-failure`
 - `creating-stacked-pr` owns the stack-or-not verdict and the project conventions; command mechanics come from the external `gh-stack` skill, which the skills CLI installs into `~/.claude/skills`
 - `writing-japanese-tech-docs` dispatches the four agents under its own `agents/`, registered through the manifest's `agents` array; their descriptions say so, and they are not for general use
-- `terse-japanese` (output style, selected from `/config` → Output style) compresses chat prose only — investigation depth, verification, and anything written to a file or GitHub stay normal
 - `illustrating-pr` draws a PR as 1600×900 panels: `assets/panel.html` is the one place type sizes, colours, and blocks live, and its colours are a hand-copied mirror of `@kkhys/styles` in `kkhys/me` (uchu palette, `--c-*` semantics, design.kkhys.me) — update them there first, then here; `scripts/render-panels.sh` wraps each fragment in it and captures it with a local Chromium (Chrome, Chromium, Edge, Brave, or a Playwright build — `CHROME_BIN` overrides), exiting non-zero on a panel that overflows the canvas; `scripts/attach-explainer.sh` places the PNGs with `gh --attach` (gh ≥ 2.99) — by default as a fenced `<!-- illustrating-pr:start/end -->` section headed `## In pictures`, appended to the PR description and replaced on rerun, with `--comment` as one comment — then rewrites the stored text through `scripts/theme-images.py` so each light panel and its `.dark.png` twin become one `<picture>` that follows the viewer's theme; gh reads references from markdown only, so this cannot be a single step. Outside the section the description is never touched. Scenes are the default picture; `references/editorial-diagram.md` (grammar borrowed from cathrynlavery/diagram-design) is for a PR whose mechanism is a structure
 
 **MCP Servers** (`plugins/base/.mcp.json`):
