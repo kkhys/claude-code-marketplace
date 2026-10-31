@@ -6,7 +6,7 @@
 
 | Plugin | Description |
 |---|---|
-| `base` | Git/PR workflow skills (commit conventions, PR creation, review with a fixed verdict, review-comment handling, PR babysitting, CI diagnosis, conflict resolution, stacked PRs, Renovate PR merging in kkhys-owned repositories, picture explainers of a PR posted as a comment), message drafting, norms for Japanese technical prose with four specialist audit agents, a terse Japanese output style, event hooks, and MCP server configs (context7, serena, playwright, chrome-devtools) |
+| `base` | Git/PR workflow skills (commit conventions, PR creation, review with a fixed verdict, review-comment handling, PR babysitting, CI diagnosis, conflict resolution, stacked PRs, Renovate PR merging in kkhys-owned repositories, picture explainers of a PR posted as a comment), message drafting, event hooks, and MCP server configs (context7, serena, playwright, chrome-devtools) |
 
 ## Installation
 
@@ -53,4 +53,4 @@ See [CLAUDE.md](./CLAUDE.md) for the repository layout, plugin anatomy, and conv
 
 This marketplace and its included plugins are intended for personal use.
 
-Some `base` skills are adapted from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT), [openai/codex](https://github.com/openai/codex) (Apache-2.0), [k16shikano's gists](https://gist.github.com/k16shikano/fd287c3133457c4fd8f5601d34aa817d) (Unlicense), and [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) (Apache-2.0) — see [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
+Some `base` skills are adapted from [mattpocock/skills](https://github.com/mattpocock/skills) (MIT), [openai/codex](https://github.com/openai/codex) (Apache-2.0), and [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) (Apache-2.0) — see [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
