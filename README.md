@@ -6,7 +6,7 @@
 
 | Plugin | Description |
 |---|---|
-| `base` | Git/PR workflow skills (commit conventions, PR creation, review with a fixed verdict, review-comment handling, PR babysitting, CI diagnosis, conflict resolution, stacked PRs, Renovate PR merging in kkhys-owned repositories, a one-picture explainer placed in a PR description), message drafting, event hooks, and MCP server configs (context7, serena, playwright, chrome-devtools) |
+| `base` | Git/PR workflow skills (commit conventions, PR creation, review with a fixed verdict, review-comment handling, PR babysitting, CI diagnosis, conflict resolution, stacked PRs, Renovate PR merging in kkhys-owned repositories, a one-picture explainer placed in a PR description), message drafting, event hooks, and the serena MCP server config |
 
 ## Installation
 
