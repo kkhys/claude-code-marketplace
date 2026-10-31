@@ -24,6 +24,17 @@ WORK="$(mktemp -d)"
 readonly WORK
 trap 'rm -rf "${WORK}"' EXIT
 
+# gh is stubbed: FAKE_GH_MERGED_HEADS lists the head SHAs it reports for
+# merged PRs, FAKE_GH_FAIL makes it fail like an offline or non-GitHub repo.
+mkdir -p "${WORK}/bin"
+cat > "${WORK}/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+[[ -n "${FAKE_GH_FAIL:-}" ]] && exit 1
+printf '%s\n' ${FAKE_GH_MERGED_HEADS:-}
+EOF
+chmod +x "${WORK}/bin/gh"
+export PATH="${WORK}/bin:${PATH}"
+
 pass_count=0
 fail_count=0
 
@@ -72,8 +83,11 @@ branches() {
   git -C "$1" for-each-ref refs/heads --format='%(refname:short)' | sort | xargs
 }
 
+# run_hook <dir> [VAR=value ...]
 run_hook() {
-  (cd "$1" && bash "${SCRIPT}" 2>> "${WORK}/stderr.log")
+  local dir="$1"
+  shift
+  (cd "${dir}" && env "$@" bash "${SCRIPT}" 2>> "${WORK}/stderr.log")
 }
 
 repo="$(new_repo merge-commit)"
@@ -106,15 +120,45 @@ feature "${repo}" feat/squash
 git -C "${repo}" merge -q --squash feat/squash > /dev/null
 git -C "${repo}" commit -q -m 'squash'
 git -C "${repo}.git" branch -D feat/squash > /dev/null
-run_hook "${repo}" > /dev/null
+tip="$(git -C "${repo}" rev-parse feat/squash)"
+run_hook "${repo}" "FAKE_GH_MERGED_HEADS=${tip}" > /dev/null
 check 'a squash merge is invisible until the remote-tracking ref is pruned' \
   'feat/squash main' "$(branches "${repo}")"
 git -C "${repo}" fetch -q --prune origin
-out="$(run_hook "${repo}")"
-check 'a pruned upstream deletes the squash-merged branch' \
+out="$(run_hook "${repo}" "FAKE_GH_MERGED_HEADS=${tip}")"
+check 'a pruned upstream whose tip headed a merged PR is deleted' \
   'main' "$(branches "${repo}")"
 check 'the gone signal is named in the report' \
   '{"systemMessage": "Deleted merged local branches: feat/squash (gone)"}' "${out}"
+
+# Same squash, but a commit was added locally after the push: deleting the
+# branch would lose it, so the hook keeps it and says so.
+repo="$(new_repo squash-late)"
+feature "${repo}" feat/late
+pushed="$(git -C "${repo}" rev-parse feat/late)"
+git -C "${repo}" merge -q --squash feat/late > /dev/null
+git -C "${repo}" commit -q -m 'squash'
+git -C "${repo}.git" branch -D feat/late > /dev/null
+git -C "${repo}" checkout -q feat/late
+commit "${repo}" feat/late-extra
+git -C "${repo}" checkout -q main
+git -C "${repo}" fetch -q --prune origin
+out="$(run_hook "${repo}" "FAKE_GH_MERGED_HEADS=${pushed}")"
+check 'a gone branch with commits after the merged head survives' \
+  'feat/late main' "$(branches "${repo}")"
+check 'the kept branch is reported so the user can decide' \
+  '{"systemMessage": "Kept, upstream gone but not the head of a merged PR: feat/late"}' "${out}"
+
+# Without gh (offline, no GitHub remote) a gone upstream proves nothing.
+repo="$(new_repo squash-offline)"
+feature "${repo}" feat/offline
+git -C "${repo}" merge -q --squash feat/offline > /dev/null
+git -C "${repo}" commit -q -m 'squash'
+git -C "${repo}.git" branch -D feat/offline > /dev/null
+git -C "${repo}" fetch -q --prune origin
+out="$(run_hook "${repo}" FAKE_GH_FAIL=1)"
+check 'a gone branch survives silently when gh cannot confirm the merge' \
+  'feat/offline main|' "$(branches "${repo}")|${out}"
 
 # Merged on the remote by someone else; local main is still behind.
 repo="$(new_repo remote-base)"
