@@ -106,6 +106,9 @@ bash plugins/base/skills/babysitting-pr/scripts/test-pr-watch.sh
 
 # Payload validation and attribution-marker tests for the reply script
 bash plugins/base/skills/fixing-review-comments/scripts/test-reply-to-review-threads.sh
+
+# Delete and keep rules of the Stop hook's branch cleanup, in throwaway git repos
+bash plugins/base/scripts/test-cleanup-merged-branches.sh
 ```
 
 CI (`.github/workflows/validate.yml`) runs manifest validation, ShellCheck, Python syntax checks, and the script tests on pull requests and pushes to `main`. Every `test-*.sh` under `plugins/*/scripts/` and `plugins/*/skills/*/scripts/` is picked up automatically — new test scripts need no CI change.
@@ -177,6 +180,8 @@ The `base` plugin (`plugins/base/`) is the only plugin in this marketplace, and 
 - `merging-renovate-prs` merges only in repositories owned by `kkhys` and only PRs authored by `app/renovate`; the owner check is the first step and is not negotiable from the prompt. It hands CI failures to `diagnosing-ci-failure`
 - `creating-stacked-pr` owns the stack-or-not verdict and the project conventions; command mechanics come from the external `gh-stack` skill, which the skills CLI installs into `~/.claude/skills`
 - `illustrating-pr` is one file on purpose, in the eli15 register: the drawing is left to the model in a few lines, and the mechanics are two commands written in the skill — a local Chrome screenshot and `gh pr edit --attach` (gh ≥ 2.99). It keeps a `## In pictures` section at the end of the description and replaces it on rerun. No scripts, skeleton, palette, or tests: a wrapper there only fixed the canvas and file names the model should be free to choose
+
+**Hooks** (`plugins/base/hooks/hooks.json`): one `Stop` hook, `scripts/cleanup-merged-branches.sh`. It deletes local branches that are ancestors of `main` or `origin/main`, or whose upstream is `[gone]` — the only signal a squash merge leaves — when `gh` confirms the local tip headed a merged PR; a gone branch with later local commits is kept and reported. The `[gone]` half relies on `fetch.prune = true` in `dotfiles/.config/nix/home-manager/programs/git.nix`; the script never fetches. It runs synchronously (tens of milliseconds) and reports deletions through `systemMessage` — keep it that way, an async hook's output is never shown. Notification sounds are Orca's job, not a hook's.
 
 **MCP Servers** (`plugins/base/.mcp.json`):
 - `context7` - Library documentation lookup (HTTP, no API key)
