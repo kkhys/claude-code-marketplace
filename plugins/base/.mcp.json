@@ -19,13 +19,6 @@
     "astro-docs": {
       "type": "http",
       "url": "https://mcp.docs.astro.build/mcp"
-    },
-    "analytics-mcp": {
-      "command": "uvx",
-      "args": ["analytics-mcp"],
-      "env": {
-        "GOOGLE_PROJECT_ID": "just-advice-489808-d2"
-      }
     }
   }
 }

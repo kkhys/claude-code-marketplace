@@ -18,17 +18,14 @@ Claude Code is the only consumer. Nothing here is written for another agent: Cla
 .github/workflows/
   validate.yml              # CI: manifest validation + shellcheck
 plugins/
-  base/                    # Skills, hooks, agents, output styles
+  base/                    # The one plugin
     .claude-plugin/
       plugin.json          # Plugin metadata, component paths
     skills/                # Skills (SKILL.md + references/ + scripts/ + agents/)
     hooks/                 # Event hooks (hooks.json)
     scripts/               # Shell scripts for automation
     output-styles/         # Output styles (.md files with frontmatter)
-  mcp/                     # MCP server configurations only
-    .claude-plugin/
-      plugin.json
-    .mcp.json              # The one canonical MCP server list
+    .mcp.json              # MCP server configuration
 ```
 
 Components that exist in the plugin spec but are unused here: `workflows/` (Workflow scripts), `monitors/`, `themes/`, `.lsp.json`, and `dependencies`. Add them only when there is a concrete need.
@@ -72,11 +69,11 @@ Both manifests carry a `$schema` for editor autocomplete; `claude plugin validat
 - `output-styles/` is the default path, so no `outputStyles` entry in `plugin.json` is needed
 - Styles are cached per process and the cache is only cleared by plugin lifecycle operations (install/enable/disable, marketplace update). Editing one takes effect in a new session — `/clear` does not reload it
 
-**MCP Servers** (`plugins/mcp/.mcp.json`): External tool integrations, kept in a plugin of their own so that Codex, Devin and Copilot can install the same file and the dotfiles activation can generate Gemini / Cursor configs from it
+**MCP Servers** (`.mcp.json`): External tool integrations
 - HTTP servers: `type: "http"`, `url`
 - Stdio/command servers: `command`, `args`
-- Never hardcode machine-specific paths or secrets. Non-secret values (a Google Cloud project ID) are written literally: `${user_config.KEY}` and `userConfig` are expanded by Claude Code only, and every other consumer would see the placeholder
-- Hooks and `settings.json` permissions address a bundled server by the scoped tool name `mcp__plugin_<plugin>_<server>__<tool>` — for this plugin, `mcp__plugin_mcp_<server>__*`. Renaming a server or moving it between plugins renames its tools
+- Never hardcode machine-specific paths or secrets — declare them in `plugin.json` `userConfig` and reference as `${user_config.KEY}`
+- Hooks and `settings.json` permissions address a bundled server by the scoped tool name `mcp__plugin_<plugin>_<server>__<tool>` — here `mcp__plugin_base_<server>__*`. Renaming a server renames its tools
 
 ### Key Design Principles
 
@@ -94,9 +91,8 @@ Both manifests carry a `$schema` for editor autocomplete; `claude plugin validat
 # Validate the marketplace manifest (--strict turns warnings into errors)
 claude plugin validate . --strict
 
-# Validate each plugin manifest — the marketplace check does not cover these
+# Validate the plugin manifest — the marketplace check does not cover it
 claude plugin validate ./plugins/base --strict
-claude plugin validate ./plugins/mcp --strict
 
 # Within Claude Code
 /plugin validate .
@@ -134,9 +130,8 @@ CI (`.github/workflows/validate.yml`) runs manifest validation, ShellCheck, Pyth
 # Add marketplace locally
 /plugin marketplace add ./path/to/claude-code-marketplace
 
-# Install plugins
+# Install plugin
 /plugin install base@my-marketplace
-/plugin install mcp@my-marketplace
 
 # Test a user-invoked skill
 /creating-handoff "continue the skill refactor"
@@ -186,7 +181,7 @@ Slash commands are merged into skills — do not create `commands/*.md` files. F
 
 ### Modifying Base Plugin
 
-The `base` plugin (`plugins/base/`) holds every workflow (skills, hooks, agents, output styles); MCP servers live in the `mcp` plugin below. The skill catalog is the directory itself: each `plugins/base/skills/*/SKILL.md` frontmatter carries the description and the invocation mode (`disable-model-invocation` marks the user-driven ones), so nothing is listed twice here. What the frontmatter does not say:
+The `base` plugin (`plugins/base/`) is the only plugin in this marketplace, and holds every workflow (skills, hooks, agents, output styles, MCP servers). The skill catalog is the directory itself: each `plugins/base/skills/*/SKILL.md` frontmatter carries the description and the invocation mode (`disable-model-invocation` marks the user-driven ones), so nothing is listed twice here. What the frontmatter does not say:
 
 - `publishing-pr` orchestrates `creating-branch-name` → `splitting-commit` → `creating-pr`; `splitting-commit` calls `formatting-commit` per group
 - `formatting-commit` sets the new-commit-not-amend rule for anything under review; `fixing-review-comments`, `diagnosing-ci-failure`, and `babysitting-pr` rely on it
@@ -199,21 +194,16 @@ The `base` plugin (`plugins/base/`) holds every workflow (skills, hooks, agents,
 - `terse-japanese` (output style, selected from `/config` → Output style) compresses chat prose only — investigation depth, verification, and anything written to a file or GitHub stay normal
 - `illustrating-pr` draws a PR as 1600×900 panels: `assets/panel.html` is the one place type sizes, colours, and blocks live, and its colours are a hand-copied mirror of `@kkhys/styles` in `kkhys/me` (uchu palette, `--c-*` semantics, design.kkhys.me) — update them there first, then here; `scripts/render-panels.sh` wraps each fragment in it and captures it with a local Chromium (Chrome, Chromium, Edge, Brave, or a Playwright build — `CHROME_BIN` overrides), exiting non-zero on a panel that overflows the canvas; `scripts/attach-explainer.sh` places the PNGs with `gh --attach` (gh ≥ 2.99) — by default as a fenced `<!-- illustrating-pr:start/end -->` section headed `## In pictures`, appended to the PR description and replaced on rerun, with `--comment` as one comment — then rewrites the stored text through `scripts/theme-images.py` so each light panel and its `.dark.png` twin become one `<picture>` that follows the viewer's theme; gh reads references from markdown only, so this cannot be a single step. Outside the section the description is never touched. Scenes are the default picture; `references/editorial-diagram.md` (grammar borrowed from cathrynlavery/diagram-design) is for a PR whose mechanism is a structure
 
-When modifying, maintain consistency with existing patterns and update version in `.claude-plugin/plugin.json`.
-
-### Modifying MCP Plugin
-
-The `mcp` plugin (`plugins/mcp/`) is a manifest plus `.mcp.json`, no skills. It exists so the same server list reaches every agent: Claude Code and Codex install it from the marketplace, Devin links the directory, Copilot installs it and runs `copilot plugin update`, and the dotfiles activation generates Gemini `mcpServers` (HTTP → `httpUrl`) and Cursor `~/.cursor/mcp.json` from the file.
-
-**MCP Servers** (`plugins/mcp/.mcp.json`):
+**MCP Servers** (`plugins/base/.mcp.json`):
 - `context7` - Library documentation lookup (HTTP, no API key)
 - `serena` - Symbol-level code navigation and editing via `uvx`
 - `playwright` - Browser automation via `@playwright/mcp`
 - `chrome-devtools` - Chrome DevTools automation
 - `astro-docs` - Astro documentation search (HTTP)
-- `analytics-mcp` - Google Analytics queries. `GOOGLE_PROJECT_ID` is literal in the file; auth uses gcloud application default credentials (`gcloud auth application-default login`)
 
-Adding or renaming a server changes its tool names (`mcp__plugin_mcp_<server>__*`), so update the permission entries in `dotfiles/.config/claude/settings.json` in the same change. Bump `plugins/mcp/.claude-plugin/plugin.json` on every edit — Claude Code's marketplace auto-update only picks up a new version.
+Adding or renaming a server changes its tool names (`mcp__plugin_base_<server>__*`), so update the permission entries in `dotfiles/.config/claude/settings.json` in the same change.
+
+When modifying, maintain consistency with existing patterns and update version in `.claude-plugin/plugin.json` — Claude Code's marketplace auto-update only picks up a new version.
 
 ## Important Patterns
 
