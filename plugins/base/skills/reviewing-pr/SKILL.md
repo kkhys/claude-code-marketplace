@@ -49,6 +49,17 @@ plugin is installed. Otherwise read `gh pr diff` yourself and dispatch the
 code-reviewer and silent-failure-hunter agents if they exist. The review's
 findings feed the block below — do not print them twice.
 
+Then read past the diff before judging: every caller of a function whose
+signature, return value or behaviour changed — a change breaks code it does
+not touch — the tests, and the README or deploy config for the load the
+project expects, one person running a script or many users and processes at
+once. Judge scale against that load and say which one you assumed.
+
+A finding stays only with a concrete case — this input or situation leads to
+this wrong result — and only after re-reading the lines: the caller exists,
+the value can really be empty, the code really is unused. No case, no
+finding.
+
 Scope is the PR's own diff. A pre-existing problem in a touched file gets
 one line under 指摘 marked 既存 and never counts against the verdict.
 
@@ -65,15 +76,19 @@ approve 相当 / 要修正 — 決め手を 1 行
 （なければ「なし」）
 
 ## 指摘（重箱を除く）
-- [critical|warning] `path:line` — 1〜2 行
+- [critical|warning] `path:line` — 問題（どの入力で何が起きるか）。修正: 最小の直し方。放置すると: 起きること
 
 ## デグレ・影響範囲
+- 想定した負荷:
 - 既存動作:
 - feature flag 外:
 - main マージ後の本番影響:
 
 ## 手動テスト
 - [ ] 1 行で 1 ケース
+
+## 未確認
+- 読めなかった・動かせなかったもの（なければ「なし」）
 ```
 
 Rules that decide each section:
@@ -88,11 +103,17 @@ Rules that decide each section:
 - 重箱 — naming, style, comment wording, optional refactors — does not
   appear at all. A finding stays only if it changes behaviour, correctness,
   security, or performance for a user.
+- Each 指摘 carries its three parts in one or two lines: the problem with
+  its case, the smallest fix that works (prefer one that deletes code), and
+  what happens if it is left as is.
 - デグレ names the existing behaviour the diff touches and whether it still
   holds. Behind a feature flag, say what a tenant without the flag sees.
   When the PR merges toward production, say what reaches production.
 - 手動テスト: one checkbox per behaviour the reviewer should verify, one
   line each, one to three items, without the console when a click will do.
+- 未確認 names what mattered and could not be read or run — a caller in
+  another repository, a path that needs production data. It never hides a
+  finding you could have confirmed by reading further.
 
 Posting to GitHub happens only when the user asks; then `posting-pr-review`
 carries the 指摘 items and nothing else.
