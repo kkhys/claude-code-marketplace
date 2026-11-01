@@ -185,7 +185,7 @@ The `base` plugin (`plugins/base/`) is the only plugin in this marketplace, and 
 **Hooks** (`plugins/base/hooks/hooks.json`): one `Stop` hook, `scripts/cleanup-merged-branches.sh`. It deletes local branches that are ancestors of `main` or `origin/main`, or whose upstream is `[gone]` — the only signal a squash merge leaves — when `gh` confirms the local tip headed a merged PR; a gone branch with later local commits is kept and reported. The `[gone]` half relies on `fetch.prune = true` in `dotfiles/.config/nix/home-manager/programs/git.nix`; the script never fetches. It runs synchronously (tens of milliseconds) and reports deletions through `systemMessage` — keep it that way, an async hook's output is never shown. Notification sounds are Orca's job, not a hook's.
 
 **MCP Servers** (`plugins/base/.mcp.json`):
-- `serena` - Symbol-level code navigation and editing via `uvx`
+- `serena` - Symbol-level code navigation and editing via `uvx`, pinned to a Serena release tag: the server runs with the user's permissions, so the ref moves only on purpose, with a plugin version bump
 
 The plugin ships only servers that every session needs. Documentation lookup and browser automation (context7, playwright, chrome-devtools) belong to the projects that use them — their own `.mcp.json` or the official plugins — so they are not declared here; a plugin-level copy would start them twice.
 
