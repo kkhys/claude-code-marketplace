@@ -376,6 +376,9 @@ DECISIONS
 expect_result 'a replace for a form hex never pasted is refused' 2 'appears in no dictation' apply <<'DECISIONS'
 {"add": [], "replace": [{"from": "出くる", "to": "デグレ"}], "ignore": []}
 DECISIONS
+expect_result 'a replace for a form in most dictations is refused' 2 'a word, not a mishearing' apply <<'DECISIONS'
+{"add": [], "replace": [{"from": "ください", "to": ""}], "ignore": []}
+DECISIONS
 if [[ "$(cat "${STATE_FILE}")" == "${last_run_before}" ]]; then
   ok 'a refused replacement leaves the window alone'
 else

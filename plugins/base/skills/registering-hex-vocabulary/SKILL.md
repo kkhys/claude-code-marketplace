@@ -129,8 +129,8 @@ EOF
 ```
 
 A `from` is copied from `dictated`, never typed from memory: apply refuses
-one that appears in no dictation Hex retains, and one shorter than two
-characters.
+one that appears in no dictation Hex retains, one that appears in more than
+a fifth of them, and one shorter than two characters.
 
 When `failed` is not empty, the window and the ignore list did not move:
 report the error (Hex not running, not installed) so the next run reads the

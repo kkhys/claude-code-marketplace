@@ -92,8 +92,11 @@ RANDOM_MAX_LEN = 32
 # Longest term or spelling apply accepts; the agent judges candidates, it
 # does not invent paragraphs.
 MAX_TERM_LEN = 64
-# A one-character replacement would rewrite most of every transcript.
+# A one-character replacement would rewrite most of every transcript, and a
+# form in more of the retained dictations than this share is a word the user
+# says (です, ください), not a mishearing.
 MIN_REPLACE_LEN = 2
+MAX_REPLACE_SHARE = 0.2
 # English a transcript already spells right; the ignore list absorbs the tail.
 STOPWORDS = set("""
 a about after again all also an and any are as at back be because been before
@@ -535,8 +538,11 @@ def check_dictated(hex_bin, replaces):
     spoken = [squash(clean(text)) for _, text in history]
     for entry in replaces:
         source = entry["from"].strip()
-        if not any(source in text for text in spoken):
+        hits = sum(source in text for text in spoken)
+        if hits == 0:
             die(f"{source!r} appears in no dictation Hex retains; a replacement rewrites only what was actually dictated", 2)
+        if hits > MAX_REPLACE_SHARE * len(spoken):
+            die(f"{source!r} is in {hits} of the {len(spoken)} dictations Hex retains; a form that common is a word, not a mishearing", 2)
 
 
 def add_replacements(hex_bin, replaces):
