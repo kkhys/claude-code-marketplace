@@ -41,17 +41,26 @@ STRIP = [
     re.compile(r"<system-reminder>.*?</system-reminder>", re.S),
     re.compile(r"```.*?```", re.S),
     re.compile(r"`[^`\n]*`"),
-    re.compile(r"https?://\S+"),
+    re.compile(r"(?<![A-Za-z0-9])[A-Za-z][A-Za-z0-9+.\-]*://\S+"),
+    re.compile(r"\S+:\S+@\S+"),
     re.compile(r"\[Image #\d+\]"),
     re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+"),
     re.compile(r"(?<![\w.])@[\w.\-]+"),
-    re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr|github_pat|sk|xox[abprs]|AKIA|AIza|ya29|npm|glpat|dop_v1|pypi|hf)[_-][A-Za-z0-9_\-]{8,}"),
-    re.compile(r"\beyJ[A-Za-z0-9_\-]{10,}(?:\.[A-Za-z0-9_\-]+)*"),
-    re.compile(r"(?i)\b(?:token|secret|password|passwd|api[_-]?key|credential)s?\s*[:=]\s*\S+"),
+    re.compile(r"(?<![A-Za-z0-9])AKIA[0-9A-Z]{16}(?![A-Za-z0-9])"),
+    re.compile(r"(?<![A-Za-z0-9])AIza[0-9A-Za-z_\-]{35}"),
+    re.compile(r"(?<![A-Za-z0-9])ya29\.[0-9A-Za-z_.\-]+"),
+    re.compile(r"(?<![A-Za-z0-9])(?:ghp|gho|ghu|ghs|ghr|github_pat|sk|xox[abprs]|npm|glpat|dop_v1|pypi|hf)[_-][A-Za-z0-9_\-]{8,}"),
+    re.compile(r"(?<![A-Za-z0-9])eyJ[A-Za-z0-9_\-]{10,}(?:\.[A-Za-z0-9_\-]+)*"),
+    # A labelled value: NOTION_TOKEN=…, "password": "…", パスワード: …, token is …
+    re.compile(r"(?i)(?<![A-Za-z0-9])[\w-]*(?:token|secret|password|passwd|pwd|api[_-]?key|credential"
+               r"|パスワード|トークン|シークレット|秘密鍵|APIキー)[\w-]*[\"']?\s*(?:[:=：]|\bis\b)\s*(?:Bearer\s+)?[\"']?\S+"),
     re.compile(r"\+?\d[\d\-() ]{8,}\d"),
 ]
 
 LATIN = re.compile(r"(?<![A-Za-z0-9_/.\-@#])[A-Za-z][A-Za-z0-9+#.\-]*[A-Za-z0-9+#](?![A-Za-z0-9_/])")
+# Wider than LATIN on purpose: a hash or key may start with a digit or carry
+# underscores, and redaction must see every such run, not only candidates.
+ALNUM_RUN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_+#.\-]*")
 KATAKANA = re.compile(r"[ァ-ヺー]{2,}")
 FILE_NAME = re.compile(r"\.(?:tsx?|jsx?|mjs|cjs|json|ya?ml|toml|md|sh|py|nix|lock|html|css|png|jpe?g|svg|pdf|csv|txt|log)$", re.I)
 HEX_HASH = re.compile(r"^[0-9a-f]{7,}$")
@@ -61,6 +70,9 @@ HANDLE = re.compile(r"^[a-z]+\d{2,}$")
 # letters mixed with digits past this length is how generated secrets look.
 RANDOM_MIN_LEN = 20
 RANDOM_MAX_LEN = 32
+# Longest term or spelling apply accepts; the agent judges candidates, it
+# does not invent paragraphs.
+MAX_TERM_LEN = 64
 # English a transcript already spells right; the ignore list absorbs the tail.
 STOPWORDS = set("""
 a about after again all also an and any are as at back be because been before
@@ -211,31 +223,38 @@ def human_prompts(projects_dir, since):
                         yield record.get("sessionId", name), timestamp, text
 
 
+def looks_random(surface):
+    if len(surface) >= RANDOM_MAX_LEN:
+        return True
+    return len(surface) >= RANDOM_MIN_LEN and any(c.isdigit() for c in surface)
+
+
+def secret_shaped(surface):
+    return bool(HEX_HASH.match(surface) or HANDLE.match(surface) or looks_random(surface))
+
+
 def clean(text):
+    """Prompt text with every credential or identifier shape removed.
+
+    Runs before tokenizing and before any context is quoted, so a shape the
+    patterns know never reaches the candidate list or the agent.
+    """
     for pattern in STRIP:
         text = pattern.sub(" ", text)
-    return text
+    return ALNUM_RUN.sub(lambda m: " " if secret_shaped(m.group(0)) else m.group(0), text)
 
 
 def tokens(text):
     """(kind, surface, start, end) for every candidate in cleaned prompt text."""
     for match in LATIN.finditer(text):
         surface = match.group(0)
-        if FILE_NAME.search(surface) or HEX_HASH.match(surface) or HANDLE.match(surface):
+        if FILE_NAME.search(surface):
             continue
         if surface.islower() and (len(surface) <= 2 or surface in STOPWORDS):
-            continue
-        if looks_random(surface):
             continue
         yield "latin", surface, match.start(), match.end()
     for match in KATAKANA.finditer(text):
         yield "katakana", match.group(0), match.start(), match.end()
-
-
-def looks_random(surface):
-    if len(surface) >= RANDOM_MAX_LEN:
-        return True
-    return len(surface) >= RANDOM_MIN_LEN and any(c.isdigit() for c in surface)
 
 
 def snippet(text, start, end):
@@ -349,10 +368,22 @@ def read_decisions(path):
             die(f'every add needs a non-empty "term": {entry!r}', 2)
         if not isinstance(spellings, list) or any(not isinstance(s, str) or not s.strip() or "," in s for s in spellings):
             die(f'"sounds_like" of {term!r} must be a list of non-empty strings without commas', 2)
+        for value in [term, *spellings]:
+            check_term(value)
     for term in ignores:
         if not isinstance(term, str) or not term.strip():
             die(f"every ignore must be a non-empty string: {term!r}", 2)
+        check_term(term)
     return adds, ignores
+
+
+def check_term(value):
+    """Refuse what no vocabulary entry looks like: the agent reads untrusted prompt text."""
+    value = value.strip()
+    if len(value) > MAX_TERM_LEN or not value.isprintable():
+        die(f"{value[:MAX_TERM_LEN]!r} is too long or not printable for a vocabulary entry", 2)
+    if clean(value).strip() != value:
+        die(f"{value!r} looks like a credential or an identifier, not a name", 2)
 
 
 def cmd_apply(args):
