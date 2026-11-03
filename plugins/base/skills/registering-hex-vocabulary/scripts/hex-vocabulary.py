@@ -51,9 +51,14 @@ STRIP = [
     re.compile(r"(?<![A-Za-z0-9])ya29\.[0-9A-Za-z_.\-]+"),
     re.compile(r"(?<![A-Za-z0-9])(?:ghp|gho|ghu|ghs|ghr|github_pat|sk|xox[abprs]|npm|glpat|dop_v1|pypi|hf)[_-][A-Za-z0-9_\-]{8,}"),
     re.compile(r"(?<![A-Za-z0-9])eyJ[A-Za-z0-9_\-]{10,}(?:\.[A-Za-z0-9_\-]+)*"),
-    # A labelled value: NOTION_TOKEN=…, "password": "…", パスワード: …, token is …
+    # A labelled value: NOTION_TOKEN=…, "password": "…", パスワード: …,
+    # token is …, api_key => '…', トークンは …
     re.compile(r"(?i)(?<![A-Za-z0-9])[\w-]*(?:token|secret|password|passwd|pwd|api[_-]?key|credential"
-               r"|パスワード|トークン|シークレット|秘密鍵|APIキー)[\w-]*[\"']?\s*(?:[:=：]|\bis\b)\s*(?:Bearer\s+)?[\"']?\S+"),
+               r"|パスワード|トークン|シークレット|秘密鍵|APIキー)[\w-]*[\"']?\s*(?:[:=：＝]|=>|\bis\b|は|が|を)\s*"
+               r"(?:Bearer\s+|Basic\s+)?(?:\"[^\"]*\"|'[^']*'|\S+)"),
+    re.compile(r"(?i)\bAuthorization\s*[:=]\s*(?:Bearer|Basic)?\s*\S+"),
+    re.compile(r"(?i)\bBearer\s+\S+"),
+    re.compile(r"(?i)\bBasic\s+[A-Za-z0-9+/=]{8,}"),
     re.compile(r"\+?\d[\d\-() ]{8,}\d"),
 ]
 
@@ -230,6 +235,7 @@ def looks_random(surface):
 
 
 def secret_shaped(surface):
+    surface = surface.strip(".-_+#")
     return bool(HEX_HASH.match(surface) or HANDLE.match(surface) or looks_random(surface))
 
 
@@ -248,7 +254,9 @@ def tokens(text):
     """(kind, surface, start, end) for every candidate in cleaned prompt text."""
     for match in LATIN.finditer(text):
         surface = match.group(0)
-        if FILE_NAME.search(surface):
+        # clean() already redacted these; checked again so the surface that
+        # was validated is the surface that is emitted.
+        if FILE_NAME.search(surface) or secret_shaped(surface):
             continue
         if surface.islower() and (len(surface) <= 2 or surface in STOPWORDS):
             continue
@@ -382,7 +390,7 @@ def check_term(value):
     value = value.strip()
     if len(value) > MAX_TERM_LEN or not value.isprintable():
         die(f"{value[:MAX_TERM_LEN]!r} is too long or not printable for a vocabulary entry", 2)
-    if clean(value).strip() != value:
+    if clean(value).strip() != value or any(secret_shaped(m.group(0)) for m in ALNUM_RUN.finditer(value)):
         die(f"{value!r} looks like a credential or an identifier, not a name", 2)
 
 

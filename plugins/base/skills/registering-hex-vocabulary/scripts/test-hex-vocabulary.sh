@@ -69,6 +69,8 @@ record() {
     '"Zscaler を経由すると MiiTel が落ちる。関口さんに聞いて。ジースケーラー の設定も。`settings.json` と config.yml を見て。https://example.com/Pastedurl pinact は不要？ <pasted_content id=\"p1\">Pastedonly</pasted_content> ok the hostname zscaler taro@example.com に送った。token sk-abcdefghijklmnopqrstuvwxyz012345 と eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9 と ghp_abcdefghijklmnopqrstuvwxyz0123 を漏らすな。password: hunter2 TEL 090-1234-5678 Q7xK9mP2vL4nR8tW3yB6 7f3a9c1e2b @tech-team に聞く。taro99 は別チーム"'
   record user typed '2026-11-02T10:00:30.000Z' \
     '"NOTION_TOKEN=ntn_abcdefghijklmnopqrst と \"password\": \"hunter3\" と パスワード: pw123 と token is Bearer abc.def と AKIAIOSFODNN7EXAMPLE と postgres://dbuser:dbpass@db:5432/app と mongodb+srv://u:p@cluster.example.net/x を Secretword に"'
+  record user typed '2026-11-02T10:00:45.000Z' \
+    '"taro99. と a1b2c3d4e. の件。Authorization: Bearer tok_abcdefgh と Bearer tok_ijklmnop と api_key => '"'"'k-12345678'"'"' と トークンは abcsecretvalue です。Plainword"'
   record user typed '2026-10-01T10:00:00.000Z' '"Oldonly"'
   record user sdk '2026-11-02T10:01:00.000Z' '"Sdkonly"'
   record user '' '2026-11-02T10:02:00.000Z' '[{"type":"tool_result","tool_use_id":"t1","content":"Toolonly"}]'
@@ -144,7 +146,7 @@ print(eval(sys.argv[2]))
 
 EXTRACT="${WORK_DIR}/extract.json"
 run extract --since 2026-10-15 > "${EXTRACT}"
-expect_json 'only typed and queued prompts are read' "${EXTRACT}" 'd["prompts"]' 4
+expect_json 'only typed and queued prompts are read' "${EXTRACT}" 'd["prompts"]' 5
 expect_json 'sessions are counted' "${EXTRACT}" 'd["sessions"]' 1
 expect_json 'the vocabulary was fetched from hex' "${EXTRACT}" 'd["vocabulary_checked"]' True
 expect_json 'the resolved hex path is reported' "${EXTRACT}" 'd["hex"]' "${STUB}"
@@ -196,6 +198,19 @@ expect_json 'the connection-string password does not reach a context' "${EXTRACT
   'any("dbpass" in ctx for c in d["candidates"] for ctx in c["contexts"])' False
 expect_candidate 'a URI with a non-http scheme is stripped' "${EXTRACT}" 'cluster.example.net' no
 expect_candidate 'a word that merely contains a label stays' "${EXTRACT}" 'Secretword' yes
+expect_json 'a login with trailing punctuation does not reach a context' "${EXTRACT}" \
+  'any("taro99" in ctx for c in d["candidates"] for ctx in c["contexts"])' False
+expect_json 'a hash with trailing punctuation does not reach a context' "${EXTRACT}" \
+  'any("a1b2c3d4e" in ctx for c in d["candidates"] for ctx in c["contexts"])' False
+expect_json 'an Authorization header value does not reach a context' "${EXTRACT}" \
+  'any("tok_abcdefgh" in ctx for c in d["candidates"] for ctx in c["contexts"])' False
+expect_json 'a bare Bearer token does not reach a context' "${EXTRACT}" \
+  'any("tok_ijklmnop" in ctx for c in d["candidates"] for ctx in c["contexts"])' False
+expect_json 'a quoted value after => does not reach a context' "${EXTRACT}" \
+  'any("k-12345678" in ctx for c in d["candidates"] for ctx in c["contexts"])' False
+expect_json 'a value after a Japanese particle does not reach a context' "${EXTRACT}" \
+  'any("abcsecretvalue" in ctx for c in d["candidates"] for ctx in c["contexts"])' False
+expect_candidate 'the word after the stripped sentence stays' "${EXTRACT}" 'Plainword' yes
 expect_json 'no quoted context carries the e-mail address' "${EXTRACT}" \
   'any("example.com" in ctx for c in d["candidates"] for ctx in c["contexts"])' False
 expect_json 'no quoted context carries the phone number' "${EXTRACT}" \
@@ -275,6 +290,9 @@ expect_result 'an overlong term is refused' 2 'too long' apply <<'DECISIONS'
 DECISIONS
 expect_result 'a login-shaped ignore is refused' 2 'looks like a credential' apply <<'DECISIONS'
 {"add": [], "ignore": ["taro99"]}
+DECISIONS
+expect_result 'trailing punctuation does not slip a hash past apply' 2 'looks like a credential' apply <<'DECISIONS'
+{"add": [{"term": "a1b2c3d4e.", "sounds_like": []}], "ignore": []}
 DECISIONS
 
 printf '\n%d passed, %d failed\n' "${pass_count}" "${fail_count}"
