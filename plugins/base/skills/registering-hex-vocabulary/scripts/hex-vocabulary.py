@@ -54,7 +54,7 @@ STRIP = [
     # A labelled value: NOTION_TOKEN=…, "password": "…", パスワード: …,
     # token is …, api_key => '…', トークンは …
     re.compile(r"(?i)(?<![A-Za-z0-9])[\w-]*(?:token|secret|password|passwd|pwd|api[_-]?key|credential"
-               r"|パスワード|トークン|シークレット|秘密鍵|APIキー)[\w-]*[\"']?\s*(?:[:=：＝]|=>|\bis\b|は|が|を)\s*"
+               r"|パスワード|トークン|シークレット|秘密鍵|APIキー)[\w-]*[\"']?\s*(?:=>|[:=：＝]|\bis\b|は|が|を)\s*"
                r"(?:Bearer\s+|Basic\s+)?(?:\"[^\"]*\"|'[^']*'|\S+)"),
     re.compile(r"(?i)\bAuthorization\s*[:=]\s*(?:Bearer|Basic)?\s*\S+"),
     re.compile(r"(?i)\bBearer\s+\S+"),
