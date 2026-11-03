@@ -45,6 +45,7 @@ entries = [
     ("2026-11-02T10:10:00+00:00", "dictation", "ご視聴ありがとうございました"),
     ("2026-11-02T10:11:00+00:00", "dictation", "パスワードは hunter9 です"),
     ("2026-11-02T10:12:00+00:00", "edit", "Editonly"),
+    ("2026-11-02T10:13:00+00:00", "dictation", "動画のプレキシ設定を見てください"),
 ]
 json.dump({"version": 1, "retention": "week", "truncated": False,
            "entries": [{"id": i, "timestamp_ms": ms(s), "application": "Orca", "mode": None, "kind": k, "final_text": t}
@@ -75,7 +76,7 @@ case "\$1 \$2" in
     fi
     ;;
   "settings get")
-    printf '{"version":4,"status":"settings","settings":[{"key":"dictation_processing.default_mode","value":{"name":"Global","post_processing":{"enabled":false},"replacements":[{"matched_phrase":"プレキシ","output":"プロキシ"}],"transformations":[]},"kind":"json","writable":true}]}\n'
+    printf '{"version":4,"status":"settings","settings":[{"key":"dictation_processing.default_mode","value":{"name":"Global","post_processing":{"enabled":false},"replacements":[{"matched_phrase":"プレキシ","output":"プロキシ"},{"matched_phrase":"taro99","output":"taro@example.com"}],"transformations":[]},"kind":"json","writable":true}]}\n'
     ;;
   "history "*)
     cat "${HISTORY}"
@@ -263,7 +264,7 @@ expect_json 'contexts quote the prompt around the term' "${EXTRACT}" \
 
 expect_json 'the history and the mode were fetched from hex' "${EXTRACT}" 'd["history_checked"]' True
 expect_json 'every dictation is listed, oldest first, edits left out' "${EXTRACT}" \
-  '[r["dictated"][:6] for r in d["dictations"]]' "['Zscale', 'pinact', '常規のチケッ', 'ご視聴ありが', 'です']"
+  '[r["dictated"][:6] for r in d["dictations"]]' "['Zscale', 'pinact', '常規のチケッ', 'ご視聴ありが', 'です', '動画のプレキ']"
 expect_json 'a dictation sent unchanged carries no sent text' "${EXTRACT}" \
   '"sent" in d["dictations"][0]' False
 expect_json 'a dictation the user corrected carries what was sent' "${EXTRACT}" \
@@ -272,8 +273,10 @@ expect_json 'a dictation with no prompt after it carries no sent text' "${EXTRAC
   '"sent" in d["dictations"][3]' False
 expect_json 'a spoken password does not reach a dictation' "${EXTRACT}" \
   'any("hunter9" in r["dictated"] for r in d["dictations"])' False
-expect_json 'the replacements hex already applies are listed' "${EXTRACT}" \
-  'd["replacements"]' "[{'from': 'プレキシ', 'to': 'プロキシ'}]"
+expect_json 'the heard forms hex already rewrites are listed, credential shapes and outputs left out' "${EXTRACT}" \
+  'd["replacements"]' "['プレキシ']"
+expect_json 'no replacement output reaches the extract' "${EXTRACT}" \
+  '"taro@example.com" in json.dumps(d)' False
 
 run extract --since 2026-10-15 --limit 1 > "${EXTRACT}"
 expect_json '--limit caps the candidates' "${EXTRACT}" 'len(d["candidates"])' 1
@@ -291,12 +294,12 @@ run apply > "${APPLY}" <<'DECISIONS'
 DECISIONS
 expect_json 'every add is reported' "${APPLY}" 'len(d["added"])' 2
 expect_json 'nothing failed' "${APPLY}" 'd["failed"]' '[]'
-expect_json 'every replacement is reported' "${APPLY}" \
-  '[(r["from"], r["to"], r["changed"]) for r in d["replaced"]]' \
-  "[('常規', '上記', True), ('プレキシ', 'プロキシ', False), ('ご視聴ありがとうございました', '', True)]"
+expect_json 'every replacement is reported, without the output of an existing rule' "${APPLY}" \
+  '[(r["from"], r.get("to"), r["changed"]) for r in d["replaced"]]' \
+  "[('常規', '上記', True), ('プレキシ', None, False), ('ご視聴ありがとうございました', '', True)]"
 expect_json 'the mode is written once with the new replacements appended' "${SET_LOG}" \
   '[(r["matched_phrase"], r["output"]) for r in d["replacements"]]' \
-  "[('プレキシ', 'プロキシ'), ('常規', '上記'), ('ご視聴ありがとうございました', '')]"
+  "[('プレキシ', 'プロキシ'), ('taro99', 'taro@example.com'), ('常規', '上記'), ('ご視聴ありがとうございました', '')]"
 expect_json 'the rest of the mode is written back untouched' "${SET_LOG}" \
   '(d["name"], d["post_processing"], d["transformations"])' "('Global', {'enabled': False}, [])"
 if [[ "$(wc -l < "${SET_LOG}")" -eq 1 ]]; then
@@ -339,7 +342,7 @@ fi
 
 code=0
 HEX_STUB_FAIL=1 run apply > "${APPLY}" <<'DECISIONS' || code=$?
-{"add": [], "replace": [{"from": "出くる", "to": "デグレ"}], "ignore": []}
+{"add": [], "replace": [{"from": "記表", "to": "起票"}], "ignore": []}
 DECISIONS
 if [[ "${code}" -eq 1 ]]; then
   ok 'a failed replacement exits 1'
@@ -347,7 +350,7 @@ else
   fail 'a failed replacement exits 1' "exit ${code}: $(cat "${APPLY}")"
 fi
 expect_json 'the failed replacement carries the hex message' "${APPLY}" \
-  '(d["failed"][0]["from"], d["failed"][0]["error"])' "('出くる', 'Hex is not running')"
+  '(d["failed"][0]["from"], d["failed"][0]["error"])' "('記表', 'Hex is not running')"
 expect_json 'a failed replacement is not reported as applied' "${APPLY}" 'd["replaced"]' '[]'
 if [[ "$(cat "${STATE_FILE}")" == "${last_run_before}" ]]; then
   ok 'the window stays put when a replacement fails'
@@ -367,6 +370,17 @@ DECISIONS
 expect_result 'a replace whose output is credential-shaped is refused' 2 'looks like a credential' apply <<'DECISIONS'
 {"add": [], "replace": [{"from": "ジースケーラー", "to": "taro@example.com"}], "ignore": []}
 DECISIONS
+expect_result 'a one-character replace is a usage error' 2 'at least 2 characters' apply <<'DECISIONS'
+{"add": [], "replace": [{"from": "の", "to": ""}], "ignore": []}
+DECISIONS
+expect_result 'a replace for a form hex never pasted is refused' 2 'appears in no dictation' apply <<'DECISIONS'
+{"add": [], "replace": [{"from": "出くる", "to": "デグレ"}], "ignore": []}
+DECISIONS
+if [[ "$(cat "${STATE_FILE}")" == "${last_run_before}" ]]; then
+  ok 'a refused replacement leaves the window alone'
+else
+  fail 'a refused replacement leaves the window alone' "$(cat "${STATE_FILE}")"
+fi
 expect_result 'a spelling with a comma is a usage error' 2 'without commas' apply <<'DECISIONS'
 {"add": [{"term": "A", "sounds_like": ["a,b"]}], "ignore": []}
 DECISIONS

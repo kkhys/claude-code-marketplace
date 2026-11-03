@@ -92,6 +92,8 @@ RANDOM_MAX_LEN = 32
 # Longest term or spelling apply accepts; the agent judges candidates, it
 # does not invent paragraphs.
 MAX_TERM_LEN = 64
+# A one-character replacement would rewrite most of every transcript.
+MIN_REPLACE_LEN = 2
 # English a transcript already spells right; the ignore list absorbs the tail.
 STOPWORDS = set("""
 a about after again all also an and any are as at back be because been before
@@ -224,10 +226,13 @@ def default_mode(hex_bin):
     return None, f"hex settings get {MODE_KEY} returned no value"
 
 
-def dictations(hex_bin, since, until):
-    """(timestamp, text) for every dictation Hex pasted in the window; None when the history cannot be read."""
-    reply, error = run_hex(hex_bin, "history", "--since", since.isoformat(), "--until", until.isoformat(),
-                           "--limit", str(HISTORY_LIMIT), "--oldest-first")
+def dictations(hex_bin, since=None, until=None):
+    """(timestamp, text) for every dictation Hex pasted in the window, or retains at all without one.
+
+    None when the history cannot be read.
+    """
+    window = [] if since is None else ["--since", since.isoformat(), "--until", until.isoformat()]
+    reply, error = run_hex(hex_bin, "history", *window, "--limit", str(HISTORY_LIMIT), "--oldest-first")
     if reply is None:
         warn(error)
         return None
@@ -453,8 +458,11 @@ def cmd_extract(args):
         "candidates": rows[: args.limit],
         "omitted": max(0, len(rows) - args.limit),
         "dictations": heard,
-        "replacements": [{"from": r.get("matched_phrase", ""), "to": r.get("output", "")}
-                         for r in (mode or {}).get("replacements", [])],
+        # Heard forms only: what a rule expands to is the user's own text and
+        # may be anything, so it never reaches the agent.
+        "replacements": [r["matched_phrase"] for r in (mode or {}).get("replacements", [])
+                         if isinstance(r.get("matched_phrase"), str) and r["matched_phrase"].strip()
+                         and not redacted(r["matched_phrase"])],
     }
     json.dump(output, sys.stdout, ensure_ascii=False, indent=2)
     print()
@@ -492,6 +500,8 @@ def read_decisions(path):
             die(f'every replace needs a non-empty "from" and a string "to": {entry!r}', 2)
         if source.strip() == target.strip():
             die(f'a replace must change its text: {source!r}', 2)
+        if len(source.strip()) < MIN_REPLACE_LEN:
+            die(f'"from" must be at least {MIN_REPLACE_LEN} characters: {source!r}', 2)
         check_term(source)
         if target.strip():
             check_term(target)
@@ -502,13 +512,31 @@ def read_decisions(path):
     return adds, replaces, ignores
 
 
+def redacted(value):
+    """True when clean() would cut part of the text: a credential or identifier shape is in it."""
+    value = value.strip()
+    return clean(value).strip() != value or any(secret_shaped(m.group(0)) for m in ALNUM_RUN.finditer(value))
+
+
 def check_term(value):
     """Refuse what no vocabulary entry looks like: the agent reads untrusted prompt text."""
     value = value.strip()
     if len(value) > MAX_TERM_LEN or not value.isprintable():
         die(f"{value[:MAX_TERM_LEN]!r} is too long or not printable for a vocabulary entry", 2)
-    if clean(value).strip() != value or any(secret_shaped(m.group(0)) for m in ALNUM_RUN.finditer(value)):
+    if redacted(value):
         die(f"{value!r} looks like a credential or an identifier, not a name", 2)
+
+
+def check_dictated(hex_bin, replaces):
+    """Refuse a replacement for a form Hex never pasted: the rule rewrites only what was actually said."""
+    history = dictations(hex_bin)
+    if history is None:
+        die("cannot read hex history, so the replacements cannot be checked against what was dictated")
+    spoken = [squash(clean(text)) for _, text in history]
+    for entry in replaces:
+        source = entry["from"].strip()
+        if not any(source in text for text in spoken):
+            die(f"{source!r} appears in no dictation Hex retains; a replacement rewrites only what was actually dictated", 2)
 
 
 def add_replacements(hex_bin, replaces):
@@ -521,7 +549,8 @@ def add_replacements(hex_bin, replaces):
     for entry in replaces:
         source, target = entry["from"].strip(), entry["to"].strip()
         if source in existing:
-            replaced.append({"from": source, "to": existing[source], "changed": False})
+            # Hex's own output for the form is not echoed: it is the user's text.
+            replaced.append({"from": source, "changed": False})
             continue
         existing[source] = target
         new.append({"matched_phrase": source, "output": target})
@@ -539,6 +568,8 @@ def cmd_apply(args):
     adds, replaces, ignores = read_decisions(args.decisions)
     state = load_state(args.state_file)
     hex_bin = resolve_hex(args.hex)
+    if replaces:
+        check_dictated(hex_bin, replaces)
 
     added, failed = [], []
     for entry in adds:
