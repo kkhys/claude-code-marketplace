@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Candidate vocabulary for Hex, mined from the prompts typed into Claude Code.
+"""Candidate vocabulary and replacements for Hex, mined from the prompts typed
+into Claude Code and from Hex's own dictation history.
 
 extract scans ~/.claude/projects/*/*.jsonl for the prompts the user typed
 (promptSource "typed" or "queued": tool results, hook output, SDK-driven
@@ -8,16 +9,21 @@ what Hex already knows and what an earlier run rejected, and prints the
 rest as JSON for the agent to judge. Only Latin and katakana words are
 candidates: people are never registered, and e-mail addresses, tokens, and
 other random-looking strings are cut from the text before anything is
-tokenized or quoted.
+tokenized or quoted. It also prints every dictation Hex pasted in the window
+(`hex history`), paired with the prompt the user sent right after it when
+that prompt carries a hand-corrected version: the mishearings a tokenizer
+cannot see, a wrong kanji above all, for the agent to turn into replacements.
 
-apply registers the agent's decisions through `hex vocabulary add`, remembers
-the rejected terms so they are never proposed again, and advances the window
-so the next run only reads newer prompts. State survives in one JSON file.
+apply registers the agent's decisions through `hex vocabulary add` and
+`hex settings set dictation_processing.default_mode`, remembers the rejected
+terms so they are never proposed again, and advances the window so the next
+run only reads newer prompts. State survives in one JSON file.
 """
 
 import argparse
 import collections
 import datetime as dt
+import difflib
 import json
 import os
 import re
@@ -32,6 +38,14 @@ GENERATED_PROMPT_PREFIXES = ("Continue work from the prior Orca session",)
 DEFAULT_HEX = "/Applications/Hex.app/Contents/MacOS/hex"
 DEFAULT_SINCE = "7d"
 STATE_VERSION = 1
+# The Global mode holds the replacements Hex applies to every transcript.
+MODE_KEY = "dictation_processing.default_mode"
+HISTORY_LIMIT = 10000
+# A dictation is paired with the first prompt sent this soon after it that
+# carries at least this share of its characters in order (in blocks of two
+# or more: single characters match by chance in Japanese).
+PAIR_WINDOW = dt.timedelta(minutes=30)
+PAIR_MIN_MATCH = 0.7
 
 # Blocks the user pasted or Claude Code injected, not words they would say,
 # and the shapes a credential or a personal identifier takes. Cut before
@@ -163,27 +177,98 @@ def resolve_hex(explicit):
     return explicit or shutil.which("hex") or DEFAULT_HEX
 
 
+def warn(message):
+    print(f"warning: {message}", file=sys.stderr)
+
+
+def run_hex(hex_bin, *args):
+    """(parsed --json reply, error) of a hex command; the reply is None when hex could not answer."""
+    try:
+        result = subprocess.run([hex_bin, *args, "--json"], capture_output=True, text=True, check=False)
+    except OSError as error:
+        return None, f"cannot run {hex_bin}: {error}"
+    try:
+        reply = json.loads(result.stdout)
+    except ValueError:
+        reply = None
+    if result.returncode != 0:
+        message = reply.get("message") if isinstance(reply, dict) else None
+        return None, message or result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+    if not isinstance(reply, dict):
+        return None, f"hex {' '.join(args)} returned no JSON"
+    return reply, None
+
+
 def known_spellings(hex_bin):
     """Every term and sounds-like Hex holds, lower-cased; None when Hex cannot answer."""
-    try:
-        result = subprocess.run([hex_bin, "vocabulary", "list", "--json"], capture_output=True, text=True, check=False)
-    except OSError as error:
-        print(f"warning: cannot run {hex_bin}: {error}", file=sys.stderr)
-        return None
-    if result.returncode != 0:
-        print(f"warning: {hex_bin} vocabulary list failed: {result.stderr.strip() or result.stdout.strip()}", file=sys.stderr)
-        return None
-    try:
-        entries = json.loads(result.stdout).get("entries", [])
-    except ValueError:
-        print("warning: hex vocabulary list returned no JSON", file=sys.stderr)
+    reply, error = run_hex(hex_bin, "vocabulary", "list")
+    if reply is None:
+        warn(error)
         return None
     known = set()
-    for entry in entries:
+    for entry in reply.get("entries", []):
         known.add(entry.get("term", "").lower())
         known.update(spelling.lower() for spelling in entry.get("sounds_like", []))
     known.discard("")
     return known
+
+
+def default_mode(hex_bin):
+    """(the Global mode as hex settings holds it, error); the mode is None when Hex cannot answer."""
+    reply, error = run_hex(hex_bin, "settings", "get", MODE_KEY)
+    if reply is None:
+        return None, error
+    for setting in reply.get("settings", []):
+        if setting.get("key") == MODE_KEY and isinstance(setting.get("value"), dict):
+            return setting["value"], None
+    return None, f"hex settings get {MODE_KEY} returned no value"
+
+
+def dictations(hex_bin, since, until):
+    """(timestamp, text) for every dictation Hex pasted in the window; None when the history cannot be read."""
+    reply, error = run_hex(hex_bin, "history", "--since", since.isoformat(), "--until", until.isoformat(),
+                           "--limit", str(HISTORY_LIMIT), "--oldest-first")
+    if reply is None:
+        warn(error)
+        return None
+    if reply.get("truncated"):
+        warn(f"hex history holds more than {HISTORY_LIMIT} dictations in the window; narrow it with --since")
+        return None
+    rows = []
+    for entry in reply.get("entries", []):
+        stamp = entry.get("timestamp_ms")
+        text = entry.get("final_text", "")
+        # An edit of selected text is not a transcript of the user's words.
+        if entry.get("kind", "dictation") == "dictation" and isinstance(stamp, (int, float)) and text.strip():
+            rows.append((dt.datetime.fromtimestamp(stamp / 1000, dt.timezone.utc), text))
+    return rows
+
+
+def squash(text):
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def correction(dictated, timestamp, prompts):
+    """What the user sent in place of a dictation they edited before sending.
+
+    None when the dictation went out unchanged or no prompt in the window
+    carries it. `prompts` is (timestamp, cleaned text), oldest first.
+    """
+    for sent_at, text in prompts:
+        if not timestamp <= sent_at <= timestamp + PAIR_WINDOW:
+            continue
+        if dictated in text:
+            return None
+        matcher = difflib.SequenceMatcher(None, dictated, text, autojunk=False)
+        blocks = [block for block in matcher.get_matching_blocks() if block.size >= 2]
+        if blocks and sum(block.size for block in blocks) >= PAIR_MIN_MATCH * len(dictated):
+            # The excerpt spans the matched blocks plus the dictation's unmatched
+            # head and tail, so a correction at either end is still shown.
+            first, last = blocks[0], blocks[-1]
+            start = max(0, first.b - first.a)
+            end = min(len(text), last.b + last.size + len(dictated) - (last.a + last.size))
+            return text[start:end]
+    return None
 
 
 def prompt_text(record):
@@ -322,7 +407,8 @@ def cmd_extract(args):
     known = known_spellings(hex_bin)
     ignored = {term.lower() for term in state["ignored"]}
 
-    candidates, prompt_count, session_count = collect(human_prompts(args.projects_dir, since))
+    prompts = list(human_prompts(args.projects_dir, since))
+    candidates, prompt_count, session_count = collect(prompts)
     rows = []
     for key, candidate in candidates.items():
         if key in ignored or (known and key in known):
@@ -339,6 +425,22 @@ def cmd_extract(args):
         })
     rows.sort(key=lambda row: (-row["prompts"], -row["count"], row["term"].lower()))
 
+    history = dictations(hex_bin, since, now)
+    mode, mode_error = default_mode(hex_bin)
+    if mode is None:
+        warn(mode_error)
+    sent = sorted((timestamp, squash(clean(raw))) for _, timestamp, raw in prompts)
+    heard = []
+    for timestamp, raw in history or []:
+        text = squash(clean(raw))
+        if not text:
+            continue
+        row = {"dictated": text}
+        corrected = correction(text, timestamp, sent)
+        if corrected:
+            row["sent"] = corrected
+        heard.append(row)
+
     output = {
         "since": since.isoformat(),
         "until": now.isoformat(),
@@ -346,9 +448,13 @@ def cmd_extract(args):
         "sessions": session_count,
         "hex": hex_bin,
         "vocabulary_checked": known is not None,
+        "history_checked": history is not None and mode is not None,
         "ignored_total": len(ignored),
         "candidates": rows[: args.limit],
         "omitted": max(0, len(rows) - args.limit),
+        "dictations": heard,
+        "replacements": [{"from": r.get("matched_phrase", ""), "to": r.get("output", "")}
+                         for r in (mode or {}).get("replacements", [])],
     }
     json.dump(output, sys.stdout, ensure_ascii=False, indent=2)
     print()
@@ -364,11 +470,12 @@ def read_decisions(path):
     except (OSError, ValueError) as error:
         die(f"cannot read decisions: {error}", 2)
     if not isinstance(decisions, dict):
-        die('decisions must be a JSON object with "add" and "ignore"', 2)
+        die('decisions must be a JSON object with "add", "replace", and "ignore"', 2)
     adds = decisions.get("add", [])
+    replaces = decisions.get("replace", [])
     ignores = decisions.get("ignore", [])
-    if not isinstance(adds, list) or not isinstance(ignores, list):
-        die('"add" and "ignore" must be lists', 2)
+    if not isinstance(adds, list) or not isinstance(replaces, list) or not isinstance(ignores, list):
+        die('"add", "replace", and "ignore" must be lists', 2)
     for entry in adds:
         term = entry.get("term") if isinstance(entry, dict) else None
         spellings = entry.get("sounds_like", []) if isinstance(entry, dict) else None
@@ -378,11 +485,21 @@ def read_decisions(path):
             die(f'"sounds_like" of {term!r} must be a list of non-empty strings without commas', 2)
         for value in [term, *spellings]:
             check_term(value)
+    for entry in replaces:
+        source = entry.get("from") if isinstance(entry, dict) else None
+        target = entry.get("to") if isinstance(entry, dict) else None
+        if not isinstance(source, str) or not source.strip() or not isinstance(target, str):
+            die(f'every replace needs a non-empty "from" and a string "to": {entry!r}', 2)
+        if source.strip() == target.strip():
+            die(f'a replace must change its text: {source!r}', 2)
+        check_term(source)
+        if target.strip():
+            check_term(target)
     for term in ignores:
         if not isinstance(term, str) or not term.strip():
             die(f"every ignore must be a non-empty string: {term!r}", 2)
         check_term(term)
-    return adds, ignores
+    return adds, replaces, ignores
 
 
 def check_term(value):
@@ -394,8 +511,32 @@ def check_term(value):
         die(f"{value!r} looks like a credential or an identifier, not a name", 2)
 
 
+def add_replacements(hex_bin, replaces):
+    """Append the new replacements to the Global mode in one write; (replaced, failed)."""
+    mode, error = default_mode(hex_bin)
+    if mode is None:
+        return [], [{"from": entry["from"].strip(), "error": error} for entry in replaces]
+    existing = {r.get("matched_phrase"): r.get("output", "") for r in mode.get("replacements", [])}
+    replaced, new = [], []
+    for entry in replaces:
+        source, target = entry["from"].strip(), entry["to"].strip()
+        if source in existing:
+            replaced.append({"from": source, "to": existing[source], "changed": False})
+            continue
+        existing[source] = target
+        new.append({"matched_phrase": source, "output": target})
+        replaced.append({"from": source, "to": target, "changed": True})
+    if not new:
+        return replaced, []
+    mode["replacements"] = [*mode.get("replacements", []), *new]
+    _, error = run_hex(hex_bin, "settings", "set", MODE_KEY, json.dumps(mode, ensure_ascii=False))
+    if error:
+        return [r for r in replaced if not r["changed"]], [{"from": r["matched_phrase"], "error": error} for r in new]
+    return replaced, []
+
+
 def cmd_apply(args):
-    adds, ignores = read_decisions(args.decisions)
+    adds, replaces, ignores = read_decisions(args.decisions)
     state = load_state(args.state_file)
     hex_bin = resolve_hex(args.hex)
 
@@ -403,23 +544,18 @@ def cmd_apply(args):
     for entry in adds:
         term = entry["term"].strip()
         spellings = [s.strip() for s in entry.get("sounds_like", [])]
-        command = [hex_bin, "vocabulary", "add", term, "--json"]
+        command = ["vocabulary", "add", term]
         if spellings:
-            command[4:4] = ["--sounds-like", ",".join(spellings)]
-        try:
-            result = subprocess.run(command, capture_output=True, text=True, check=False)
-        except OSError as error:
-            failed.append({"term": term, "error": str(error)})
-            continue
-        try:
-            reply = json.loads(result.stdout)
-        except ValueError:
-            reply = {}
-        if result.returncode == 0:
-            added.append({"term": term, "sounds_like": spellings, "changed": reply.get("changed", True),
-                          "message": reply.get("message", result.stdout.strip())})
+            command += ["--sounds-like", ",".join(spellings)]
+        reply, error = run_hex(hex_bin, *command)
+        if reply is None:
+            failed.append({"term": term, "error": error})
         else:
-            failed.append({"term": term, "error": reply.get("message") or result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"})
+            added.append({"term": term, "sounds_like": spellings, "changed": reply.get("changed", True),
+                          "message": reply.get("message", "")})
+
+    replaced, replace_failures = add_replacements(hex_bin, replaces) if replaces else ([], [])
+    failed.extend(replace_failures)
 
     # The window advances only when every add landed: a run that could not
     # reach Hex must not swallow the prompts it was meant to review.
@@ -430,6 +566,7 @@ def cmd_apply(args):
 
     json.dump({
         "added": added,
+        "replaced": replaced,
         "failed": failed,
         "ignored_added": len(ignores),
         "ignored_total": len(state["ignored"]),
@@ -455,7 +592,8 @@ def main(argv=None):
     extract.set_defaults(func=cmd_extract)
 
     apply = commands.add_parser("apply", help="register decisions through hex and advance the window")
-    apply.add_argument("--decisions", default="-", help='JSON file {"add": [{"term", "sounds_like"}], "ignore": [...]} (default: stdin)')
+    apply.add_argument("--decisions", default="-",
+                       help='JSON file {"add": [{"term", "sounds_like"}], "replace": [{"from", "to"}], "ignore": [...]} (default: stdin)')
     apply.set_defaults(func=cmd_apply)
 
     args = parser.parse_args(argv)
