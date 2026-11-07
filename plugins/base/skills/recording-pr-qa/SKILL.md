@@ -215,11 +215,11 @@ same CLI as `npx --no-install playwright cli`.
    files; change nothing outside the parts named here. The body decides
    the layout:
    - A template with `### Test Cases (Human-Verified)` and
-     `## Screenshot(s)`: the cases go under Human-Verified as the
-     template's checkboxes, `- [x] <n>. <case>: <observed>`, followed by
-     the not-checked list folded in `<details>` as in the section below;
-     the evidence goes under `## Screenshot(s)`, headed by one line naming
-     the environment, in the blocks of the section below; in
+     `## Screenshot(s)`: Human-Verified holds the section below from its
+     first `<details>` through the not-checked list, with the cases as the
+     template's checkboxes, `- [x] <n>. <case>: <observed>`, in place of
+     the table; the evidence goes under `## Screenshot(s)` in the blocks
+     of the section below; in
      `## Testing Environment(s)` the environment used is ticked, Preview
      with its URL in parentheses: `- [x] Preview environment (<url>)`.
      `### Test Cases (AI-Suggested)` is not touched. A section's content
@@ -253,15 +253,23 @@ same CLI as `npx --no-install playwright cli`.
 
 ## Section format
 
-A heading whose kind of evidence the run has none of is left out.
+The premise and what was not checked are folded, so the cases and the
+evidence are what the reviewer sees first; the blank lines inside each
+`<details>` are what make its Markdown render. A heading whose kind of
+evidence the run has none of is left out.
 
 ```markdown
 ## Manual QA
+
+<details>
+<summary>対象・環境・判定</summary>
 
 - 対象: PR head `<sha>`
 - 環境: <which of step 2, and why>
 - ブラウザ: Google Chrome（headless）、1280x900 を 2 倍密度で撮影
 - 判定: <what each check read from the DOM>
+
+</details>
 
 | # | ケース | 期待 | 実測 | 結果 |
 |---|---|---|---|---|
