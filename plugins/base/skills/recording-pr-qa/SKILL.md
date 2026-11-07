@@ -256,7 +256,11 @@ same CLI as `npx --no-install playwright cli`.
 The premise and what was not checked are folded, so the cases and the
 evidence are what the reviewer sees first; the blank lines inside each
 `<details>` are what make its Markdown render. A heading whose kind of
-evidence the run has none of is left out.
+evidence the run has none of is left out. A screenshot on its own gets its
+caption line, then the image; variants side by side get one `<ol>` above
+the row, a `<li value="<n>">` per image, because Markdown renumbers
+`1. 2. 4.` to 1, 2, 3 and the number is the case's. One sentence per line
+in prose: a PR body renders the newline as a line break.
 
 ```markdown
 ## Manual QA
@@ -287,9 +291,17 @@ evidence the run has none of is left out.
 
 ![<n> <state>](./<n>-<state>.png)
 
+<ol>
+<li value="<n>"><state>（<caption>）</li>
+<li value="<n>"><state>（<caption>）</li>
+</ol>
+
+![<n> <state>](./<n>-<state>.png) ![<n> <state>](./<n>-<state>.png)
+
 ### 録画
 
-動画の区切りカードの番号は上の表の # に対応します。字幕バーが操作と期待、右下のコンソールがチェック結果です。
+動画の区切りカードの番号は上の表の # に対応します。
+字幕バーが操作と期待、右下のコンソールがチェック結果です。
 
 ![](./qa.mp4)
 ```
