@@ -42,6 +42,7 @@ python3 -m compileall -q plugins
 bash plugins/base/skills/babysitting-pr/scripts/test-pr-watch.sh
 bash plugins/base/skills/fixing-review-comments/scripts/test-reply-to-review-threads.sh
 bash plugins/base/skills/registering-hex-vocabulary/scripts/test-hex-vocabulary.sh
+bash plugins/base/skills/recording-pr-qa/scripts/test-qa-overlay.sh
 ```
 
 The same checks run in CI via `.github/workflows/validate.yml`.
