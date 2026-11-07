@@ -1,13 +1,14 @@
 ---
 name: recording-pr-qa
-description: Run a PR's manual test in a headless browser, capture each case as a screenshot or a captioned video with an in-video console, and place the evidence with the case list in the PR description — in the repository's template sections when it has them
-argument-hint: "[PR number | PR URL] [--url <base URL>] [--post]"
+description: Run a PR's manual test in a headless browser, capture each case as a screenshot or a captioned video with an in-video console, and place the evidence with the case list in the PR description — in the repository's template sections when it has them — or, on a PR the user reviews, in their pending review
+argument-hint: "[PR number | PR URL] [--url <base URL>] [--review] [--post]"
 disable-model-invocation: true
 allowed-tools:
   - Bash(playwright-cli:*)
   - Bash(npx --no-install playwright cli:*)
   - Bash(gh:*)
   - Bash(git:*)
+  - Bash(bash:*)
   - Bash(ffmpeg:*)
   - Bash(ffprobe:*)
   - Bash(curl:*)
@@ -34,12 +35,15 @@ on the user's screen, so they keep working while it records.
 ## PR context
 
 - Argument: $ARGUMENTS
-- Current branch's PR: !`gh pr view --json number,url,title,state,isDraft,mergedAt,headRefName,headRefOid,baseRefName 2>/dev/null || echo "none"`
+- Current branch's PR: !`gh pr view --json number,url,title,state,isDraft,mergedAt,headRefName,headRefOid,baseRefName,author 2>/dev/null || echo "none"`
+- Viewer: !`gh api user --jq .login 2>/dev/null || echo "unknown"`
 - CLI: !`command -v playwright-cli || echo "playwright-cli not on PATH"`
 
 An argument naming a PR wins over the current branch; fetch the same fields
 for it. `--url` names the environment and skips the choice in step 2.
-`--post` posts the report without the confirmation in step 6. Without
+`--review`, or an `author` other than the viewer, places the report in the
+user's pending review instead of the PR body (step 6). `--post` posts the
+report without the confirmation in step 6. Without
 `playwright-cli` on PATH, a project that depends on playwright carries the
 same CLI as `npx --no-install playwright cli`.
 
@@ -210,7 +214,15 @@ same CLI as `npx --no-install playwright cli`.
    clipped. GitHub takes 10 MB on a free plan and 100 MB on a paid one
    (about 6 MB per 75 s at this size): raise `-crf` before cutting cases.
 
-6. Place. Take the current body (`gh pr view <url> --json body --jq .body`)
+6. Place. The PR decides where: the user's own PR carries the report in
+   its body; a PR the user reviews (`--review`, or an `author` other than
+   the viewer) carries it in the user's pending review, where the
+   reviewer's evidence and verdict are read together and the author's
+   body stays theirs. Either way the report reads as the user's own test
+   record, vetted before it is placed: no `[from Claude Code]` marker and
+   no line naming who ran it.
+
+   In the body: take the current one (`gh pr view <url> --json body --jq .body`)
    and write the new one as `qa-body.md` in the directory that holds the
    files; change nothing outside the parts named here. The body decides
    the layout:
@@ -244,9 +256,26 @@ same CLI as `npx --no-install playwright cli`.
    Variants of one state sit side by side at one width, which needs HTML
    gh does not rewrite: after the upload, read the body back and turn
    those images into `<img width="180" alt="<n> <state>" src="<asset url>" />`
-   in a second `gh pr edit --body-file`. The section reads as the author's
-   own test record, vetted before it is placed: no `[from Claude Code]`
-   marker and no line naming who ran it.
+   in a second `gh pr edit --body-file`.
+
+   In the review: write the `## Manual QA` section below as `qa-body.md`
+   in the directory that holds the files, with the same references, and
+   variants side by side as
+   `<img width="180" alt="<n> <state>" src="./<n>-<state>.png" />`
+   straight away. Show the draft, the images and the sheet; on the user's
+   yes, or with `--post`, run from that directory:
+
+   ```bash
+   bash "${CLAUDE_SKILL_DIR}/scripts/place-qa-review.sh" <url> qa-body.md ./<n>-<state>.png ./qa.mp4
+   ```
+
+   `gh pr review` has no `--attach`, so the script uploads the files to
+   the repository itself (push access is required), rewrites every
+   reference — `(./file)` and `src="./file"` — the way `gh pr edit` does,
+   and writes the section into the user's pending review: the one
+   `posting-pr-review` left, its earlier `## Manual QA` replaced, or a
+   new one. The review stays pending; the user reads it on GitHub and
+   submits it with their verdict.
 
 7. Clean up — the session (`close`), the local server, the worktree — and
    report in Japanese: the PR URL, the cases, and what was not covered.
