@@ -5,9 +5,9 @@ description: >-
   trace each side to its primary source (commit, PR, issue), preserve both
   intents per hunk, run the project's own checks, and carry the operation to a
   finished commit. A PR into develop that GitHub reports as conflicting is
-  landed by merging its head branch into local develop, resolving there, and
-  pushing develop after the user confirms; PRs into any other base resolve on
-  the head branch.
+  resolved on a branch cut from origin/develop and landed on develop after the
+  user confirms, so develop never flows into a main-bound branch; PRs into any
+  other base resolve on the head branch.
 when_to_use: >-
   Use whenever the tree is mid-merge or mid-rebase with conflict markers —
   "コンフリクト解消して", "マージコンフリクト", "rebase が止まった",
@@ -16,7 +16,8 @@ when_to_use: >-
   because of conflicts — "PR がコンフリクトしてマージできない", "This branch
   has conflicts that must be resolved" — and when a git command the agent
   itself ran (merge, rebase, pull, cherry-pick, gh stack sync) stopped on
-  conflicts.
+  conflicts. Also when develop was merged into a main-bound branch —
+  "Update branch を押してしまった", "develop が混ざった".
 argument-hint: "[PR URL(s) or the goal of this merge/rebase (optional)]"
 allowed-tools:
   - Bash(git:*)
@@ -64,20 +65,25 @@ another worktree has it, and stop.
 The branch to resolve on follows the PR's base
 (`gh pr view --json baseRefName,headRefName`).
 
-- Base `develop`: resolve on develop itself. Bring local develop up to date,
-  merge the head branch into it, and land the PR by pushing develop — GitHub
-  marks the PR merged once its head commit is reachable from develop, so the
-  merge button is never pressed. This is not a way around review: the result
-  is the same merge the button would produce, and the confirmation asked for
-  before the push stands in for pressing it. What it buys is a conflict
-  resolved once, by hand and with the checks run, instead of left for whoever
-  merges. The flow starts and ends on develop; main is left as it is.
+- Base `develop`: develop is a one-way sink — its commits must never reach
+  main. The head branch of a develop PR is usually main-bound: `main` itself
+  in a main -> develop sync PR, or a feature branch whose PR chain ends at
+  main (`gh pr list --head <head-branch> --state all`). So the merge runs one
+  way only: head into a branch cut from origin/develop, never develop into
+  the head. Cut from origin/develop, not local develop, which is often stale
+  and diverged:
 
   ```sh
-  git checkout develop
-  git pull --ff-only
-  git merge --no-ff <head-branch>   # stops on conflicts → Process
+  git fetch origin
+  git switch -c merge/<head-branch>-into-develop origin/develop
+  git merge --no-ff origin/<head-branch>   # stops on conflicts → Process
   ```
+
+  GitHub marks the original PR merged once its head commit is reachable from
+  develop, so the merge button on it is never pressed. The confirmation asked
+  for before landing (step 6) stands in for pressing it. What this buys is a
+  conflict resolved once, by hand and with the checks run, instead of left
+  for whoever merges.
 
 - Any other base (`main`, `master`, a stack parent): resolve on the head
   branch — merge the base into it, or rebase onto it, whichever the repo's
@@ -96,7 +102,10 @@ The branch to resolve on follows the PR's base
    messages (`git log -p`), check the PRs (`gh pr list --search <sha>`, `gh pr
    view`), check original issues/tickets.
 
-3. Resolve each hunk. Preserve both intents where possible. Where
+3. Resolve each hunk. A file git reports as `Resolved ... using previous
+   resolution` (rerere) still shows `UU`: read the replayed result against
+   both sides like any other hunk, then `git add` it. Preserve both intents
+   where possible. Where
    incompatible, pick the one matching the merge's stated goal and note the
    trade-off. Do not invent new behaviour.
 
@@ -124,14 +133,35 @@ The branch to resolve on follows the PR's base
      The PR still merges through GitHub afterwards, so this only updates what
      reviewers see. Push it as part of finishing the job, no confirmation
      needed.
-   - develop — show the merge commit (`git show --stat HEAD`) and the check
-     results, and push only after an explicit yes: `git push origin develop`.
-     This push is the merge, and it lands without GitHub re-running the PR's
-     checks, so the confirmation stands in for the merge button.
+   - develop — show the merge commit (`git show --stat HEAD`, both parents
+     named) and the check results, and land it only after an explicit yes.
+     Read the rules first: `gh api repos/{owner}/{repo}/rules/branches/develop`.
+     With no `pull_request` rule, `git push origin HEAD:develop` is the merge
+     itself. With one, push the merge branch and open a PR into develop that
+     links the original PR; merging it marks the original merged too.
+
+## develop leaked into a main-bound branch
+
+GitHub's "Update branch" and web "Resolve conflicts" on a develop PR merge
+develop into the head branch. Check with `git merge-base --is-ancestor
+origin/develop origin/<branch>`; when it holds for a main-bound branch, reset
+the branch to the commit before that merge, with the user's yes:
+
+```sh
+git push --force-with-lease=<branch>:<merge-sha> origin <pre-merge-sha>:refs/heads/<branch>
+```
+
+Reset, not revert: a revert keeps develop's commits as ancestors, so once the
+branch reaches main, git treats those develop features as already merged and
+drops them when their own PRs land. When the force push is denied by the
+permission layer, hand the user the exact command to run with `!`. Afterwards
+verify that main and every open PR head not based on develop contain none of
+`git rev-list origin/develop --not origin/main`.
 
 ## Report
 
 Per hunk: what was kept, what was dropped, and why. Name the checks that ran.
 When the operation produced a merge commit, the trade-offs go in its body;
-otherwise they go in the report. On the develop path, name the pushed develop
-commit.
+otherwise they go in the report. On the develop path, name the landed commit
+or PR, and warn that "Update branch" and web "Resolve conflicts" on the
+original PR would carry develop into main.
