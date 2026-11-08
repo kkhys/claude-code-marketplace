@@ -6,7 +6,7 @@ set -euo pipefail
 # The init script runs in a node vm with a stub window, document, console
 # and sessionStorage standing in for the browser. The tests cover the host
 # the page must not see (inert, aria-hidden), the caption and panel API
-# (step, check, log, place, hide, show, clear), the console mirror with
+# (chapter, step, check, log, place, hide, show, clear), the console mirror with
 # escaping, the
 # line cap and truncation, the click ripple, the state restored after a
 # navigation, the mount deferred until the document has a body, and the
@@ -45,7 +45,8 @@ const makeWindow = (storage, calls, readyState = "complete") => {
     attachShadow() { return shadow; },
     remove() { if (this.parent) this.parent.children = this.parent.children.filter((c) => c !== this); },
   });
-  for (const sel of [".bar", ".title", ".detail", ".log"]) parts[sel] = element("div");
+  for (const sel of [".bar", ".title", ".detail", ".log", ".chapter", ".chapter-title", ".chapter-detail"])
+    parts[sel] = element("div");
   const body = element("body");
   const listeners = {};
   const record = (level) => (...args) => calls.push([level, args.map(String).join(" ")]);
@@ -57,12 +58,13 @@ const makeWindow = (storage, calls, readyState = "complete") => {
     },
     MutationObserver: class { constructor(cb) { this.cb = cb; observers.push(this); } observe() {} disconnect() { this.off = true; } },
     sessionStorage: storage,
+    getComputedStyle: (el) => ({ zoom: el.style.zoom || "1" }),
     console: { log: record("log"), info: record("info"), warn: record("warn"), error: record("error") },
     setTimeout,
     addEventListener(type, fn) { listeners[type] = fn; },
   };
   win.window = win;
-  return { win, parts, body, listeners, shadow, observers };
+  return { win, parts, body, listeners, shadow, observers, element };
 };
 
 let passed = 0;
@@ -158,14 +160,29 @@ const test = async (name, fn) => {
     assert.equal(host.style.display, "");
   });
 
-  await test("a mousedown draws a ripple at the pointer that removes itself", async () => {
-    listeners.mousedown({ clientX: 10, clientY: 20 });
-    const ripple = shadow.children.find((c) => c.className === "ripple");
-    assert.ok(ripple);
-    assert.equal(ripple.style.left, "10px");
-    assert.equal(ripple.style.top, "20px");
+  await test("a mousedown keeps its ripple at the pointer across zoom levels", async () => {
+    for (const zoom of [2, 1, 1.25]) {
+      win.document.documentElement.style.zoom = String(zoom);
+      listeners.mousedown({ clientX: 100, clientY: 200 });
+      const ripple = shadow.children.at(-1);
+      assert.equal(ripple.className, "ripple");
+      assert.equal(parseFloat(ripple.style.left) * zoom, 100);
+      assert.equal(parseFloat(ripple.style.top) * zoom, 200);
+    }
+    win.document.documentElement.style.zoom = "2";
     await new Promise((r) => setTimeout(r, 750));
-    assert.ok(!shadow.children.includes(ripple));
+    assert.ok(!shadow.children.some((c) => c.className === "ripple"));
+  });
+
+  await test("chapter displays literal text until its hold finishes", async () => {
+    const heldChapter = win.__qa.chapter("3. <test>", "Expected <result>", 0);
+    assert.equal(typeof heldChapter.then, "function");
+    assert.equal(parts[".chapter"].hidden, false);
+    assert.equal(parts[".chapter-title"].textContent, "3. <test>");
+    assert.equal(parts[".chapter-detail"].textContent, "Expected <result>");
+    await heldChapter;
+    assert.equal(parts[".chapter"].hidden, true);
+    assert.ok(!storage.getItem("__qa").includes("3. <test>"));
   });
 
   await test("state survives a navigation through sessionStorage", () => {
@@ -203,7 +220,7 @@ const test = async (name, fn) => {
     const early = makeWindow(makeStorage(), [], "loading");
     vm.runInNewContext(source, early.win);
     assert.equal(early.observers.length, 1);
-    early.win.document.documentElement = { style: {} };
+    early.win.document.documentElement = early.element("html");
     early.observers[0].cb();
     assert.equal(early.win.document.documentElement.style.zoom, "2");
     assert.equal(early.observers[0].off, true);

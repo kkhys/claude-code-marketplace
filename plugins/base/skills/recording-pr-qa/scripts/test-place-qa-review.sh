@@ -100,7 +100,7 @@ cat > "${WORK_DIR}/qa/qa-body.md" <<'BODY'
 
 ![1 初期表示](./1-初期表示.png)
 
-<img width="180" alt="2 b" src="./2-b.png" />
+<a href="./2-b.png"><img width="180" alt="2 b" src="./2-b.png" /></a>
 
 ### 録画
 
@@ -120,6 +120,8 @@ expect_contains 'an image reference is rewritten and keeps its alt' "${review}" 
   '![1 初期表示](https://github.com/user-attachments/assets/asset-1)'
 expect_contains 'an <img src> is rewritten in place' "${review}" \
   'src="https://github.com/user-attachments/assets/asset-2"'
+expect_contains 'an <a href> to the full-size image is rewritten in place' "${review}" \
+  '<a href="https://github.com/user-attachments/assets/asset-2">'
 expect_contains 'a video reference becomes the bare URL' "${review}" \
   $'### 録画\n\nhttps://github.com/user-attachments/assets/asset-3'
 expect_lacks 'the video keeps no image syntax' "${review}" '![](https://github.com/user-attachments/assets/asset-3)'

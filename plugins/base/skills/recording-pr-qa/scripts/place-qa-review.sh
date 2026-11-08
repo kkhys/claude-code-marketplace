@@ -11,7 +11,7 @@ set -euo pipefail
 #   <pr>    anything `gh pr view` accepts (number, URL, branch)
 #   <body>  markdown referencing the files by name, relative to its own
 #           directory (run from there): `![alt](./a.png)`, `<img src="./a.png">`,
-#           `![](./qa.mp4)`. An image reference keeps its alt, a video
+#           `<a href="./a.png">`, `![](./qa.mp4)`. An image reference keeps its alt, a video
 #           reference becomes the bare URL GitHub renders as a player, and a
 #           file the body does not reference is appended to it.
 #
