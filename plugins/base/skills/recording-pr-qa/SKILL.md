@@ -41,11 +41,13 @@ on the user's screen, so they keep working while it records.
 
 An argument naming a PR wins over the current branch; fetch the same fields
 for it. `--url` names the environment and skips the choice in step 2.
-`--review`, or an `author` other than the viewer, places the report in the
-user's pending review instead of the PR body (step 6). `--post` posts the
-report without the confirmation in step 6. Without
+`--review`, or an `author.login` other than the viewer, places the report
+in the user's pending review instead of the PR body (step 6). `--post`
+posts the report without the confirmation in step 6. Without
 `playwright-cli` on PATH, a project that depends on playwright carries the
-same CLI as `npx --no-install playwright cli`.
+same CLI as `npx --no-install playwright cli`. The scratch directory is the
+session's scratchpad, or `mktemp -d` without one: outside the repository,
+so nothing the run writes lands in a commit.
 
 ## Steps
 
@@ -94,6 +96,7 @@ same CLI as `npx --no-install playwright cli`.
    headed window:
 
    ```bash
+   mkdir -p -m 700 <state file's directory>
    playwright-cli -s=qa-login open --headed --browser=chrome <login url>
    # the user signs in — ID and password, or Google SSO — and says so
    playwright-cli -s=qa-login state-save <state file> && chmod 600 <state file>
@@ -101,8 +104,10 @@ same CLI as `npx --no-install playwright cli`.
    ```
 
    The file carries the session cookie: it stays in that directory, never
-   in a repository. Google may refuse to sign in to a browser under
-   automation; the ID and password form is the sure path.
+   in a repository. `-m 700` keeps the directory private: `state-save`
+   would create it with the default mode, and writes the file with the
+   default mode before the `chmod`. Google may refuse to sign in to a
+   browser under automation; the ID and password form is the sure path.
 
 3. Rehearse without recording. One named session, kept to the end, opened
    with a config written to the scratch directory:
@@ -165,9 +170,11 @@ same CLI as `npx --no-install playwright cli`.
 4. Capture from one script. Write the rehearsed commands to `qa.sh` and run
    it in a single Bash call: a command takes well under a second, so the
    only pauses on film are the ones written in — the time between separate
-   tool calls would be still video. The script starts with `goto <url>` and
-   `eval "() => __qa.clear()" --raw`, names targets by selector, and takes
-   the states first, then the transitions as one video:
+   tool calls would be still video. Give that call a `timeout` above the
+   script's run time, its holds plus about a second per command: the
+   two-minute default kills it mid-run. The script starts with
+   `goto <url>` and `eval "() => __qa.clear()" --raw`, names targets by
+   selector, and takes the states first, then the transitions as one video:
 
    ```bash
    # a state: the element that holds it, so the bar stays out of frame
@@ -226,8 +233,8 @@ same CLI as `npx --no-install playwright cli`.
    (about 6 MB per 75 s at this size): raise `-crf` before cutting cases.
 
 6. Place. The PR decides where: the user's own PR carries the report in
-   its body; a PR the user reviews (`--review`, or an `author` other than
-   the viewer) carries it in the user's pending review, where the
+   its body; a PR the user reviews (`--review`, or an `author.login` other
+   than the viewer) carries it in the user's pending review, where the
    reviewer's evidence and verdict are read together and the author's
    body stays theirs. Either way the report reads as the user's own test
    record, vetted before it is placed: no `[from Claude Code]` marker and
@@ -257,8 +264,10 @@ same CLI as `npx --no-install playwright cli`.
    paragraph — and `gh pr edit` (≥ 2.99) rewrites each to its uploaded
    asset in place: an image keeps its alt, the video becomes the bare URL
    GitHub renders as a player. Paths in the body are relative to the body
-   file. Show the draft, the images and the sheet; on the user's yes, or
-   with `--post`, run from that directory:
+   file. Show the draft, the images and the sheet, and wait for the user's
+   yes: `allowed-tools` lets `gh` and `bash` run without a prompt, so
+   nothing else stops the upload. On the yes, or with `--post`, run from
+   that directory:
 
    ```bash
    gh pr edit <url> --body-file qa-body.md --attach ./<n>-<state>.png --attach ./qa.mp4
@@ -277,25 +286,30 @@ same CLI as `npx --no-install playwright cli`.
    under their numbered captions.
 
    In the review: write the `## Manual QA` section below as `qa-body.md`
-   in the directory that holds the files, with the same references, and
-   every screenshot sized the same way straight away:
-   `<a href="./<n>-<state>.png"><img width="<display width>" alt="<n> <state>" src="./<n>-<state>.png" /></a>`. Show the draft, the images and the sheet; on the user's
-   yes, or with `--post`, run from that directory:
+   in the directory that holds the files, with the same references, except
+   that every screenshot is written sized straight away, by the rule above
+   with the local path in both places —
+   `<a href="./<n>-<state>.png"><img width="<display width>" alt="<n> <state>" src="./<n>-<state>.png" /></a>`
+   — since no second edit follows the upload. Show the draft, the images
+   and the sheet, and wait for the user's yes as for the body. On the yes,
+   or with `--post`, run from that directory:
 
    ```bash
    bash "${CLAUDE_SKILL_DIR}/scripts/place-qa-review.sh" <url> qa-body.md ./<n>-<state>.png ./qa.mp4
    ```
 
    `gh pr review` has no `--attach`, so the script uploads the files to
-   the repository itself (push access is required), rewrites every
-   reference — `(./file)`, `src="./file"` and `href="./file"` — the way `gh pr edit` does,
-   and writes the section into the user's pending review: the one
+   the repository itself (push access is required), rewrites each
+   `(./file)` and each quoted `"./file"` — the `src` and `href` above,
+   which `gh pr edit` would leave alone — to its asset URL, and writes the
+   section into the user's pending review: the one
    `posting-pr-review` left, its earlier `## Manual QA` replaced, or a
    new one. The review stays pending; the user reads it on GitHub and
    submits it with their verdict.
 
 7. Clean up — the session (`close`), the local server, the worktree — and
-   report in Japanese: the PR URL, the cases, and what was not covered.
+   report in Japanese: the PR URL, the cases, what was not covered, and,
+   for a review, that it stays pending until the user submits it.
 
 ## Section format
 
