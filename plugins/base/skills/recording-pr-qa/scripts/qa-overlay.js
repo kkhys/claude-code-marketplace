@@ -35,8 +35,23 @@
       white-space: pre-wrap; word-break: break-all;
     }
     .warn { color: #ffcc66; } .error, .fail { color: #ff7b7b; } .pass { color: #8ce99a; }
+    .chapter {
+      position: fixed; inset: 0; z-index: 2147483647; pointer-events: none;
+      display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px);
+    }
+    .chapter[hidden] { display: none; }
+    .chapter-card {
+      max-width: 560px; padding: 40px 56px; box-sizing: border-box; border-radius: 16px;
+      background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); color: #fff; text-align: center;
+      font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+    }
+    .chapter-title { font-size: 28px; font-weight: 600; line-height: 1.3; }
+    .chapter-detail { margin-top: 12px; color: #ddd; font-size: 15px; line-height: 1.5; white-space: pre-wrap; }
+    .chapter-detail:empty { display: none; }
     .ripple {
       position: fixed; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%;
+      box-sizing: border-box;
       border: 3px solid #ff5a5f; background: rgba(255, 90, 95, 0.3); pointer-events: none;
       z-index: 2147483647; animation: qa-ripple 600ms ease-out forwards;
     }
@@ -74,9 +89,13 @@
       const root = host.attachShadow({ mode: "closed" });
       root.innerHTML =
         `<style>${CSS}</style><div class="bar"><div><div class="title"></div>` +
-        `<div class="detail"></div></div><div class="log"></div></div>`;
+        `<div class="detail"></div></div><div class="log"></div></div>` +
+        `<div class="chapter" hidden><div class="chapter-card"><div class="chapter-title"></div>` +
+        `<div class="chapter-detail"></div></div></div>`;
       els = { host, root, bar: root.querySelector(".bar"), title: root.querySelector(".title"),
-        detail: root.querySelector(".detail"), log: root.querySelector(".log") };
+        detail: root.querySelector(".detail"), log: root.querySelector(".log"),
+        chapter: root.querySelector(".chapter"), chapterTitle: root.querySelector(".chapter-title"),
+        chapterDetail: root.querySelector(".chapter-detail") };
     }
     if (!els.host.isConnected) parent.appendChild(els.host);
     render();
@@ -110,8 +129,9 @@
     if (!els) return;
     const dot = document.createElement("div");
     dot.className = "ripple";
-    dot.style.left = `${e.clientX}px`;
-    dot.style.top = `${e.clientY}px`;
+    const zoom = Number.parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+    dot.style.left = `${e.clientX / zoom}px`;
+    dot.style.top = `${e.clientY / zoom}px`;
     els.root.appendChild(dot);
     setTimeout(() => dot.remove(), 700);
   }, true);
@@ -119,6 +139,18 @@
   window.addEventListener("unhandledrejection", (e) => push("error", `✖ ${fmt(e.reason)}`));
 
   window.__qa = Object.freeze({
+    // Keep chapter text at the page's recording scale, independent of Playwright's counter-zoomed annotations.
+    chapter(title, detail = "", hold = 1500) {
+      mount();
+      if (!els) return Promise.resolve();
+      els.chapterTitle.textContent = String(title);
+      els.chapterDetail.textContent = String(detail);
+      els.chapter.hidden = false;
+      return new Promise((resolve) => setTimeout(() => {
+        els.chapter.hidden = true;
+        resolve();
+      }, hold));
+    },
     // Caption: title (case or step) and detail (what is done, what to expect).
     // Resolves after `hold` ms so the viewer can read it before the action.
     step(title, detail = "", hold = HOLD_MS) {
@@ -173,6 +205,10 @@
   const zoom = () => {
     if (!document.documentElement) return false;
     document.documentElement.style.zoom = String(ZOOM);
+    // Playwright positions annotations in viewport pixels, which the document zoom would otherwise scale twice.
+    const style = document.createElement("style");
+    style.textContent = `x-pw-glass { zoom: ${1 / ZOOM} !important; }`;
+    document.documentElement.appendChild(style);
     return true;
   };
   if (!zoom()) {

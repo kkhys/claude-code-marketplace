@@ -142,6 +142,12 @@ same CLI as `npx --no-install playwright cli`.
    and media queries see 2560 — a breakpoint above 1280 is a layout the
    user's window would not show.
 
+   The init script counter-zooms Playwright's annotation host so cursors
+   and highlights stay in viewport coordinates. Chapter cards use
+   `__qa.chapter` instead: their text keeps the page's 2x recording scale.
+   During rehearsal, check a click's cursor and ripple against its target,
+   and read a chapter at playback size before capturing the full run.
+
    A wait the case needs (three minutes idle) is Playwright's clock:
    `run-code "async page => { await page.clock.install() }"` before that
    case's `goto`, then `page.clock.fastForward('03:00')` at the wait; a
@@ -171,10 +177,10 @@ same CLI as `npx --no-install playwright cli`.
    playwright-cli -s=qa-<pr> screenshot --filename <dir>/<n>-<state>.png
    playwright-cli -s=qa-<pr> eval "() => __qa.show()" --raw
    # the transitions
-   playwright-cli -s=qa-<pr> video-start <dir>/qa.webm --size 2560x1800 --cursor
-   playwright-cli -s=qa-<pr> video-show-actions --duration=800 --point-style="width: 18px; height: 18px; border-radius: 50%; background: rgba(255,90,95,.6)" --highlight-style="outline: 3px solid #ff5a5f; outline-offset: 2px"
+   playwright-cli -s=qa-<pr> video-start <dir>/qa.webm --size 2560x1800
+   playwright-cli -s=qa-<pr> video-show-actions --duration=800
    # per case
-   playwright-cli -s=qa-<pr> video-chapter "<n>. <case>" --description="<expected>" --duration=1500
+   playwright-cli -s=qa-<pr> eval "() => __qa.chapter('<n>. <case>', '<expected>', 1500)" --raw
    playwright-cli -s=qa-<pr> eval "() => __qa.step('ケース <n>: <case>', '<what is done>。期待: <expected>')" --raw
    # ...the rehearsed actions...
    playwright-cli -s=qa-<pr> eval "() => { const s = <read the DOM>; return [__qa.check('<label>', s.rows, 20), __qa.check('<label>', s.more, true)]; }" --raw
@@ -184,12 +190,16 @@ same CLI as `npx --no-install playwright cli`.
    ```
 
    A screenshot is the element that holds the state — the app frame, the
-   banner — at the 2x zoom, so it lands at Retina density. `--cursor`
-   draws a pointer travelling to each action point and paces actions so it
-   can; `--point-style` marks the point. `window.__qa`
+   banner — at the 2x zoom, so it lands at Retina density. Enable the
+   pointer option the installed CLI's help shows
+   (`video-show-actions --cursor=pointer` or `video-start --cursor`); the
+   supported options differ by version. `window.__qa`
    (`scripts/qa-overlay.js`) is a bar the page cannot see — inert,
    aria-hidden, closed shadow root, absent from snapshots — that survives
    navigations and draws a ripple wherever the mouse goes down:
+   - `chapter(title, detail, hold = 1500)` — a centered chapter card;
+     resolves after the card is removed. Its title and description keep
+     the page's recording scale.
    - `step(title, detail, hold = 1200)` — caption; resolves after `hold` ms
      so the viewer reads it before the action.
    - `check(label, actual, expected)` — writes `✓ label: actual` or
@@ -206,12 +216,13 @@ same CLI as `npx --no-install playwright cli`.
 
    ```bash
    ffmpeg -i qa.webm -c:v libx264 -pix_fmt yuv420p -crf 28 -movflags +faststart qa.mp4
-   ffmpeg -i qa.mp4 -vf "fps=1/3,scale=640:-1,tile=4x4" -frames:v 1 sheet.png
+   ffmpeg -i qa.mp4 -vf "fps=1/3,scale=640:-1,tile=4x4" sheet-%02d.png
    ```
 
-   Read `sheet.png`. Done when every screenshot shows its state whole, and
-   every chapter card, caption and check line is legible with nothing
-   clipped. GitHub takes 10 MB on a free plan and 100 MB on a paid one
+   Read every `sheet-*.png`. Done when every screenshot shows its state
+   whole, every chapter card, caption and check line is legible with
+   nothing clipped, and the cursor and ripple land on the controls being
+   used. GitHub takes 10 MB on a free plan and 100 MB on a paid one
    (about 6 MB per 75 s at this size): raise `-crf` before cutting cases.
 
 6. Place. The PR decides where: the user's own PR carries the report in
@@ -253,16 +264,22 @@ same CLI as `npx --no-install playwright cli`.
    gh pr edit <url> --body-file qa-body.md --attach ./<n>-<state>.png --attach ./qa.mp4
    ```
 
-   Variants of one state sit side by side at one width, which needs HTML
-   gh does not rewrite: after the upload, read the body back and turn
-   those images into `<img width="180" alt="<n> <state>" src="<asset url>" />`
-   in a second `gh pr edit --body-file`.
+   Every QA screenshot keeps its captured resolution but shows at most
+   600 CSS pixels high, aspect ratio kept, and links to the original. For
+   an image of W×H pixels the display width is
+   `floor(min(W, 600 * W / H))`; side-by-side variants also cap it at 180.
+   A 772×1800 compact screenshot becomes 257 pixels wide and about 599
+   high. That takes HTML gh does not rewrite: after the upload, read the
+   body back, turn each image into
+   `<a href="<asset url>"><img width="<display width>" alt="<n> <state>" src="<asset url>" /></a>`
+   — `width` only — in a second `gh pr edit --body-file`, then check the
+   widths and the full-size links in the body. Variants stay on one row
+   under their numbered captions.
 
    In the review: write the `## Manual QA` section below as `qa-body.md`
    in the directory that holds the files, with the same references, and
-   variants side by side as
-   `<img width="180" alt="<n> <state>" src="./<n>-<state>.png" />`
-   straight away. Show the draft, the images and the sheet; on the user's
+   every screenshot sized the same way straight away:
+   `<a href="./<n>-<state>.png"><img width="<display width>" alt="<n> <state>" src="./<n>-<state>.png" /></a>`. Show the draft, the images and the sheet; on the user's
    yes, or with `--post`, run from that directory:
 
    ```bash
@@ -271,7 +288,7 @@ same CLI as `npx --no-install playwright cli`.
 
    `gh pr review` has no `--attach`, so the script uploads the files to
    the repository itself (push access is required), rewrites every
-   reference — `(./file)` and `src="./file"` — the way `gh pr edit` does,
+   reference — `(./file)`, `src="./file"` and `href="./file"` — the way `gh pr edit` does,
    and writes the section into the user's pending review: the one
    `posting-pr-review` left, its earlier `## Manual QA` replaced, or a
    new one. The review stays pending; the user reads it on GitHub and
