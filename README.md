@@ -6,7 +6,7 @@
 
 | Plugin | Description |
 |---|---|
-| `base` | Git/PR workflow skills (commit conventions, PR creation, review with a fixed verdict, review-comment handling, PR babysitting, CI diagnosis, conflict resolution, stacked PRs, Renovate PR merging in kkhys-owned repositories, a one-picture explainer placed in a PR description), message drafting, Hex dictation vocabulary mined from typed Claude Code prompts, event hooks, and the serena MCP server config |
+| `base` | Git/PR workflow skills (commit conventions, PR creation, review with a fixed verdict, review-comment handling, PR babysitting, CI diagnosis, conflict resolution, stacked PRs, Renovate PR merging in kkhys-owned repositories, a one-picture explainer placed in a PR description), message drafting, Devin automation management through the v3 API, Hex dictation vocabulary mined from typed Claude Code prompts, event hooks, and the serena MCP server config |
 
 ## Installation
 
@@ -43,6 +43,7 @@ bash plugins/base/skills/babysitting-pr/scripts/test-pr-watch.sh
 bash plugins/base/skills/fixing-review-comments/scripts/test-reply-to-review-threads.sh
 bash plugins/base/skills/registering-hex-vocabulary/scripts/test-hex-vocabulary.sh
 bash plugins/base/skills/recording-pr-qa/scripts/test-qa-overlay.sh
+bash plugins/base/skills/managing-devin-automations/scripts/test-devin-api.sh
 ```
 
 The same checks run in CI via `.github/workflows/validate.yml`.
