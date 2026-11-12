@@ -1,7 +1,7 @@
 ---
 name: recording-pr-qa
 description: Run a PR's manual test in a headless browser, capture each case as a screenshot or a captioned video with an in-video console, and place the evidence with the case list in the PR description — in the repository's template sections when it has them — or, on a PR the user reviews, in their pending review
-argument-hint: "[PR number | PR URL] [--url <base URL>] [--review] [--post]"
+argument-hint: "[PR number | PR URL] [--url <base URL>] [--review] [--post] [--video-only]"
 disable-model-invocation: true
 allowed-tools:
   - Bash(playwright-cli:*)
@@ -27,9 +27,10 @@ Do the PR's manual test the way a reviewer would, in a headless browser, and
 leave on the PR what the reviewer needs: the list of cases with what was
 observed, and evidence that reads without sound. A case whose observable is
 a state gets a screenshot; one whose observable is a transition gets a
-chapter of one video — a chapter card per case, a caption bar saying what is
-being done and what to expect, a console panel showing what each check read
-from the page, and a callout on every click and key. Headless draws nothing
+chapter of one video — a chapter card per case, a caption card saying what
+is being done and what to expect, a progress bar over the cases, a
+checklist that ticks as each check reads the page, a pointer that travels to each
+click, keycaps for what is typed, and a closing card with the tally. Headless draws nothing
 on the user's screen, so they keep working while it records.
 
 ## PR context
@@ -43,7 +44,10 @@ An argument naming a PR wins over the current branch; fetch the same fields
 for it. `--url` names the environment and skips the choice in step 2.
 `--review`, or an `author.login` other than the viewer, places the report
 in the user's pending review instead of the PR body (step 6). `--post`
-posts the report without the confirmation in step 6. Without
+posts the report without the confirmation in step 6. `--video-only` makes
+the video and stops: every case is a chapter, a state held on screen
+instead of a screenshot, nothing is placed on the PR, and the report gives
+the MP4's path. Without
 `playwright-cli` on PATH, a project that depends on playwright carries the
 same CLI as `npx --no-install playwright cli`. The scratch directory is the
 session's scratchpad, or `mktemp -d` without one: outside the repository,
@@ -115,7 +119,12 @@ so nothing the run writes lands in a commit.
    ```json
    {
      "browser": {
-       "launchOptions": { "channel": "chrome", "ignoreDefaultArgs": ["--disable-back-forward-cache"] },
+       "launchOptions": {
+         "channel": "chrome",
+         "args": ["--force-device-scale-factor=2", "--window-size=1280,987"],
+         "ignoreDefaultArgs": ["--disable-back-forward-cache"]
+       },
+       "contextOptions": { "viewport": null },
        "initScript": ["${CLAUDE_SKILL_DIR}/scripts/qa-overlay.js"]
      },
      "outputDir": "<scratch>/qa"
@@ -125,112 +134,174 @@ so nothing the run writes lands in a commit.
    ```bash
    playwright-cli -s=qa-<pr> open --config <scratch>/qa/cli.config.json
    playwright-cli -s=qa-<pr> state-load <state file>   # when the cases need the login
-   playwright-cli -s=qa-<pr> resize 2560 1800
    playwright-cli -s=qa-<pr> goto <url>
+   playwright-cli -s=qa-<pr> eval "() => [devicePixelRatio, innerWidth, innerHeight]" --raw   # 2, 1280, 900
    ```
 
    `channel: chrome` runs the installed Google Chrome, so nothing is
-   downloaded. `ignoreDefaultArgs` restores bfcache, which Playwright
-   turns off and a case riding on `history.back()` needs. `initScript`
-   gives every page `window.__qa` (below) before any of its own scripts;
-   what the body's test procedure sets up by hand before the app starts —
-   a user agent pasted into the console, a flag written to storage — is a
-   second file in that list, so every page starts in that state.
-   `outputDir` keeps the files `snapshot` writes out of the repository;
-   `--filename` paths stay relative to the working directory, so they are
-   written absolute.
+   downloaded. `ignoreDefaultArgs` restores bfcache, which Playwright turns
+   off and a case riding on `history.back()` needs. `initScript` gives every
+   page `window.__qa` (below) before any of its own scripts; what the body's
+   test procedure sets up by hand before the app starts — a user agent
+   pasted into the console, a flag written to storage — is a second file in
+   that list, so every page starts in that state. The init script is read
+   when the session opens: after editing a file in that list, `close` and
+   `open` again. `outputDir` keeps the files `snapshot` writes out of the
+   repository; `--filename` paths stay relative to the working directory, so
+   they are written absolute.
 
-   The viewport is twice the 1280x900 layout because the init script zooms
-   every page 2x: Playwright records at the CSS viewport size and never
-   above it, and this is the one way to film at Retina density. Rects,
-   `scrollY` and `mousemove` / `mousewheel` coordinates come in zoomed px,
-   and media queries see 2560 — a breakpoint above 1280 is a layout the
-   user's window would not show.
+   Retina density comes from the browser: `--force-device-scale-factor=2`
+   makes every CSS pixel two device pixels, and the screencast records
+   2560x1800 for the 1280x900 viewport. It holds only while Playwright
+   emulates nothing — `viewport: null` in the config and no `resize`, either
+   of which sets a device scale of 1 and halves the video's density. The
+   `eval` above reads 2, 1280, 900; `--window-size` is the window, 87 px
+   taller than the viewport it leaves. The page is not zoomed: rects, scroll
+   offsets and media queries are the ones the user's browser has, and what
+   the app positions from a measured rect — a tooltip, a popover, a menu —
+   lands where it does for the user.
 
-   The init script counter-zooms Playwright's annotation host so cursors
-   and highlights stay in viewport coordinates. Chapter cards use
-   `__qa.chapter` instead: their text keeps the page's 2x recording scale.
-   During rehearsal, check a click's cursor and ripple against its target,
-   and read a chapter at playback size before capturing the full run.
+   A mobile or narrow-width case stays in this session: `__qa.device(390,
+   844, 'iPhone 15')` puts the page in a frame of that size on a plain
+   stage. Media queries see the frame's width, the cards move beside the
+   device instead of over it, and a second call with another size resizes
+   the frame on film; `__qa.device()` returns to the full page. While the
+   stage is up, `__qa.point`, `__qa.scroll` and `__qa.frame()` — the
+   device's document, for the checks — address the device, `type` and
+   `press` go to its focused field, and a click goes through a frame
+   locator: `run-code "async page => { await
+   page.frameLocator('#qa-device').locator('<selector>').click(); }"`. The
+   frame is same-origin, so the login holds. A site that forbids framing
+   itself (`X-Frame-Options: DENY`, `frame-ancestors 'none'`), or a case
+   that depends on the mobile user agent or on touch, is a second session
+   instead — `--window-size=<width>,<height + 87>` and
+   `contextOptions.userAgent` in its config — filmed as its own video.
 
    A wait the case needs (three minutes idle) is Playwright's clock:
    `run-code "async page => { await page.clock.install() }"` before that
-   case's `goto`, then `page.clock.fastForward('03:00')` at the wait; a
-   wait the server measures cannot be shortened and goes to the
-   not-checked list. Walk every case with `snapshot`, `find` and `eval`,
-   and write down for each a selector for every target
-   (`eval "el => el.outerHTML" <ref>` shows what to select by — refs are
-   renumbered on every navigation, `e10` becomes `f2e10`), the exact
-   commands, and the `eval` that reads its observable from the DOM. A
-   check reads what the person sees — the same card at the same height —
-   not a number the browser keeps: `scrollY` moved 42 px on a bfcache
-   return while the view stayed put. Done when each case has run once and
-   its check reads the right state — or the failure is understood.
+   case's `goto`, then `page.clock.fastForward('03:00')` at the wait; a wait
+   the server measures cannot be shortened and goes to the not-checked list.
+   Walk every case with `snapshot`, `find` and `eval`, and write down for
+   each a selector for every target (`eval "el => el.outerHTML" <ref>` shows
+   what to select by — refs are renumbered on every navigation, `e10`
+   becomes `f2e10`), the exact commands, and the `eval` that reads its
+   observable from the DOM. A check reads what the person sees — the same
+   card at the same height — not a number the browser keeps: `scrollY` moved
+   42 px on a bfcache return while the view stayed put. During rehearsal,
+   check a click's pointer and rings against its target. Done when each case
+   has run once and its check reads the right state — or the failure is
+   understood.
 
 4. Capture from one script. Write the rehearsed commands to `qa.sh` and run
    it in a single Bash call: a command takes well under a second, so the
    only pauses on film are the ones written in — the time between separate
    tool calls would be still video. Give that call a `timeout` above the
    script's run time, its holds plus about a second per command: the
-   two-minute default kills it mid-run. The script starts with
-   `goto <url>` and `eval "() => __qa.clear()" --raw`, names targets by
-   selector, and takes the states first, then the transitions as one video:
+   two-minute default kills it mid-run. The script starts with `goto <url>`
+   and `eval "() => __qa.clear()" --raw`, names targets by selector, and
+   takes the states first, then the transitions as one video:
 
    ```bash
-   # a state: the element that holds it, so the bar stays out of frame
-   playwright-cli -s=qa-<pr> screenshot "<selector>" --filename <dir>/<n>-<state>.png
+   # a state: the element that holds it, so the cards stay out of frame
+   playwright-cli -s=qa-<pr> screenshot "<selector>" --hires --filename <dir>/<n>-<state>.png
    # a state that needs the whole viewport
    playwright-cli -s=qa-<pr> eval "() => __qa.hide()" --raw
-   playwright-cli -s=qa-<pr> screenshot --filename <dir>/<n>-<state>.png
+   playwright-cli -s=qa-<pr> screenshot --hires --filename <dir>/<n>-<state>.png
    playwright-cli -s=qa-<pr> eval "() => __qa.show()" --raw
    # the transitions
-   playwright-cli -s=qa-<pr> video-start <dir>/qa.webm --size 2560x1800
-   playwright-cli -s=qa-<pr> video-show-actions --duration=800
+   playwright-cli -s=qa-<pr> video-start <dir>/qa.webm --size 2560x1800 --fps 30
+   playwright-cli -s=qa-<pr> run-code "async page => { await page.screencast.showActions({ cursor: 'none', duration: 800, position: 'top-right', style: {
+     title: 'font: 600 13px/1.3 -apple-system, sans-serif; padding: 6px 10px; border-radius: 8px; background: rgba(17,18,24,.93); color: #fff; border: 1px solid rgba(255,255,255,.14)',
+     highlight: 'outline: 2px solid #818cf8; outline-offset: 2px; border-radius: 6px; background: rgba(129,140,248,.12)' } }); }"
+   playwright-cli -s=qa-<pr> eval "() => __qa.cases(<number of chapters>)" --raw
    # per case
-   playwright-cli -s=qa-<pr> eval "() => __qa.chapter('<n>. <case>', '<expected>', 1500)" --raw
-   playwright-cli -s=qa-<pr> eval "() => __qa.step('ケース <n>: <case>', '<what is done>。期待: <expected>')" --raw
-   # ...the rehearsed actions...
+   playwright-cli -s=qa-<pr> eval "() => __qa.chapter('<n>. <case>', '<expected>')" --raw
+   playwright-cli -s=qa-<pr> eval "() => __qa.step('ケース <n>: <case>', '<what is done>\\n期待: <expected>')" --raw
+   playwright-cli -s=qa-<pr> eval "() => __qa.plan('<label>', '<label>')" --raw
+   # ...the rehearsed actions: scrolls eased, the pointer sent ahead of each click...
+   playwright-cli -s=qa-<pr> eval "() => __qa.scroll('<selector>')" --raw
+   playwright-cli -s=qa-<pr> eval "() => __qa.point('<selector>')" --raw
+   playwright-cli -s=qa-<pr> click "<selector>"
    playwright-cli -s=qa-<pr> eval "() => { const s = <read the DOM>; return [__qa.check('<label>', s.rows, 20), __qa.check('<label>', s.more, true)]; }" --raw
    # after the last case
+   playwright-cli -s=qa-<pr> eval "() => __qa.finish()" --raw
    playwright-cli -s=qa-<pr> video-stop
    playwright-cli -s=qa-<pr> close
    ```
 
    A screenshot is the element that holds the state — the app frame, the
-   banner — at the 2x zoom, so it lands at Retina density. Enable the
-   pointer option the installed CLI's help shows
-   (`video-show-actions --cursor=pointer` or `video-start --cursor`); the
-   supported options differ by version. `window.__qa`
-   (`scripts/qa-overlay.js`) is a bar the page cannot see — inert,
-   aria-hidden, closed shadow root, absent from snapshots — that survives
-   navigations and draws a ripple wherever the mouse goes down:
-   - `chapter(title, detail, hold = 1500)` — a centered chapter card;
-     resolves after the card is removed. Its title and description keep
-     the page's recording scale.
-   - `step(title, detail, hold = 1200)` — caption; resolves after `hold` ms
-     so the viewer reads it before the action.
-   - `check(label, actual, expected)` — writes `✓ label: actual` or
-     `✗ label: actual (expected …)` in the panel and returns
-     `{ pass, actual }`; `expected` is a value, a predicate, or absent for a
-     truthy check.
-   - `log(text)` — a plain line. `console.log/info/warn/error` and uncaught
-     errors are mirrored on their own.
-   - `place("top")` when the bar would hide the element under test;
-     `hide()` / `show()` take it out of frame and back; `clear()` empties
-     bar and panel.
+   banner — and `--hires` saves device pixels, so it lands at Retina
+   density. The pointer is the overlay's own, since Playwright's cannot be
+   sized: `video-start` takes no `--cursor`, and `showActions` goes through
+   `run-code` with `cursor: 'none'`, which the CLI's flag cannot say. The
+   action callout and the target highlight are Playwright's, styled to the
+   cards' palette. A case whose observable is motion itself (a drag, an
+   animation) is worth `--fps 60`. `window.__qa` (`scripts/qa-overlay.js`)
+   draws in the top layer, above the app's own dialogs, where the page
+   cannot see it — inert, aria-hidden, closed shadow root, absent from
+   snapshots — and survives navigations:
 
+   - `clear()` — resets everything; run it first. `cases(total)` — how many
+     chapters the video has: each chapter fills one segment of the progress
+     bar on the caption and chapter cards, and the current segment fills at
+     a constant speed — the previous case's pace — until the case's last
+     planned check closes it.
+   - `chapter(title, detail, hold)` — a centered chapter card, with a ring
+     around the number that closes as the hold runs out; resolves after the
+     card has faded. A leading `<n>.` is shown as the number. It starts the
+     case: the checklist and the console are emptied.
+   - `step(title, detail, hold)` — caption card, as wide as its text; a
+     leading `ケース <n>:` is shown as a badge, and a `\n` in `detail` puts the
+     expectation on its own line. Resolves after `hold` ms so the viewer
+     reads it before the action; left out, `hold` grows with the text (about
+     nine characters a second, 1.2 to 4 s; a chapter 1.5 to 3.5 s), so short
+     captions keep the video short.
+   - `point(selector)` — glides the pointer to the element's centre and
+     resolves on arrival; a click without it lands before the pointer does.
+     A CSS selector, quoted for the shell: `[href=\"#id\"]`. Mouse-down dips
+     the pointer and spreads two rings on its own.
+   - `scroll(to)` — eases the page to `'top'`, `'bottom'`, a y offset or a
+     selector, where `scrollTo` or a wheel command would cut to the new
+     position. Any scroll, the app's own jumps included, shows a rail on the
+     right edge with the position and the direction.
+   - `plan(label, …)` — lists the case's checks in the checklist card, on
+     the right, before they run, so the viewer sees what will be verified.
+     `check(label, actual, expected)` — ticks the row with that label and
+     writes what was read beside it, green, or red with `(expected …)`; a
+     label `plan` did not list gets a row of its own. Returns `{ pass,
+     actual }`; `expected` is a value, a predicate, or absent for a truthy
+     check.
+   - The console is the page's own output — `console.log/info/warn/error`,
+     uncaught errors, and `log(text)` — under the checklist, and hidden
+     unless a case needs it: `console('open')` keeps a tall one on screen
+     for a case whose observable is what the console says, `console('auto')`
+     shows a small one while it has lines.
+   - Keys show as keycaps on top of the caption card on their own — from
+     `type` and `press`, not `fill`, which sets the value without key
+     events; a password field shows dots.
+   - `device(width, height, label)`, `frame()` — the device stage of step 3.
+   - `finish()` — the closing card: the tally of every check since
+     `clear()`, with confetti when none failed. Run it once, last.
+   - `place("top")` when the cards would hide the element under test;
+     `hide()` / `show()` take the overlay out of frame and back. The cards
+     turn light on a dark page.
 5. Convert and look. Read every PNG. For the video:
 
    ```bash
-   ffmpeg -i qa.webm -c:v libx264 -pix_fmt yuv420p -crf 28 -movflags +faststart qa.mp4
+   ffmpeg -i qa.webm -c:v libx264 -preset slow -crf 20 -pix_fmt yuv420p -movflags +faststart qa.mp4
    ffmpeg -i qa.mp4 -vf "fps=1/3,scale=640:-1,tile=4x4" sheet-%02d.png
    ```
 
    Read every `sheet-*.png`. Done when every screenshot shows its state
    whole, every chapter card, caption and check line is legible with
    nothing clipped, and the cursor and ripple land on the controls being
-   used. GitHub takes 10 MB on a free plan and 100 MB on a paid one
-   (about 6 MB per 75 s at this size): raise `-crf` before cutting cases.
+   used. Keep `-crf 20` whatever the size, up to GitHub's 100 MB: the
+   user's work account takes it, and sharp text is the point. Only when
+   the upload in step 6 is refused for size (a free plan stops at 10 MB)
+   re-encode with `-crf 28`, about half the size, before cutting cases.
+
+   With `--video-only`, go to step 7 from here and report the absolute
+   path of `qa.mp4`.
 
 6. Place. The PR decides where: the user's own PR carries the report in
    its body; a PR the user reviews (`--review`, or an `author.login` other
@@ -255,7 +326,8 @@ so nothing the run writes lands in a commit.
      `### Test Cases (AI-Suggested)` is not touched. A section's content
      runs to the next heading or `---`, and a rerun replaces it. The cases
      are Human-Verified because the user checks the evidence before asking
-     for review.
+     for review. The screenshots keep their `<details>` under
+     `## Screenshot(s)`.
    - Otherwise the `## Manual QA` section below: replaced if an earlier
      run left one, appended after the author's text if not.
 
@@ -315,7 +387,9 @@ so nothing the run writes lands in a commit.
 
 The premise and what was not checked are folded, so the cases and the
 evidence are what the reviewer sees first; the blank lines inside each
-`<details>` are what make its Markdown render. A heading whose kind of
+`<details>` are what make its Markdown render. Screenshots are folded too
+— they are tall, and the summary says how many and for which cases — while
+the video stays open. A heading whose kind of
 evidence the run has none of is left out. A screenshot on its own gets its
 caption line, then the image; variants side by side get one `<ol>` above
 the row, a `<li value="<n>">` per image, because Markdown renumbers
@@ -347,6 +421,9 @@ in prose: a PR body renders the newline as a line break.
 
 ### スクリーンショット
 
+<details>
+<summary>スクリーンショット <count> 枚（ケース <n>, <n>, <n>）</summary>
+
 <n>. <state>（<caption>）
 
 ![<n> <state>](./<n>-<state>.png)
@@ -358,10 +435,12 @@ in prose: a PR body renders the newline as a line break.
 
 ![<n> <state>](./<n>-<state>.png) ![<n> <state>](./<n>-<state>.png)
 
+</details>
+
 ### 録画
 
 動画の区切りカードの番号は上の表の # に対応します。
-字幕バーが操作と期待、右下のコンソールがチェック結果です。
+左下の字幕が操作と期待、右下のチェックリストが確認結果です。
 
 ![](./qa.mp4)
 ```
