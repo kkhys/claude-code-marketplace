@@ -330,6 +330,12 @@
     return travel;
   };
   const escape = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+  // Rewritten only when the markup changes: render runs on every pointer move, and a rewrite
+  // replays the animation of whatever it replaces.
+  const write = (el, html) => {
+    if (el.dataset.key !== html) el.innerHTML = html;
+    el.dataset.key = html;
+  };
   const render = () => {
     if (!els) return;
     els.host.style.display = state.hidden ? "none" : "";
@@ -358,13 +364,25 @@
     els.title.textContent = title;
     els.detail.textContent = state.detail;
     if (els.console) els.console.dataset.mode = state.console;
-    if (els.rows) els.rows.innerHTML = state.checks.map((c) =>
-      `<div class="${c.kind}"><i>${{ pass: "✓", fail: "✗" }[c.kind] ?? ""}</i><span>${escape(c.label)}</span><b>${escape(c.text)}</b></div>`).join("");
+    if (els.rows) {
+      // One element per check, kept across renders, so a check ticks its own row and no other.
+      const rows = state.checks.map((c) =>
+        `<i>${{ pass: "✓", fail: "✗" }[c.kind] ?? ""}</i><span>${escape(c.label)}</span><b>${escape(c.text)}</b>`);
+      const drawn = els.rows.children;
+      // check() drops the oldest row of a full list: the same element goes, and the rest stay put.
+      if (drawn.length === rows.length && drawn[0]?.dataset.key !== rows[0] && drawn[1]?.dataset.key === rows[0]) drawn[0].remove();
+      rows.forEach((html, i) => {
+        const row = drawn[i] ?? els.rows.appendChild(document.createElement("div"));
+        row.className = state.checks[i].kind;
+        write(row, html);
+      });
+      while (drawn.length > rows.length) drawn[rows.length].remove();
+    }
     if (els.count) els.count.textContent = `${state.checks.filter((c) => c.kind !== "todo").length} / ${state.checks.length}`;
-    els.log.innerHTML = state.lines
+    write(els.log, state.lines
       .slice(state.console === "open" ? -OPEN_LINES : -MAX_LINES)
       .map((l) => `<div class="${l.kind}">${escape(l.text)}</div>`)
-      .join("");
+      .join(""));
   };
   // The top layer puts the overlay above the app's modal dialogs, whose backdrop would otherwise
   // dim the cards; the layer stacks in opening order, so the host is reopened after each of them.
