@@ -38,18 +38,26 @@ const makeWindow = (storage, calls, readyState = "complete") => {
     innerHTML: "", children: [], querySelector: (sel) => parts[sel],
     appendChild(c) { c.parent = shadow; shadow.children.push(c); return c; },
   };
-  const element = (tag) => ({
-    tag, attrs: {}, children: [], isConnected: false, dataset: {}, textContent: "", innerHTML: "", style: {},
-    setAttribute(k, v) { this.attrs[k] = v; },
-    appendChild(c) { c.isConnected = true; c.parent = this; this.children.push(c); return c; },
-    attachShadow() { return shadow; },
-    showPopover() { this.shown = (this.shown || 0) + 1; },
-    remove() {
-      if (this.parent) this.parent.children = this.parent.children.filter((c) => c !== this);
-      this.isConnected = false;
-    },
-    getBoundingClientRect() { return this.rect; },
-  });
+  const element = (tag) => {
+    let html = "";
+    return {
+      tag, attrs: {}, children: [], isConnected: false, dataset: {}, textContent: "", style: {}, writes: 0,
+      // Counted, because a rewrite is what replays an animation in the browser.
+      get innerHTML() { return html; },
+      set innerHTML(v) { html = v; this.writes += 1; },
+      setAttribute(k, v) { this.attrs[k] = v; },
+      appendChild(c) { c.isConnected = true; c.parent = this; this.children.push(c); return c; },
+      attachShadow() { return shadow; },
+      showPopover() { this.shown = (this.shown || 0) + 1; },
+      // Spliced in place: children stays live for whoever holds it, the way an HTMLCollection does.
+      remove() {
+        const at = this.parent ? this.parent.children.indexOf(this) : -1;
+        if (at >= 0) this.parent.children.splice(at, 1);
+        this.isConnected = false;
+      },
+      getBoundingClientRect() { return this.rect; },
+    };
+  };
   for (const sel of [".bar", ".caption", ".badge", ".title", ".detail", ".log", ".chapter", ".chapter-num", ".chapter-title", ".chapter-detail",
     ".cursor", ".caption .progress", ".chapter-progress", ".ring circle + circle", ".keys",
     ".console", ".rows", ".count", ".rail", ".rail u", ".rail b",
@@ -93,7 +101,7 @@ const test = async (name, fn) => {
   const { win, parts, body, listeners, shadow, targets, element } = makeWindow(storage, calls);
   vm.runInNewContext(source, win);
   const log = () => parts[".log"].innerHTML;
-  const checks = () => parts[".rows"].innerHTML;
+  const checks = () => parts[".rows"].children.map((r) => `<div class="${r.className}">${r.innerHTML}</div>`).join("");
 
   await test("every element and animation the script creates has its rule in the stylesheet", () => {
     for (const rule of [".ripple {", ".confetti {", ".confetti i {", ".keys kbd {", ".rows i {", ".cursor {", ".rail {"])
@@ -190,6 +198,36 @@ const test = async (name, fn) => {
     assert.equal(parts[".caption .progress"].dataset.full, "true");
     win.__qa.check("extra", 1, 1);
     assert.equal(parts[".count"].textContent, "4 / 4");
+    win.__qa.clear();
+  });
+
+  await test("a render rewrites a row only when its check changes, and the log only when a line arrives", () => {
+    win.__qa.plan("a", "b");
+    win.__qa.check("a", 1, 1);
+    const [a, b] = parts[".rows"].children;
+    const writes = () => [a.writes, b.writes, parts[".log"].writes];
+    const before = writes();
+    listeners.mousemove({ clientX: 10, clientY: 10 });
+    win.__qa.step("ケース 1", "期待", 0);
+    assert.deepEqual(writes(), before);
+    win.__qa.log("line");
+    assert.deepEqual(writes(), [before[0], before[1], before[2] + 1]);
+    win.__qa.check("b", 2, 2);
+    assert.deepEqual(writes(), [before[0], before[1] + 1, before[2] + 1]);
+    assert.ok(parts[".rows"].children[0] === a && parts[".rows"].children[1] === b);
+    assert.equal(checks(), `<div class="pass"><i>✓</i><span>a</span><b>1</b></div><div class="pass"><i>✓</i><span>b</span><b>2</b></div>`);
+    win.__qa.clear();
+    assert.equal(parts[".rows"].children.length, 0);
+  });
+
+  await test("a full list drops its oldest row and leaves the others as they are", () => {
+    for (let i = 0; i < 6; i += 1) win.__qa.check(`k${i}`, 1, 1);
+    const kept = parts[".rows"].children.slice(1);
+    const before = kept.map((r) => r.writes);
+    win.__qa.check("k6", 1, 1);
+    assert.ok(kept.every((r, i) => parts[".rows"].children[i] === r));
+    assert.deepEqual(kept.map((r) => r.writes), before);
+    assert.match(checks(), /^<div class="pass"><i>✓<\/i><span>k1<\/span>.*<span>k6<\/span><b>1<\/b><\/div>$/);
     win.__qa.clear();
   });
 
